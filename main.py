@@ -1,3 +1,4 @@
+
 import os
 import requests
 import pandas as pd
@@ -7,7 +8,9 @@ import logging
 import json
 from threading import Thread
 from flask import Flask
-from twilio.rest import Client
+import smtplib
+from email.message import EmailMessage
+from datetime import datetime, timezone, timedelta
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,38 +21,42 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Advanced Trading Engine is Live 24/7 with Twilio and Backup Core!"
+    return "Advanced Trading Engine is Live 24/7 with Gmail Alerts!"
 
 def run_web_server():
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
 
-import smtplib
-from email.message import EmailMessage
-
+# Gmail Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = os.environ.get("GMAIL_USER")
 SENDER_PASSWORD = os.environ.get("GMAIL_PASS")
 RECEIVER_EMAIL = "your_adrdj5006@gmail.com"  # ⚠️ 
 
+def send_trade_email(subject, message_body):
+    if not SENDER_EMAIL or not SENDER_PASSWORD:
+        logging.error("Gmail credentials are missing in environment variables!")
+        return
+    try:
+        msg = EmailMessage()
+        msg.set_content(message_body)
+        msg["Subject"] = subject
+        msg["From"] = SENDER_EMAIL
+        msg["To"] = RECEIVER_EMAIL
 
-def send_trade_email(trade_details):
-  msg = EmailMessage()
-  msg.set_content(f"New Trade Executed:\n\n{trade_details}")
-  msg["Subject"] = "🚀 Crypto Trade Alert"
-  msg["From"] = SENDER_EMAIL
-  msg["To"] = RECEIVER_EMAIL
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SENDER_EMAIL, SENDER_PASSWORD)
+            server.send_message(msg)
+        logging.info("Email Alert Sent Successfully!")
+    except Exception as e:
+        logging.error(f"Gmail SMTP Error: {e}")
 
-  try:
-    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-      server.starttls()
-      server.login(SENDER_EMAIL, SENDER_PASSWORD)
-      server.send_message(msg)
-    print("Email sent successfully!")
-  except Exception as e:
-    print(f"Failed to send email: {e}")
-    
+def get_pakistan_time():
+    # پاکستان کا ٹائم زोन (UTC+5)
+    pk_timezone = timezone(timedelta(hours=5))
+    return datetime.now(pk_timezone).strftime('%Y-%m-%d %I:%M:%S %p')
 
 BINANCE_ENDPOINTS = [
     "https://api.binance.com",
@@ -79,17 +86,6 @@ def save_ai_log(data):
     logs.append(data)
     with open(AI_LEARNING_FILE, 'w') as f:
         json.dump(logs, f, indent=4)
-
-def send_whatsapp_signal(message_body):
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN or not TWILIO_NUMBER:
-        logging.error("Twilio credentials are missing in Render settings!")
-        return
-    try:
-        client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-        client.messages.create(from_=TWILIO_NUMBER, body=message_body, to=YOUR_WHATSAPP_NUMBER)
-        logging.info("WhatsApp Alert Sent Successfully!")
-    except Exception as e:
-        logging.error(f"Twilio WhatsApp Error: {e}")
 
 def fetch_candles_with_backup(symbol, interval, limit=150):
     params = {"symbol": symbol, "interval": interval, "limit": limit}
@@ -178,8 +174,15 @@ def track_active_trades(symbol, current_price):
         }
         save_ai_log(log_data)
         
-        close_msg = f"📊 *TRADE CLOSED: {symbol}*\nResult: {outcome}\nExit Price: ${current_price:,.4f}\nP&L: {pnl_pct:.2f}%"
-        send_whatsapp_signal(close_msg)
+        pk_time = get_pakistan_time()
+        close_msg = (
+            f"📊 TRADE CLOSED: {symbol}\n"
+            f"Time (PKT): {pk_time}\n"
+            f"Result: {outcome}\n"
+            f"Exit Price: ${current_price:,.4f}\n"
+            f"P&L: {pnl_pct:.2f}%"
+        )
+        send_trade_email(f"📊 Trade Closed: {symbol} - {outcome}", close_msg)
         SIGNAL_TRACKER[symbol]["active_trade"] = None
 
 def analyze_asset_pipeline(symbol):
@@ -206,9 +209,9 @@ def analyze_asset_pipeline(symbol):
         action, sl_price, trade_type = None, 0.0, ""
         
         if trend_1h == "UP" and smc["type"] == "BULLISH" and current_price <= smc["ob_price"] * 1.003 and current_price >= smc["ob_low"] * 0.997 and rsi_val <= 53:
-            action, sl_price, trade_type = "🚀 STRONGLY BUY", smc["ob_low"] * 0.996, "BUY"
+            action, sl_price, trade_type = "STRONGLY BUY", smc["ob_low"] * 0.996, "BUY"
         elif trend_1h == "DOWN" and smc["type"] == "BEARISH" and current_price >= smc["ob_price"] * 0.997 and current_price <= smc["ob_high"] * 1.003 and rsi_val >= 47:
-            action, sl_price, trade_type = "📉 STRONGLY SELL", smc["ob_high"] * 1.004, "SELL"
+            action, sl_price, trade_type = "STRONGLY SELL", smc["ob_high"] * 1.004, "SELL"
 
         if action and smc["ob_price"] != SIGNAL_TRACKER[symbol]["last_processed_ob"] and not SIGNAL_TRACKER[symbol]["active_trade"]:
             risk_pct = abs((sl_price - current_price) / current_price) * 100
@@ -218,21 +221,25 @@ def analyze_asset_pipeline(symbol):
                 "type": trade_type, "entry_price": current_price, "target": smc["next_target"], "sl": sl_price, "context": context
             }
             
+            pk_time = get_pakistan_time()
             msg = (
-                f"🚨 *PRO SIGNAL ALERTS: {symbol}* 🚨\n\n"
-                f"*Action:* {action}\n*Entry Price:* ${current_price:,.4f}\n"
-                f"*Target:* ${smc['next_target']:,.4f} ({potential_move:.2f}%)\n"
-                f"*Stop Loss:* ${sl_price:,.4f} (Risk: {risk_pct:.2f}%)\n"
-                f"*Engine Context:* RSI: {rsi_val:.2f} | FVG: {smc['fvg_detected']}"
+                f"🚨 CRYPTO TRADE SIGNAL ALERT 🚨\n\n"
+                f"Coin / Asset: {symbol}\n"
+                f"Time (Pakistan/Karachi): {pk_time}\n"
+                f"Action: {action}\n"
+                f"Entry Price: ${current_price:,.4f}\n"
+                f"Target Price: ${smc['next_target']:,.4f} (+{potential_move:.2f}%)\n"
+                f"Stop Loss: ${sl_price:,.4f} (Risk: {risk_pct:.2f}%)\n\n"
+                f"Engine Context -> RSI: {rsi_val:.2f} | FVG: {smc['fvg_detected']} | Trend: {trend_status}"
             )
-            send_whatsapp_signal(msg)
+            send_trade_email(f"🚨 {action} Signal: {symbol}", msg)
             SIGNAL_TRACKER[symbol]["last_processed_ob"] = smc["ob_price"]
             return {"status": action, "trend": trend_status, "target_move": f"{potential_move:.2f}%"}
 
     return {"status": "SCANNING", "trend": trend_status, "target_move": f"{potential_move:.2f}%"}
 
 def main_loop():
-    logging.info("Advanced Production Engine Started Successfully...")
+    logging.info("Advanced Production Engine Started Successfully with Gmail Alerts...")
     while True:
         for asset in ASSETS:
             analyze_asset_pipeline(asset)
@@ -245,4 +252,3 @@ if __name__ == "__main__":
     server_thread.start()
     
     main_loop()
-  
