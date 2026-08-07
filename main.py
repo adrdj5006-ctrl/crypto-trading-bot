@@ -7,7 +7,6 @@ import time
 import logging
 import json
 from threading import Thread
-from flask import Flask
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime, timezone, timedelta
