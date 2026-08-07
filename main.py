@@ -19,7 +19,7 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = os.environ.get("GMAIL_USER")
 SENDER_PASSWORD = os.environ.get("GMAIL_PASS")
-RECEIVER_EMAIL = SENDER_EMAIL  # خود بخود جی میل یوزر کو بھیجے گا
+RECEIVER_EMAIL = SENDER_EMAIL
 
 def send_trade_email(subject, message_body):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
@@ -44,13 +44,6 @@ def get_pakistan_time():
     pk_timezone = timezone(timedelta(hours=5))
     return datetime.now(pk_timezone).strftime('%Y-%m-%d %I:%M:%S %p')
 
-BINANCE_ENDPOINTS = [
-    "https://api.binance.com",
-    "https://api1.binance.com",
-    "https://api2.binance.com",
-    "https://api3.binance.com"
-]
-
 ASSETS = [
     "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", 
     "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "NEARUSDT", 
@@ -74,7 +67,6 @@ def save_ai_log(data):
     with open(AI_LEARNING_FILE, 'w') as f:
         json.dump(logs, f, indent=4)
 
-# --- 24-Hour Daily Performance Summary Report ---
 def check_and_send_daily_report():
     last_run_time = None
     if os.path.exists(REPORT_STATE_FILE):
@@ -109,7 +101,7 @@ def check_and_send_daily_report():
             f"- Total Trades (Last 24h): {wins + losses}\n"
             f"- Wins: {wins}\n"
             f"- Losses: {losses}\n\n"
-            f"Self-Learning AI Status: Active and optimizing trade filters based on past data."
+            f"Self-Learning AI Status: Active and optimizing trade filters."
         )
         send_trade_email("📊 AI Bot - 24 Hours Daily Performance Report", report_body)
         
@@ -117,25 +109,49 @@ def check_and_send_daily_report():
             json.dump({"last_time": now.strftime("%Y-%m-%d %H:%M:%S")}, f)
 
 def fetch_candles_with_backup(symbol, interval, limit=150):
-    params = {"symbol": symbol, "interval": interval, "limit": limit}
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json"
     }
-    for base_url in BINANCE_ENDPOINTS:
-        url = f"{base_url}/api/v3/klines"
+    
+    # 1. Try Binance Public APIs
+    binance_urls = [
+        f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",
+        f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",
+        f"https://api1.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",
+        f"https://api3.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"
+    ]
+    
+    for url in binance_urls:
         try:
-            response = requests.get(url, params=params, headers=headers, timeout=5)
+            response = requests.get(url, headers=headers, timeout=6)
             if response.status_code == 200:
                 data = response.json()
                 df = pd.DataFrame(data, columns=['time', 'open', 'high', 'low', 'close', 'vol', 'ct', 'qv', 'tr', 'tb', 'ts', 'ig'])
                 df[['open', 'high', 'low', 'close', 'vol']] = df[['open', 'high', 'low', 'close', 'vol']].astype(float)
                 return df
-            elif response.status_code == 429:
-                logging.warning(f"Rate limit hit on {base_url}, switching endpoint...")
-                time.sleep(2)
         except Exception:
             continue
-    logging.error(f"All Binance endpoints failed for {symbol}")
+
+    # 2. Backup: Try MEXC API if Binance fails completely on GitHub Actions
+    try:
+        mexc_interval_map = {"1h": "60m", "30m": "30m", "15m": "15m", "5m": "5m"}
+        mexc_iv = mexc_interval_map.get(interval, "15m")
+        mexc_url = f"https://www.mexc.com/open/api/v2/market/kline?symbol={symbol}&interval={mexc_iv}"
+        response = requests.get(mexc_url, headers=headers, timeout=6)
+        if response.status_code == 200:
+            res_json = response.json()
+            if "data" in res_json and res_json["data"]:
+                rows = []
+                for item in res_json["data"]:
+                    # MEXC format: [time, open, high, low, close, volume]
+                    rows.append([item[0], float(item[1]), float(item[2]), float(item[3]), float(item[4]), float(item[5])])
+                df = pd.DataFrame(rows, columns=['time', 'open', 'high', 'low', 'close', 'vol'])
+                return df.tail(limit)
+    except Exception:
+        pass
+
+    logging.error(f"All endpoints (Binance + Backups) failed for {symbol}")
     return None
 
 def calculate_rsi(df, periods=14):
@@ -271,15 +287,15 @@ def analyze_asset_pipeline(symbol):
     return {"status": "SCANNING", "trend": trend_status, "target_move": f"{potential_move:.2f}%"}
 
 def main_loop():
-    logging.info("Advanced Production Engine Started Successfully (No Flask, Pure Trading Engine)...")
+    logging.info("Advanced Production Engine Started Successfully with Multi-Exchange Fallbacks...")
     while True:
         check_and_send_daily_report()
         
         for asset in ASSETS:
             analyze_asset_pipeline(asset)
-            time.sleep(0.5)
+            time.sleep(1)
         time.sleep(25)
 
 if __name__ == "__main__":
     main_loop()
-        
+            
