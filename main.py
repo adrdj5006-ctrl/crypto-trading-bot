@@ -16,16 +16,6 @@ logging.basicConfig(
     format='%(asctime)s - [%(levelname)s] - %(message)s'
 )
 
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Advanced Trading Engine is Live 24/7 with Gmail Alerts!"
-
-def run_web_server():
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
 # Gmail Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
@@ -246,8 +236,4 @@ def main_loop():
         time.sleep(25)
 
 if __name__ == "__main__":
-    server_thread = Thread(target=run_web_server)
-    server_thread.daemon = True
-    server_thread.start()
-    
-    main_loop()
+     main_loop()
