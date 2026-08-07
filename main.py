@@ -24,10 +24,32 @@ def run_web_server():
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
 
-TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
-TWILIO_NUMBER = os.environ.get("TWILIO_NUMBER")
-YOUR_WHATSAPP_NUMBER = "whatsapp:+923101436670"  # ⚠️ Replace with your actual WhatsApp number
+import smtplib
+from email.message import EmailMessage
+
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SENDER_EMAIL = os.environ.get("GMAIL_USER")
+SENDER_PASSWORD = os.environ.get("GMAIL_PASS")
+RECEIVER_EMAIL = "your_adrdj5006@gmail.com"  # ⚠️ 
+
+
+def send_trade_email(trade_details):
+  msg = EmailMessage()
+  msg.set_content(f"New Trade Executed:\n\n{trade_details}")
+  msg["Subject"] = "🚀 Crypto Trade Alert"
+  msg["From"] = SENDER_EMAIL
+  msg["To"] = RECEIVER_EMAIL
+
+  try:
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+      server.starttls()
+      server.login(SENDER_EMAIL, SENDER_PASSWORD)
+      server.send_message(msg)
+    print("Email sent successfully!")
+  except Exception as e:
+    print(f"Failed to send email: {e}")
+    
 
 BINANCE_ENDPOINTS = [
     "https://api.binance.com",
