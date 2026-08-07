@@ -2,7 +2,7 @@ name: Run Trading Bot
 
 on:
   schedule:
-    - cron: '*/10 * * * *' # ہر 10 منٹ بعد کوڈ چلے گا
+    - cron: '*/10 * * * *' #
   workflow_dispatch:
 
 jobs:
@@ -24,7 +24,9 @@ jobs:
 
       - name: Run script
         env:
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
         run: |
           python main.py
+          
           
