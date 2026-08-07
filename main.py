@@ -1,4 +1,3 @@
-
 import os
 import requests
 import pandas as pd
@@ -6,7 +5,6 @@ import numpy as np
 import time
 import logging
 import json
-from threading import Thread
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime, timezone, timedelta
@@ -21,7 +19,7 @@ SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 SENDER_EMAIL = os.environ.get("GMAIL_USER")
 SENDER_PASSWORD = os.environ.get("GMAIL_PASS")
-RECEIVER_EMAIL = "your_adrdj5006@gmail.com"  # ⚠️ 
+RECEIVER_EMAIL = SENDER_EMAIL  # خود بخود جی میل یوزر کو بھیجے گا
 
 def send_trade_email(subject, message_body):
     if not SENDER_EMAIL or not SENDER_PASSWORD:
@@ -43,7 +41,6 @@ def send_trade_email(subject, message_body):
         logging.error(f"Gmail SMTP Error: {e}")
 
 def get_pakistan_time():
-    # پاکستان کا ٹائم زोन (UTC+5)
     pk_timezone = timezone(timedelta(hours=5))
     return datetime.now(pk_timezone).strftime('%Y-%m-%d %I:%M:%S %p')
 
@@ -63,6 +60,7 @@ ASSETS = [
 
 SIGNAL_TRACKER = {asset: {"last_processed_ob": None, "active_trade": None} for asset in ASSETS}
 AI_LEARNING_FILE = "ai_trade_learning_log.json"
+REPORT_STATE_FILE = "last_report_time.json"
 
 def save_ai_log(data):
     logs = []
@@ -76,12 +74,57 @@ def save_ai_log(data):
     with open(AI_LEARNING_FILE, 'w') as f:
         json.dump(logs, f, indent=4)
 
+# --- 24-Hour Daily Performance Summary Report ---
+def check_and_send_daily_report():
+    last_run_time = None
+    if os.path.exists(REPORT_STATE_FILE):
+        try:
+            with open(REPORT_STATE_FILE, "r") as f:
+                d = json.load(f)
+                last_run_time = datetime.strptime(d.get("last_time"), "%Y-%m-%d %H:%M:%S")
+        except:
+            pass
+            
+    now = datetime.now()
+    if last_run_time is None or (now - last_run_time) >= timedelta(hours=24):
+        wins, losses = 0, 0
+        if os.path.exists(AI_LEARNING_FILE):
+            try:
+                with open(AI_LEARNING_FILE, "r") as f:
+                    trades = json.load(f)
+                    for t in trades:
+                        t_time = datetime.fromtimestamp(t.get('timestamp', time.time()))
+                        if (now - t_time) <= timedelta(hours=24):
+                            if "WIN" in t.get('outcome', ''):
+                                wins += 1
+                            else:
+                                losses += 1
+            except:
+                pass
+                
+        pk_time = get_pakistan_time()
+        report_body = (
+            f"📊 24-HOUR AI TRADING BOT PERFORMANCE REPORT 📊\n"
+            f"Time (PKT): {pk_time}\n\n"
+            f"- Total Trades (Last 24h): {wins + losses}\n"
+            f"- Wins: {wins}\n"
+            f"- Losses: {losses}\n\n"
+            f"Self-Learning AI Status: Active and optimizing trade filters based on past data."
+        )
+        send_trade_email("📊 AI Bot - 24 Hours Daily Performance Report", report_body)
+        
+        with open(REPORT_STATE_FILE, "w") as f:
+            json.dump({"last_time": now.strftime("%Y-%m-%d %H:%M:%S")}, f)
+
 def fetch_candles_with_backup(symbol, interval, limit=150):
     params = {"symbol": symbol, "interval": interval, "limit": limit}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     for base_url in BINANCE_ENDPOINTS:
         url = f"{base_url}/api/v3/klines"
         try:
-            response = requests.get(url, params=params, timeout=5)
+            response = requests.get(url, params=params, headers=headers, timeout=5)
             if response.status_code == 200:
                 data = response.json()
                 df = pd.DataFrame(data, columns=['time', 'open', 'high', 'low', 'close', 'vol', 'ct', 'qv', 'tr', 'tb', 'ts', 'ig'])
@@ -228,12 +271,15 @@ def analyze_asset_pipeline(symbol):
     return {"status": "SCANNING", "trend": trend_status, "target_move": f"{potential_move:.2f}%"}
 
 def main_loop():
-    logging.info("Advanced Production Engine Started Successfully with Gmail Alerts...")
+    logging.info("Advanced Production Engine Started Successfully (No Flask, Pure Trading Engine)...")
     while True:
+        check_and_send_daily_report()
+        
         for asset in ASSETS:
             analyze_asset_pipeline(asset)
             time.sleep(0.5)
         time.sleep(25)
 
 if __name__ == "__main__":
-     main_loop()
+    main_loop()
+        
