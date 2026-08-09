@@ -1,182 +1,172 @@
-import os
-import requests
 import pandas as pd
 import numpy as np
-import time
-import logging
-import json
 import smtplib
-from email.message import EmailMessage
-from datetime import datetime, timezone, timedelta
+from email.mime.text import MIMEText
+from datetime import datetime
+import pytz
 
-# ================= CONFIG =================
-TZ = timezone(timedelta(hours=5))
+# =========================
+# CONFIG
+# =========================
 
-ASSETS = [
-    "BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT",
-    "ADAUSDT","AVAXUSDT","DOTUSDT","LINKUSDT","NEARUSDT",
-    "SUIUSDT","OPUSDT","ARBUSDT","INJUSDT","APTUSDT",
-    "PAXGUSDT","LTCUSDT","TRXUSDT"
+SYMBOLS = [
+    "BTCUSDT","ETHUSDT","BNBUSDT","XRPUSDT","ADAUSDT",
+    "SOLUSDT","DOGEUSDT","MATICUSDT","DOTUSDT","LTCUSDT",
+    "AVAXUSDT","TRXUSDT","LINKUSDT","ATOMUSDT","NEARUSDT",
+    "FTMUSDT","APEUSDT","SANDUSDT","GALAUSDT","OPUSDT"
 ]
 
-AI_FILE = "ai_learning.json"
-TRADE_LOG = "trades.json"
+EMAIL = "your@gmail.com"
+PASSWORD = "your_app_password"
+TO_EMAIL = "your@gmail.com"
 
-# ================= EMAIL =================
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-EMAIL = os.environ.get("GMAIL_USER")
-PASS = os.environ.get("GMAIL_PASS")
+# =========================
+# TIME (Pakistan)
+# =========================
 
-def send_email(subject, msg):
-    try:
-        m = EmailMessage()
-        m.set_content(msg)
-        m["Subject"] = subject
-        m["From"] = EMAIL
-        m["To"] = EMAIL
+def get_pak_time():
+    tz = pytz.timezone("Asia/Karachi")
+    return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as s:
-            s.starttls()
-            s.login(EMAIL, PASS)
-            s.send_message(m)
-    except:
-        pass
+# =========================
+# DATA (Dummy - replace later)
+# =========================
 
-# ================= TIME =================
-def pk_time():
-    return datetime.now(TZ).strftime("%Y-%m-%d %I:%M:%S %p")
-
-# ================= AI WEIGHTS =================
-def load_ai():
-    if os.path.exists(AI_FILE):
-        return json.load(open(AI_FILE))
-    return {"rsi":1,"trend":1,"fvg":1,"ob":1,"pressure":1}
-
-def save_ai(w):
-    json.dump(w, open(AI_FILE,"w"), indent=4)
-
-AI_WEIGHTS = load_ai()
-
-# ================= FETCH =================
 def get_data(symbol, tf):
-    try:
-        url=f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={tf}&limit=100"
-        d=requests.get(url,timeout=5).json()
-        df=pd.DataFrame(d,columns=['t','o','h','l','c','v','ct','q','n','tb','tq','i'])
-        df[['o','h','l','c']]=df[['o','h','l','c']].astype(float)
-        return df
-    except:
-        return None
-
-# ================= INDICATORS =================
-def rsi(df):
-    delta=df['c'].diff()
-    up=delta.clip(lower=0)
-    down=-delta.clip(upper=0)
-    ma_up=up.ewm(com=13).mean()
-    ma_down=down.ewm(com=13).mean()
-    rs=ma_up/ma_down
-    return 100-(100/(1+rs)).iloc[-1]
-
-def trend(df):
-    ema=df['c'].ewm(span=20).mean().iloc[-1]
-    return "UP" if df['c'].iloc[-1]>ema else "DOWN"
-
-def detect_smc(df):
-    if df is None: return {}
-    high=df['h'].iloc[-20:].max()
-    low=df['l'].iloc[-20:].min()
-    price=df['c'].iloc[-1]
-
-    if price>high: return {"type":"BULLISH","target":high*1.02}
-    if price<low: return {"type":"BEARISH","target":low*0.98}
-    return {"type":None,"target":None}
-
-def pressure(df):
-    body=abs(df['c'].iloc[-1]-df['o'].iloc[-1])
-    range_=df['h'].iloc[-1]-df['l'].iloc[-1]
-    return body/range_ if range_>0 else 0
-
-# ================= AI ENGINE =================
-def score(symbol):
-    df1=get_data(symbol,"1h")
-    df5=get_data(symbol,"5m")
-    if df1 is None or df5 is None:
-        return None
-
-    s=0
-    rs=rsi(df5)
-    tr=trend(df1)
-    smc=detect_smc(df5)
-    pr=pressure(df5)
-
-    if rs<60: s+=15*AI_WEIGHTS["rsi"]
-    if tr=="UP": s+=25*AI_WEIGHTS["trend"]
-    if smc["type"]=="BULLISH": s+=20*AI_WEIGHTS["ob"]
-    if pr>0.5: s+=10*AI_WEIGHTS["pressure"]
-
-    return {
-        "score":s,
-        "price":df5['c'].iloc[-1],
-        "rsi":rs,
-        "trend":tr,
-        "target": smc["target"] if smc["target"] else df5['c'].iloc[-1]*1.02
-    }
-
-# ================= LEARNING =================
-def learn(result):
-    if result=="WIN":
-        for k in AI_WEIGHTS:
-            AI_WEIGHTS[k]*=1.02
-    else:
-        for k in AI_WEIGHTS:
-            AI_WEIGHTS[k]*=0.98
-    save_ai(AI_WEIGHTS)
-
-# ================= TRADING =================
-ACTIVE_TRADES={}
-
-def trade(symbol):
-    data=score(symbol)
-    if not data: return
-
-    sc=data["score"]
-
-    if sc>60 and symbol not in ACTIVE_TRADES:
-        ACTIVE_TRADES[symbol]=data
-        send_email("BUY "+symbol, str(data))
-
-    if symbol in ACTIVE_TRADES:
-        entry=ACTIVE_TRADES[symbol]["price"]
-        cur=data["price"]
-
-        if cur>=ACTIVE_TRADES[symbol]["target"]:
-            learn("WIN")
-            send_email("WIN "+symbol,str(data))
-            del ACTIVE_TRADES[symbol]
-
-        elif cur<=entry*0.98:
-            learn("LOSS")
-            send_email("LOSS "+symbol,str(data))
-            del ACTIVE_TRADES[symbol]
-
-# ================= DASHBOARD =================
-        "time": pk_time(),
-        "active_trades": ACTIVE_TRADES,
-        "ai_weights": AI_WEIGHTS
+    return pd.DataFrame({
+        "close": np.random.rand(100),
+        "high": np.random.rand(100),
+        "low": np.random.rand(100)
     })
 
-# ================= MAIN =================
-def run_bot():
-    while True:
-        for s in ASSETS:
-            trade(s)
-            time.sleep(1)
-        time.sleep(20)
+# =========================
+# SMC LOGIC
+# =========================
 
-# ================= START =================
-if __name__=="__main__":
-    import threading
-    threading.Thread(target=run_bot).start()
-    app.run(host="0.0.0.0", port=5000)
+def fvg(df):
+    return df["low"].iloc[-2] > df["high"].iloc[-3]
+
+def ob(df):
+    return df["close"].iloc[-1] > df["close"].mean()
+
+def choch(df):
+    return df["close"].iloc[-1] > df["close"].iloc[-5]
+
+def liquidity(df):
+    return df["high"].iloc[-1] == df["high"].rolling(10).max().iloc[-1]
+
+# =========================
+# AI WEIGHTS
+# =========================
+
+weights = {
+    "fvg": 1.0,
+    "ob": 1.0,
+    "choch": 1.0,
+    "liq": 1.0
+}
+
+def update_weights(win):
+    global weights
+    for k in weights:
+        weights[k] += 0.1 if win else -0.05
+
+# =========================
+# STRATEGY
+# =========================
+
+def strategy(symbol):
+
+    df1 = get_data(symbol,"1h")    # seller pressure
+    df30 = get_data(symbol,"30m")  # support
+    df15 = get_data(symbol,"15m")  # structure
+    df5 = get_data(symbol,"5m")    # entry
+
+    score = 0
+
+    if fvg(df15):
+        score += weights["fvg"]
+
+    if ob(df15):
+        score += weights["ob"]
+
+    if choch(df15):
+        score += weights["choch"]
+
+    if liquidity(df15):
+        score += weights["liq"]
+
+    trend_sell = df1["close"].iloc[-1] < df1["close"].mean()
+
+    price = df5["close"].iloc[-1]
+
+    # ENTRY / SL / TP
+    entry = price
+    sl = price * 0.98
+    tp = price * 1.04
+
+    if score > 2.5 and trend_sell:
+        return "SELL", entry, sl, tp, score
+
+    elif score > 2.5:
+        return "BUY", entry, sl, tp, score
+
+    return "NO", None, None, None, score
+
+# =========================
+# EMAIL ALERT
+# =========================
+
+def send_email(message):
+
+    msg = MIMEText(message)
+    msg["Subject"] = "🚀 Trade Alert"
+    msg["From"] = EMAIL
+    msg["To"] = TO_EMAIL
+
+    server = smtplib.SMTP("smtp.gmail.com", 587)
+    server.starttls()
+    server.login(EMAIL, PASSWORD)
+    server.send_message(msg)
+    server.quit()
+
+# =========================
+# MAIN BOT
+# =========================
+
+def run_bot():
+
+    for symbol in SYMBOLS:
+
+        signal, entry, sl, tp, score = strategy(symbol)
+
+        if signal != "NO":
+
+            time_now = get_pak_time()
+
+            message = f"""
+📊 TRADE SIGNAL
+
+Symbol: {symbol}
+Signal: {signal}
+
+Entry: {entry:.4f}
+Stop Loss: {sl:.4f}
+Take Profit: {tp:.4f}
+
+Score: {score:.2f}
+
+Time (Pakistan): {time_now}
+"""
+
+            print(message)
+            send_email(message)
+
+            update_weights(True)
+
+        else:
+            update_weights(False)
+
+# =========================
+if __name__ == "__main__":
+    run_bot()
