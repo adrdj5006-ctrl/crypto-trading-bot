@@ -101,7 +101,7 @@ def check_and_send_daily_report():
             f"- Total Trades (Last 24h): {wins + losses}\n"  
             f"- Wins: {wins}\n"  
             f"- Losses: {losses}\n\n"  
-            f"Self-Learning AI Status: Active with Dynamic Risk & W/M Patterns."  
+            f"Self-Learning AI Status: Active with Multi-TF Volume, RSI, 1D/4H/1H & 1% Risk Logic."  
         )  
         send_trade_email("📊 AI Bot - 24 Hours Daily Performance Report", report_body)  
           
@@ -133,7 +133,7 @@ def fetch_candles_with_backup(symbol, interval, limit=150):
             continue  
 
     try:  
-        mexc_interval_map = {"1h": "60m", "30m": "30m", "15m": "15m", "5m": "5m"}  
+        mexc_interval_map = {"1d": "1d", "4h": "4h", "1h": "60m", "30m": "30m", "15m": "15m", "5m": "5m"}  
         mexc_iv = mexc_interval_map.get(interval, "15m")  
         mexc_url = f"https://www.mexc.com/open/api/v2/market/kline?symbol={symbol}&interval={mexc_iv}"  
         response = requests.get(mexc_url, headers=headers, timeout=6)  
@@ -167,60 +167,63 @@ def analyze_trend_ema(df, period=20):
     ema = df['close'].ewm(span=period, adjust=False).mean().iloc[-1]
     return "UP" if df['close'].iloc[-1] > ema else "DOWN"
 
-def detect_advanced_patterns_and_structure(df):
+def check_volume_strength(df):
+    if df is None or len(df) < 10: return False
+    avg_vol = df['vol'].iloc[-10:-1].mean()
+    curr_vol = df['vol'].iloc[-1]
+    # Check if current candle volume is healthy/above average
+    return curr_vol >= (avg_vol * 0.8)
+
+def detect_advanced_patterns_and_structure(df_1h, df_15m):
     analysis = {
         "pattern": None, 
         "structure": "NEUTRAL", 
         "ob_price": None, 
         "ob_low": None,
-        "ob_high": None,
         "fvg": "NO",
         "next_target": None
     }
-    if df is None or len(df) < 50: return analysis
+    if df_15m is None or len(df_15m) < 50: return analysis
 
-    recent_high = df['high'].iloc[-30:-2].max()
-    recent_low = df['low'].iloc[-30:-2].min()
-    current_close = df['close'].iloc[-1]
+    recent_high = df_15m['high'].iloc[-30:-2].max()
+    recent_low = df_15m['low'].iloc[-30:-2].min()
+    current_close = df_15m['close'].iloc[-1]
 
     if current_close > recent_high:
         analysis["structure"] = "BULLISH_BOS"
-        analysis["next_target"] = df['high'].iloc[-50:].max()
+        analysis["next_target"] = df_15m['high'].iloc[-50:].max()
     elif current_close < recent_low:
         analysis["structure"] = "BEARISH_BOS"
-        analysis["next_target"] = df['low'].iloc[-50:].min()
+        analysis["next_target"] = df_15m['low'].iloc[-50:].min()
 
-    # W-Pattern (Double Bottom) Detection
-    lows = df['low'].iloc[-40:].values
+    lows = df_15m['low'].iloc[-40:].values
     min_idx1 = np.argmin(lows[:20])
     min_idx2 = 20 + np.argmin(lows[20:])
     val1, val2 = lows[min_idx1], lows[min_idx2]
     
     if abs(val1 - val2) / val1 < 0.008:
-        if current_close > df['high'].iloc[min_idx1:min_idx2].max():
+        if current_close > df_15m['high'].iloc[min_idx1:min_idx2].max():
             analysis["pattern"] = "W_PATTERN_BULLISH"
 
-    # M-Pattern (Double Top) Detection
-    highs = df['high'].iloc[-40:].values
+    highs = df_15m['high'].iloc[-40:].values
     max_idx1 = np.argmax(highs[:20])
     max_idx2 = 20 + np.argmax(highs[20:])
     h_val1, h_val2 = highs[max_idx1], highs[max_idx2]
 
     if abs(h_val1 - h_val2) / h_val1 < 0.008:
-        if current_close < df['low'].iloc[max_idx1:max_idx2].min():
+        if current_close < df_15m['low'].iloc[max_idx1:max_idx2].min():
             analysis["pattern"] = "M_PATTERN_BEARISH"
 
-    # Order Block & FVG Detection
-    for i in range(len(df)-2, 1, -1):
-        if df['close'].iloc[i] < df['open'].iloc[i]:
-            analysis["ob_price"] = df['high'].iloc[i]
-            analysis["ob_low"] = df['low'].iloc[i]
-            break
+    if df_1h is not None and len(df_1h) >= 3:
+        for i in range(len(df_1h)-2, 1, -1):
+            if df_1h['close'].iloc[i] < df_1h['open'].iloc[i]:
+                analysis["ob_price"] = df_1h['high'].iloc[i]
+                analysis["ob_low"] = df_1h['low'].iloc[i]
+                break
 
-    if len(df) >= 3:
-        if df['low'].iloc[-1] > df['high'].iloc[-3]: 
+        if df_1h['low'].iloc[-1] > df_1h['high'].iloc[-3]: 
             analysis["fvg"] = "BULLISH"  
-        elif df['high'].iloc[-1] < df['low'].iloc[-3]: 
+        elif df_1h['high'].iloc[-1] < df_1h['low'].iloc[-3]: 
             analysis["fvg"] = "BEARISH"
 
     return analysis
@@ -260,61 +263,90 @@ def track_active_trades(symbol, current_price):
         SIGNAL_TRACKER[symbol]["active_trade"] = None
 
 def analyze_asset_pipeline(symbol):
+    # Fetch Multi-Timeframe Data including 30m
+    df_1d = fetch_candles_with_backup(symbol, "1d", 30)
+    df_4h = fetch_candles_with_backup(symbol, "4h", 50)
     df_1h = fetch_candles_with_backup(symbol, "1h", 100)
     df_30m = fetch_candles_with_backup(symbol, "30m", 100)
     df_15m = fetch_candles_with_backup(symbol, "15m", 150)
     df_5m = fetch_candles_with_backup(symbol, "5m", 150)
 
-    if any(df is None for df in [df_1h, df_30m, df_15m, df_5m]):  
+    if any(df is None for df in [df_1d, df_4h, df_1h, df_30m, df_15m, df_5m]):  
         return {"status": "DATA ERROR"}  
 
     current_price = df_5m['close'].iloc[-1]  
     track_active_trades(symbol, current_price)  
 
-    trend_1h = analyze_trend_ema(df_1h)  
-    trend_30m = analyze_trend_ema(df_30m)  
-    market_data = detect_advanced_patterns_and_structure(df_15m)  
-    rsi_val = calculate_rsi(df_5m)  
-      
-    trend_status = trend_1h if trend_1h == trend_30m else "MIXED"  
+    # Daily Candle Power Analysis (Buyers vs Sellers power)
+    prev_day_close = df_1d['close'].iloc[-2]
+    curr_day_close = df_1d['close'].iloc[-1]
+    daily_bias = "BULLISH" if curr_day_close > prev_day_close else "BEARISH"
+
+    # Multi-Timeframe Volume Confirmation (1D, 4H, 1H, 30m)
+    vol_1d_ok = check_volume_strength(df_1d)
+    vol_4h_ok = check_volume_strength(df_4h)
+    vol_1h_ok = check_volume_strength(df_1h)
+    vol_30m_ok = check_volume_strength(df_30m)
+    volume_confirmed = (vol_1d_ok or vol_4h_ok) and (vol_1h_ok or vol_30m_ok)
+
+    trend_4h = analyze_trend_ema(df_4h, period=20)
+    market_data = detect_advanced_patterns_and_structure(df_1h, df_15m)  
+
+    rsi_1d = calculate_rsi(df_1d)
+    rsi_1h = calculate_rsi(df_1h)
+    rsi_5m = calculate_rsi(df_5m)
 
     action, sl_price, target_price, trade_type = None, 0.0, 0.0, ""
 
-    if market_data["pattern"] == "W_PATTERN_BULLISH" or (trend_1h == "UP" and market_data["structure"] == "BULLISH_BOS" and rsi_val <= 60):
-        if rsi_val <= 60:
-            action = "STRONGLY BUY"
-            trade_type = "BUY"
-            # Dynamic Risk & Flexible Target Logic (Risk < Reward)
-            sl_price = market_data["ob_low"] if market_data["ob_low"] and market_data["ob_low"] < current_price else current_price * 0.992  # ~0.8% Risk
-            
-            if market_data["next_target"] and market_data["next_target"] > current_price:
-                target_price = market_data["next_target"]
-            else:
-                target_price = current_price * 1.025  # Default dynamic 2.5% target if no peak found
+    # Ensure Volume is confirmed along with other parameters
+    if volume_confirmed:
+        if (daily_bias == "BULLISH" or trend_4h == "UP") and (market_data["pattern"] == "W_PATTERN_BULLISH" or market_data["structure"] == "BULLISH_BOS"):
+            if rsi_5m <= 65 and rsi_1h >= 40:
+                action = "STRONGLY BUY"
+                trade_type = "BUY"
+                
+                # Smart 1% Risk Logic
+                sl_price = market_data["ob_low"] if market_data["ob_low"] and market_data["ob_low"] < current_price else current_price * 0.990
+                risk_amount = current_price - sl_price
+                if risk_amount <= 0 or (risk_amount / current_price) > 0.015:
+                    sl_price = current_price * 0.990  # Strict 1% Max Risk
+                
+                # Intelligent 2.5% Target (1:2.5 Risk-Reward)
+                if market_data["next_target"] and market_data["next_target"] > current_price:
+                    target_price = market_data["next_target"]
+                else:
+                    target_price = current_price * 1.025  
 
-    elif market_data["pattern"] == "M_PATTERN_BEARISH" or (trend_1h == "DOWN" and market_data["structure"] == "BEARISH_BOS" and rsi_val >= 40):
-        if rsi_val >= 40:
-            action = "STRONGLY SELL"
-            trade_type = "SELL"
-            # Dynamic Risk & Flexible Target Logic (Risk < Reward)
-            sl_price = market_data["ob_price"] if market_data["ob_price"] and market_data["ob_price"] > current_price else current_price * 1.008  # ~0.8% Risk
-            
-            if market_data["next_target"] and market_data["next_target"] < current_price:
-                target_price = market_data["next_target"]
-            else:
-                target_price = current_price * 0.975  # Default dynamic 2.5% target if no trough found
+        elif (daily_bias == "BEARISH" or trend_4h == "DOWN") and (market_data["pattern"] == "M_PATTERN_BEARISH" or market_data["structure"] == "BEARISH_BOS"):
+            if rsi_5m >= 35 and rsi_1h <= 60:
+                action = "STRONGLY SELL"
+                trade_type = "SELL"
+                
+                # Smart 1% Risk Logic
+                sl_price = market_data["ob_price"] if market_data["ob_price"] and market_data["ob_price"] > current_price else current_price * 1.010
+                risk_amount = sl_price - current_price
+                if risk_amount <= 0 or (risk_amount / current_price) > 0.015:
+                    sl_price = current_price * 1.010  # Strict 1% Max Risk
+                
+                # Intelligent 2.5% Target
+                if market_data["next_target"] and market_data["next_target"] < current_price:
+                    target_price = market_data["next_target"]
+                else:
+                    target_price = current_price * 0.975  
 
     if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
         risk_pct = abs((sl_price - current_price) / current_price) * 100  
         potential_move = abs((target_price - current_price) / current_price) * 100  
 
-        # Ensure reward is greater than risk
         if potential_move >= risk_pct:
             context = {
-                "rsi": round(rsi_val, 2), 
+                "rsi_5m": round(rsi_5m, 2),
+                "rsi_1h": round(rsi_1h, 2),
+                "rsi_1d": round(rsi_1d, 2),
                 "pattern": market_data["pattern"], 
                 "structure": market_data["structure"], 
-                "trend": trend_status
+                "daily_bias": daily_bias,
+                "volume_confirmed": volume_confirmed
             }  
             SIGNAL_TRACKER[symbol]["active_trade"] = {  
                 "type": trade_type, "entry_price": current_price, "target": target_price, "sl": sl_price, "context": context  
@@ -330,23 +362,25 @@ def analyze_asset_pipeline(symbol):
                 f"Entry Price: ${current_price:,.4f}\n"  
                 f"Target Price: ${target_price:,.4f} (+{potential_move:.2f}%)\n"  
                 f"Stop Loss: ${sl_price:,.4f} (Risk: {risk_pct:.2f}%)\n\n"  
-                f"Engine Context -> RSI: {rsi_val:.2f} | FVG: {market_data['fvg']} | Trend: {trend_status}"  
+                f"Engine Context -> Daily Bias: {daily_bias} | Volume Confirmed (1D/4H/1H/30m): {volume_confirmed} | RSI: {rsi_5m:.1f}"  
             )  
             send_trade_email(f"🚨 {action} Signal: {symbol}", msg)  
             SIGNAL_TRACKER[symbol]["last_processed_pattern"] = market_data["pattern"]  
-            return {"status": action, "trend": trend_status}  
+            return {"status": action}  
 
-    return {"status": "SCANNING", "trend": trend_status}
+    return {"status": "SCANNING"}
 
 def main_loop():
-    logging.info("Advanced Dynamic Risk & Pattern Engine Started...")
+    logging.info("Advanced Multi-TF Engine with Volume, RSI, 1% Risk & 2.5% Target Started...")
     while True:
         check_and_send_daily_report()
 
         for asset in ASSETS:  
             analyze_asset_pipeline(asset)  
             time.sleep(1)  
-        time.sleep(25)
+        
+        time.sleep(180)
 
 if __name__ == "__main__":
     main_loop()
+                      
