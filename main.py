@@ -101,7 +101,7 @@ def check_and_send_daily_report():
             f"- Total Trades (Last 24h): {wins + losses}\n"  
             f"- Wins: {wins}\n"  
             f"- Losses: {losses}\n\n"  
-            f"Self-Learning AI Status: Active with Multi-TF Volume, RSI, 1D/4H/1H & 1% Risk Logic."  
+            f"Self-Learning AI Status: Active with Multi-TF Volume, RSI, Dynamic 1%-2% Risk & 3%-5% Targets."  
         )  
         send_trade_email("📊 AI Bot - 24 Hours Daily Performance Report", report_body)  
           
@@ -171,7 +171,6 @@ def check_volume_strength(df):
     if df is None or len(df) < 10: return False
     avg_vol = df['vol'].iloc[-10:-1].mean()
     curr_vol = df['vol'].iloc[-1]
-    # Check if current candle volume is healthy/above average
     return curr_vol >= (avg_vol * 0.8)
 
 def detect_advanced_patterns_and_structure(df_1h, df_15m):
@@ -263,7 +262,6 @@ def track_active_trades(symbol, current_price):
         SIGNAL_TRACKER[symbol]["active_trade"] = None
 
 def analyze_asset_pipeline(symbol):
-    # Fetch Multi-Timeframe Data including 30m
     df_1d = fetch_candles_with_backup(symbol, "1d", 30)
     df_4h = fetch_candles_with_backup(symbol, "4h", 50)
     df_1h = fetch_candles_with_backup(symbol, "1h", 100)
@@ -277,12 +275,10 @@ def analyze_asset_pipeline(symbol):
     current_price = df_5m['close'].iloc[-1]  
     track_active_trades(symbol, current_price)  
 
-    # Daily Candle Power Analysis (Buyers vs Sellers power)
     prev_day_close = df_1d['close'].iloc[-2]
     curr_day_close = df_1d['close'].iloc[-1]
     daily_bias = "BULLISH" if curr_day_close > prev_day_close else "BEARISH"
 
-    # Multi-Timeframe Volume Confirmation (1D, 4H, 1H, 30m)
     vol_1d_ok = check_volume_strength(df_1d)
     vol_4h_ok = check_volume_strength(df_4h)
     vol_1h_ok = check_volume_strength(df_1h)
@@ -298,47 +294,51 @@ def analyze_asset_pipeline(symbol):
 
     action, sl_price, target_price, trade_type = None, 0.0, 0.0, ""
 
-    # Ensure Volume is confirmed along with other parameters
     if volume_confirmed:
         if (daily_bias == "BULLISH" or trend_4h == "UP") and (market_data["pattern"] == "W_PATTERN_BULLISH" or market_data["structure"] == "BULLISH_BOS"):
             if rsi_5m <= 65 and rsi_1h >= 40:
                 action = "STRONGLY BUY"
                 trade_type = "BUY"
                 
-                # Smart 1% Risk Logic
-                sl_price = market_data["ob_low"] if market_data["ob_low"] and market_data["ob_low"] < current_price else current_price * 0.990
-                risk_amount = current_price - sl_price
-                if risk_amount <= 0 or (risk_amount / current_price) > 0.015:
-                    sl_price = current_price * 0.990  # Strict 1% Max Risk
+                # Dynamic Risk: Stop Loss between 1% and 2% based on structure/order block
+                sl_price = market_data["ob_low"] if market_data["ob_low"] and market_data["ob_low"] < current_price else current_price * 0.985
+                risk_pct = abs((current_price - sl_price) / current_price) * 100
+                if risk_pct < 1.0:
+                    sl_price = current_price * 0.990  # Min 1% Stop Loss
+                elif risk_pct > 2.0:
+                    sl_price = current_price * 0.980  # Max 2% Stop Loss
                 
-                # Intelligent 2.5% Target (1:2.5 Risk-Reward)
-                if market_data["next_target"] and market_data["next_target"] > current_price:
+                # Dynamic Target: Big Target between 3% to 5% (Ensuring target is strictly above entry)
+                if market_data["next_target"] and market_data["next_target"] > (current_price * 1.03):
                     target_price = market_data["next_target"]
                 else:
-                    target_price = current_price * 1.025  
+                    target_price = current_price * 1.04  # Solid 4% Target
 
         elif (daily_bias == "BEARISH" or trend_4h == "DOWN") and (market_data["pattern"] == "M_PATTERN_BEARISH" or market_data["structure"] == "BEARISH_BOS"):
             if rsi_5m >= 35 and rsi_1h <= 60:
                 action = "STRONGLY SELL"
                 trade_type = "SELL"
                 
-                # Smart 1% Risk Logic
-                sl_price = market_data["ob_price"] if market_data["ob_price"] and market_data["ob_price"] > current_price else current_price * 1.010
-                risk_amount = sl_price - current_price
-                if risk_amount <= 0 or (risk_amount / current_price) > 0.015:
-                    sl_price = current_price * 1.010  # Strict 1% Max Risk
+                # Dynamic Risk: Stop Loss between 1% and 2%
+                sl_price = market_data["ob_price"] if market_data["ob_price"] and market_data["ob_price"] > current_price else current_price * 1.015
+                risk_pct = abs((sl_price - current_price) / current_price) * 100
+                if risk_pct < 1.0:
+                    sl_price = current_price * 1.010  # Min 1% Stop Loss
+                elif risk_pct > 2.0:
+                    sl_price = current_price * 1.020  # Max 2% Stop Loss
                 
-                # Intelligent 2.5% Target
-                if market_data["next_target"] and market_data["next_target"] < current_price:
+                # Dynamic Target: Big Target between 3% to 5% (Ensuring target is strictly below entry)
+                if market_data["next_target"] and market_data["next_target"] < (current_price * 0.97):
                     target_price = market_data["next_target"]
                 else:
-                    target_price = current_price * 0.975  
+                    target_price = current_price * 0.96  # Solid 4% Target
 
     if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
         risk_pct = abs((sl_price - current_price) / current_price) * 100  
         potential_move = abs((target_price - current_price) / current_price) * 100  
 
-        if potential_move >= risk_pct:
+        # Strict Validation: Target must not equal entry price and must provide good reward
+        if potential_move >= 2.0 and current_price != target_price:
             context = {
                 "rsi_5m": round(rsi_5m, 2),
                 "rsi_1h": round(rsi_1h, 2),
@@ -362,7 +362,7 @@ def analyze_asset_pipeline(symbol):
                 f"Entry Price: ${current_price:,.4f}\n"  
                 f"Target Price: ${target_price:,.4f} (+{potential_move:.2f}%)\n"  
                 f"Stop Loss: ${sl_price:,.4f} (Risk: {risk_pct:.2f}%)\n\n"  
-                f"Engine Context -> Daily Bias: {daily_bias} | Volume Confirmed (1D/4H/1H/30m): {volume_confirmed} | RSI: {rsi_5m:.1f}"  
+                f"Engine Context -> Daily Bias: {daily_bias} | Volume Confirmed: {volume_confirmed} | RSI: {rsi_5m:.1f}"  
             )  
             send_trade_email(f"🚨 {action} Signal: {symbol}", msg)  
             SIGNAL_TRACKER[symbol]["last_processed_pattern"] = market_data["pattern"]  
@@ -371,7 +371,7 @@ def analyze_asset_pipeline(symbol):
     return {"status": "SCANNING"}
 
 def main_loop():
-    logging.info("Advanced Multi-TF Engine with Volume, RSI, 1% Risk & 2.5% Target Started...")
+    logging.info("Advanced Multi-TF Engine with Volume, RSI, 1%-2% Risk & 4% Target Started...")
     while True:
         check_and_send_daily_report()
 
@@ -383,4 +383,3 @@ def main_loop():
 
 if __name__ == "__main__":
     main_loop()
-                      
