@@ -316,13 +316,12 @@ def analyze_asset_pipeline(symbol):
                 
         # STRICT STOP LOSS: Exactly 1% Below Entry Price
     sl_price = current_price * 0.990  # Exactly 1% Stop Loss
-
    # Fixed Target: Exactly 2% Profit Target
     target_price = current_price * 1.020  # Exactly 2% Target
 
-         if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
-         risk_pct = abs((sl_price - current_price) / current_price) * 100  
-         potential_move = abs((target_price - current_price) / current_price) * 100  
+if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
+risk_pct = abs((sl_price - current_price) / current_price) * 100  
+ potential_move = abs((target_price - current_price) / current_price) * 100  
 
            # Strict Validation: Target must not equal entry price and must provide good reward
           if potential_move >= 3.0 and current_price != target_price:
