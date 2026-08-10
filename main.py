@@ -314,14 +314,11 @@ def analyze_asset_pipeline(symbol):
                 action = "STRONGLY SELL"
                 trade_type = "SELL"
                 
-                # STRICT STOP LOSS: Exactly 1% to 2% Above Entry Price
-                sl_price = current_price * 1.010  # Exactly 1% Stop Loss
-                
-                # Dynamic Target: 3.5% to 4% Profit Target
-                if market_data["next_target"] and market_data["next_target"] < (current_price * 0.97):
-                    target_price = market_data["next_target"]
-                else:
-                    target_price = current_price * 0.965  # Solid 3.5% Target
+        # STRICT STOP LOSS: Exactly 1% Below Entry Price
+sl_price = current_price * 0.990  # Exactly 1% Stop Loss
+
+# Fixed Target: Exactly 2% Profit Target
+target_price = current_price * 1.020  # Exactly 2% Target
 
     if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
         risk_pct = abs((sl_price - current_price) / current_price) * 100  
