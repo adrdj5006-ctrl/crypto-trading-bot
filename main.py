@@ -101,7 +101,7 @@ def check_and_send_daily_report():
             f"- Total Trades (Last 24h): {wins + losses}\n"  
             f"- Wins: {wins}\n"  
             f"- Losses: {losses}\n\n"  
-            f"Self-Learning AI Status: Active with Multi-TF Volume, RSI, Strict 1% Stop Loss & 3-4% Targets."  
+            f"Self-Learning AI Status: Active with Multi-TF Volume, RSI, Strict 1% Stop Loss & 2% Targets."  
         )  
         send_trade_email("📊 AI Bot - 24 Hours Daily Performance Report", report_body)  
           
@@ -299,32 +299,24 @@ def analyze_asset_pipeline(symbol):
             if rsi_5m <= 65 and rsi_1h >= 40:
                 action = "STRONGLY BUY"
                 trade_type = "BUY"
-                
-                # STRICT STOP LOSS: Exactly 1% to 2% Below Entry Price
-                sl_price = current_price * 0.990  # Exactly 1% Stop Loss
-                
-                # Dynamic Target: 3.5% to 4% Profit Target
-                if market_data["next_target"] and market_data["next_target"] > (current_price * 1.03):
-                    target_price = market_data["next_target"]
-                else:
-                    target_price = current_price * 1.035  # Solid 3.5% Target
 
         elif (daily_bias == "BEARISH" or trend_4h == "DOWN") and (market_data["pattern"] == "M_PATTERN_BEARISH" or market_data["structure"] == "BEARISH_BOS"):
             if rsi_5m >= 35 and rsi_1h <= 60:
                 action = "STRONGLY SELL"
                 trade_type = "SELL"
                 
-        # STRICT STOP LOSS: Exactly 1% Below Entry Price
-    sl_price = current_price * 0.990  # Exactly 1% Stop Loss
-   # Fixed Target: Exactly 2% Profit Target
-    target_price = current_price * 1.020  # Exactly 2% Target
+    # Fixed Stop Loss: Exactly 1% Below Entry Price
+    sl_price = current_price * 0.990  
+    
+    # Fixed Target: Exactly 2% Profit Target
+    target_price = current_price * 1.020  
 
-if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
-risk_pct = abs((sl_price - current_price) / current_price) * 100  
- potential_move = abs((target_price - current_price) / current_price) * 100  
+    if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
+        risk_pct = abs((sl_price - current_price) / current_price) * 100  
+        potential_move = abs((target_price - current_price) / current_price) * 100  
 
-           # Strict Validation: Target must not equal entry price and must provide good reward
-          if potential_move >= 3.0 and current_price != target_price:
+        # Strict Validation: Target must not equal entry price and must provide good reward
+        if potential_move >= 2.0 and current_price != target_price:
             context = {
                 "rsi_5m": round(rsi_5m, 2),
                 "rsi_1h": round(rsi_1h, 2),
@@ -357,7 +349,7 @@ risk_pct = abs((sl_price - current_price) / current_price) * 100
     return {"status": "SCANNING"}
 
 def main_loop():
-    logging.info("Advanced Multi-TF Engine with Strict 1% Stop Loss & 3.5% Target Started...")
+    logging.info("Advanced Multi-TF Engine with Strict 1% Stop Loss & 2% Target Started...")
     while True:
         check_and_send_daily_report()
 
