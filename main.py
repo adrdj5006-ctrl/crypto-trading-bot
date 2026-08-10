@@ -63,6 +63,13 @@ def save_ai_log(data):
                 logs = json.load(f)
         except Exception:
             logs = []
+            
+    # Convert any boolean values in technical context to string to prevent JSON serialization error
+    if "technical_context" in data:
+        for k, v in data["technical_context"].items():
+            if isinstance(v, bool):
+                data["technical_context"][k] = str(v)
+
     logs.append(data)
     with open(AI_LEARNING_FILE, 'w') as f:
         json.dump(logs, f, indent=4)
@@ -361,4 +368,4 @@ def main_loop():
 
 if __name__ == "__main__":
     main_loop()
-    
+        
