@@ -1013,55 +1013,135 @@ def market_structure(df):
         "swing_low": float(l2)
     }
 
-
 # ============================================================
-# FAIR VALUE GAP
+# FAIR VALUE GAP (FVG)
 # ============================================================
 
 def detect_fvg(df):
+    """
+    Detect bullish / bearish Fair Value Gap
+    using 3 CLOSED candles.
 
-    if df is None or len(df) < 10:
+    - df.iloc[-1] = current/forming candle -> ignored
+    - df.iloc[-2] = latest CLOSED candle
+    - df.iloc[-3] = previous CLOSED candle
+    - df.iloc[-4] = third CLOSED candle
+    """
 
-        return {
-            "bullish": False,
-            "bearish": False,
-            "low": None,
-            "high": None
-        }
-
-    # Use three CLOSED candles:
-    c1 = df.iloc[-4]
-    c2 = df.iloc[-3]
-    c3 = df.iloc[-2]
-
-    bullish = (
-        c3["low"] >
-        c1["high"]
-    )
-
-    bearish = (
-        c3["high"] <
-        c1["low"]
-    )
-
-    if bullish:
-
-        return {
-            "bullish": True,
-            "bearish": False,
-            "low": float(c1["high"]),
-            "high": float(c3["low"])
-        }
-
-    if bearish:
-
-        return {
-            "bullish": False,
-            "bearish": True,
-            "low": float(c3["high"]),
-            "high": float(c1["low"])
-        }
-
-    return {
+    empty_result = {
         "bullish": False,
-        "bearish":
+        "bearish": False,
+        "low": None,
+        "high": None
+    }
+
+    # --------------------------------------------------------
+    # Basic validation
+    # --------------------------------------------------------
+    if df is None:
+        return empty_result
+
+    if len(df) < 10:
+        return empty_result
+
+    required_columns = ["high", "low"]
+
+    for col in required_columns:
+        if col not in df.columns:
+            return empty_result
+
+    try:
+        # ----------------------------------------------------
+        # Use ONLY CLOSED candles
+        # ----------------------------------------------------
+        c1 = df.iloc[-4]
+        c2 = df.iloc[-3]
+        c3 = df.iloc[-2]
+
+        # ----------------------------------------------------
+        # Convert values safely to float
+        # ----------------------------------------------------
+        c1_high = float(c1["high"])
+        c1_low = float(c1["low"])
+
+        c2_high = float(c2["high"])
+        c2_low = float(c2["low"])
+
+        c3_high = float(c3["high"])
+        c3_low = float(c3["low"])
+
+        # ----------------------------------------------------
+        # Reject invalid candle data
+        # ----------------------------------------------------
+        values = [
+            c1_high,
+            c1_low,
+            c2_high,
+            c2_low,
+            c3_high,
+            c3_low
+        ]
+
+        if not all(np.isfinite(v) for v in values):
+            return empty_result
+
+        # ----------------------------------------------------
+        # BULLISH FVG
+        #
+        # Third candle LOW is above first candle HIGH
+        #
+        #       C1          C2          C3
+        #       |           |           |
+        #       |           |           |
+        #   HIGH ────────────────
+        #                    GAP
+        #                         LOW ─────
+        # ----------------------------------------------------
+        bullish = c3_low > c1_high
+
+        if bullish:
+            fvg_low = c1_high
+            fvg_high = c3_low
+
+            # Make sure gap is actually positive
+            if fvg_high > fvg_low:
+
+                return {
+                    "bullish": True,
+                    "bearish": False,
+                    "low": float(fvg_low),
+                    "high": float(fvg_high)
+                }
+
+        # ----------------------------------------------------
+        # BEARISH FVG
+        #
+        # Third candle HIGH is below first candle LOW
+        # ----------------------------------------------------
+        bearish = c3_high < c1_low
+
+        if bearish:
+            fvg_low = c3_high
+            fvg_high = c1_low
+
+            # Make sure gap is actually positive
+            if fvg_high > fvg_low:
+
+                return {
+                    "bullish": False,
+                    "bearish": True,
+                    "low": float(fvg_low),
+                    "high": float(fvg_high)
+                }
+
+        # ----------------------------------------------------
+        # NO FVG
+        # ----------------------------------------------------
+        return empty_result
+
+    except (ValueError, TypeError, KeyError, IndexError):
+        return empty_result
+
+    except Exception:
+        logging.exception("Unexpected error in detect_fvg()")
+        return empty_result
