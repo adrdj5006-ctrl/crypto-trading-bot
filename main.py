@@ -1,371 +1,1067 @@
 import os
-import requests
-import pandas as pd
-import numpy as np
 import time
-import logging
 import json
+import math
+import logging
 import smtplib
 from email.message import EmailMessage
 from datetime import datetime, timezone, timedelta
 
+import requests
+import pandas as pd
+import numpy as np
+
+
+# ============================================================
+# 🧠 MARKET BRAIN — COMPLETE TRADING ENGINE
+# ============================================================
+#
+# Features:
+# 1D / 4H / 1H / 30M / 15M / 5M / 2M
+# Market Structure
+# HH / HL / LH / LL
+# BOS / CHoCH
+# Liquidity sweep
+# Order Block
+# Fair Value Gap
+# Support / Resistance
+# Buyer / Seller pressure
+# Volume
+# Candle structure
+# Adaptive learning memory
+# Learning Progress %
+# Trade tracking
+# Correct BUY / SELL SL & TP
+# Gmail trade alerts
+# Gmail hourly Brain report
+# JSON-safe NumPy/Pandas memory
+# 20 Binance assets
+#
+# ============================================================
+
+
+# ============================================================
+# LOGGING
+# ============================================================
+
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - [%(levelname)s] - %(message)s'
+    format="%(asctime)s - [%(levelname)s] - %(message)s"
 )
 
-# Gmail Configuration
+
+# ============================================================
+# TIMEZONE
+# ============================================================
+
+PK_TZ = timezone(timedelta(hours=5))
+
+
+def get_pakistan_time():
+    return datetime.now(PK_TZ).strftime(
+        "%Y-%m-%d %I:%M:%S %p"
+    )
+
+
+# ============================================================
+# GMAIL
+# ============================================================
+
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
+
 SENDER_EMAIL = os.environ.get("GMAIL_USER")
 SENDER_PASSWORD = os.environ.get("GMAIL_PASS")
-RECEIVER_EMAIL = SENDER_EMAIL
+
+RECEIVER_EMAIL = os.environ.get(
+    "GMAIL_RECEIVER",
+    SENDER_EMAIL
+)
+
 
 def send_trade_email(subject, message_body):
+
     if not SENDER_EMAIL or not SENDER_PASSWORD:
-        logging.error("Gmail credentials are missing in environment variables!")
-        return
+
+        logging.error(
+            "Gmail credentials missing. "
+            "Set GMAIL_USER and GMAIL_PASS."
+        )
+
+        return False
+
     try:
+
         msg = EmailMessage()
+
         msg.set_content(message_body)
+
         msg["Subject"] = subject
         msg["From"] = SENDER_EMAIL
         msg["To"] = RECEIVER_EMAIL
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:  
-            server.starttls()  
-            server.login(SENDER_EMAIL, SENDER_PASSWORD)  
-            server.send_message(msg)  
-        logging.info("Email Alert Sent Successfully!")  
-    except Exception as e:  
-        logging.error(f"Gmail SMTP Error: {e}")
+        with smtplib.SMTP(
+            SMTP_SERVER,
+            SMTP_PORT,
+            timeout=30
+        ) as server:
 
-def get_pakistan_time():
-    pk_timezone = timezone(timedelta(hours=5))
-    return datetime.now(pk_timezone).strftime('%Y-%m-%d %I:%M:%S %p')
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+
+            server.login(
+                SENDER_EMAIL,
+                SENDER_PASSWORD
+            )
+
+            server.send_message(msg)
+
+        logging.info(
+            "Email Alert Sent Successfully!"
+        )
+
+        return True
+
+    except Exception as e:
+
+        logging.error(
+            f"Gmail SMTP Error: {e}"
+        )
+
+        return False
+
+
+# ============================================================
+# CONFIG
+# ============================================================
+
+SCAN_INTERVAL_SECONDS = 120
+
+HOURLY_REPORT_SECONDS = 3600
+
+STOP_LOSS_PERCENT = 1.0
+
+TARGET_PERCENT = 2.0
+
+MIN_SIGNAL_SCORE = 65
+
+MEMORY_FILE = "market_brain_memory.json"
+
+REPORT_STATE_FILE = "brain_report_state.json"
+
+TRADE_LOG_FILE = "ai_trade_learning_log.json"
+
+
+# ============================================================
+# 20 BINANCE ASSETS
+# ============================================================
 
 ASSETS = [
-    "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT",
-    "ADAUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT", "NEARUSDT",
-    "SUIUSDT", "OPUSDT", "ARBUSDT", "INJUSDT", "APTUSDT",
-    "PAXGUSDT", "LTCUSDT", "TRXUSDT"
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "DOGEUSDT",
+    "AVAXUSDT",
+    "DOTUSDT",
+    "LINKUSDT",
+    "NEARUSDT",
+    "SUIUSDT",
+    "OPUSDT",
+    "ARBUSDT",
+    "INJUSDT",
+    "APTUSDT",
+    "LTCUSDT",
+    "TRXUSDT",
+    "MATICUSDT",
+    "PAXGUSDT"
 ]
 
-SIGNAL_TRACKER = {asset: {"last_processed_pattern": None, "active_trade": None} for asset in ASSETS}
-AI_LEARNING_FILE = "ai_trade_learning_log.json"
-REPORT_STATE_FILE = "last_report_time.json"
 
-def save_ai_log(data):
-    logs = []
-    if os.path.exists(AI_LEARNING_FILE):
-        try:
-            with open(AI_LEARNING_FILE, 'r') as f:
-                logs = json.load(f)
-        except Exception:
-            logs = []
-            
-    # Convert any boolean values in technical context to string to prevent JSON serialization error
-    if "technical_context" in data:
-        for k, v in data["technical_context"].items():
-            if isinstance(v, bool):
-                data["technical_context"][k] = str(v)
+# ============================================================
+# TRADE TRACKER
+# ============================================================
 
-    logs.append(data)
-    with open(AI_LEARNING_FILE, 'w') as f:
-        json.dump(logs, f, indent=4)
+SIGNAL_TRACKER = {
+    asset: {
+        "last_signal": None,
+        "active_trade": None,
+        "last_signal_time": 0
+    }
+    for asset in ASSETS
+}
 
-def check_and_send_daily_report():
-    last_run_time = None
-    if os.path.exists(REPORT_STATE_FILE):
-        try:
-            with open(REPORT_STATE_FILE, "r") as f:
-                d = json.load(f)
-                last_run_time = datetime.strptime(d.get("last_time"), "%Y-%m-%d %H:%M:%S")
-        except:
-            pass
 
-    now = datetime.now()  
-    if last_run_time is None or (now - last_run_time) >= timedelta(hours=24):  
-        wins, losses = 0, 0  
-        if os.path.exists(AI_LEARNING_FILE):  
-            try:  
-                with open(AI_LEARNING_FILE, "r") as f:  
-                    trades = json.load(f)  
-                    for t in trades:  
-                        t_time = datetime.fromtimestamp(t.get('timestamp', time.time()))  
-                        if (now - t_time) <= timedelta(hours=24):  
-                            if "WIN" in t.get('outcome', ''):  
-                                wins += 1  
-                            else:  
-                                losses += 1  
-            except:  
-                pass  
-                  
-        pk_time = get_pakistan_time()  
-        report_body = (  
-            f"📊 24-HOUR AI TRADING BOT PERFORMANCE REPORT 📊\n"  
-            f"Time (PKT): {pk_time}\n\n"  
-            f"- Total Trades (Last 24h): {wins + losses}\n"  
-            f"- Wins: {wins}\n"  
-            f"- Losses: {losses}\n\n"  
-            f"Self-Learning AI Status: Active with Multi-TF Volume, RSI, Strict 1% Stop Loss & 2% Targets."  
-        )  
-        send_trade_email("📊 AI Bot - 24 Hours Daily Performance Report", report_body)  
-          
-        with open(REPORT_STATE_FILE, "w") as f:  
-            json.dump({"last_time": now.strftime("%Y-%m-%d %H:%M:%S")}, f)
+# ============================================================
+# HTTP SESSION
+# ============================================================
 
-def fetch_candles_with_backup(symbol, interval, limit=150):
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Accept": "application/json"
+SESSION = requests.Session()
+
+SESSION.headers.update({
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json"
+})
+
+
+# ============================================================
+# JSON SAFE CONVERTER
+# ============================================================
+
+def make_json_safe(obj):
+
+    if obj is None:
+        return None
+
+    if isinstance(obj, bool):
+        return bool(obj)
+
+    if isinstance(obj, str):
+        return obj
+
+    if isinstance(obj, int):
+        return int(obj)
+
+    if isinstance(obj, float):
+
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+
+        return float(obj)
+
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+
+    if isinstance(obj, np.integer):
+        return int(obj)
+
+    if isinstance(obj, np.floating):
+
+        value = float(obj)
+
+        if math.isnan(value) or math.isinf(value):
+            return None
+
+        return value
+
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+
+    if isinstance(obj, pd.Timestamp):
+        return obj.isoformat()
+
+    if isinstance(obj, dict):
+
+        return {
+            str(k): make_json_safe(v)
+            for k, v in obj.items()
+        }
+
+    if isinstance(obj, (list, tuple)):
+
+        return [
+            make_json_safe(v)
+            for v in obj
+        ]
+
+    return str(obj)
+
+
+# ============================================================
+# BRAIN MEMORY
+# ============================================================
+
+def default_memory():
+
+    return {
+        "created_at": time.time(),
+
+        "observations": 0,
+
+        "wins": 0,
+
+        "losses": 0,
+
+        "closed_trades": 0,
+
+        "symbols_seen": [],
+
+        "patterns": {},
+
+        "structure_stats": {},
+
+        "signal_stats": {},
+
+        "last_learning_update": None
     }
 
-    binance_urls = [  
-        f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",  
-        f"https://data-api.binance.vision/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",  
-        f"https://api1.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}",  
-        f"https://api3.binance.com/api/v3/klines?symbol={symbol}&interval={interval}&limit={limit}"  
-    ]  
-      
-    for url in binance_urls:  
-        try:  
-            response = requests.get(url, headers=headers, timeout=6)  
-            if response.status_code == 200:  
-                data = response.json()  
-                df = pd.DataFrame(data, columns=['time', 'open', 'high', 'low', 'close', 'vol', 'ct', 'qv', 'tr', 'tb', 'ts', 'ig'])  
-                df[['open', 'high', 'low', 'close', 'vol']] = df[['open', 'high', 'low', 'close', 'vol']].astype(float)  
-                return df  
-        except Exception:  
-            continue  
 
-    try:  
-        mexc_interval_map = {"1d": "1d", "4h": "4h", "1h": "60m", "30m": "30m", "15m": "15m", "5m": "5m"}  
-        mexc_iv = mexc_interval_map.get(interval, "15m")  
-        mexc_url = f"https://www.mexc.com/open/api/v2/market/kline?symbol={symbol}&interval={mexc_iv}"  
-        response = requests.get(mexc_url, headers=headers, timeout=6)  
-        if response.status_code == 200:  
-            res_json = response.json()  
-            if "data" in res_json and res_json["data"]:  
-                rows = []  
-                for item in res_json["data"]:  
-                    rows.append([item[0], float(item[1]), float(item[2]), float(item[3]), float(item[4]), float(item[5])])  
-                df = pd.DataFrame(rows, columns=['time', 'open', 'high', 'low', 'close', 'vol'])  
-                return df.tail(limit)  
-    except Exception:  
-        pass  
+def load_memory():
 
-    logging.error(f"All endpoints (Binance + Backups) failed for {symbol}")  
+    if not os.path.exists(MEMORY_FILE):
+        return default_memory()
+
+    try:
+
+        with open(
+            MEMORY_FILE,
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            data = json.load(f)
+
+        base = default_memory()
+
+        if isinstance(data, dict):
+            base.update(data)
+
+        return base
+
+    except Exception as e:
+
+        logging.warning(
+            f"Memory load failed: {e}"
+        )
+
+        return default_memory()
+
+
+BRAIN_MEMORY = load_memory()
+
+
+def save_memory():
+
+    global BRAIN_MEMORY
+
+    BRAIN_MEMORY = make_json_safe(
+        BRAIN_MEMORY
+    )
+
+    BRAIN_MEMORY[
+        "last_learning_update"
+    ] = time.time()
+
+    temp_file = MEMORY_FILE + ".tmp"
+
+    try:
+
+        with open(
+            temp_file,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                BRAIN_MEMORY,
+                f,
+                indent=4,
+                ensure_ascii=False,
+                allow_nan=False
+            )
+
+        os.replace(
+            temp_file,
+            MEMORY_FILE
+        )
+
+    except Exception as e:
+
+        logging.error(
+            f"Memory save error: {e}"
+        )
+
+
+# ============================================================
+# TRADE LOG
+# ============================================================
+
+def save_trade_result(data):
+
+    logs = []
+
+    if os.path.exists(TRADE_LOG_FILE):
+
+        try:
+
+            with open(
+                TRADE_LOG_FILE,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                logs = json.load(f)
+
+            if not isinstance(logs, list):
+                logs = []
+
+        except Exception:
+
+            logs = []
+
+    logs.append(
+        make_json_safe(data)
+    )
+
+    try:
+
+        with open(
+            TRADE_LOG_FILE,
+            "w",
+            encoding="utf-8"
+        ) as f:
+
+            json.dump(
+                logs,
+                f,
+                indent=4,
+                ensure_ascii=False,
+                allow_nan=False
+            )
+
+    except Exception as e:
+
+        logging.error(
+            f"Trade log save error: {e}"
+        )
+
+
+# ============================================================
+# BINANCE DATA
+# ============================================================
+
+BINANCE_ENDPOINTS = [
+    "https://api.binance.com/api/v3/klines",
+    "https://data-api.binance.vision/api/v3/klines",
+    "https://api1.binance.com/api/v3/klines",
+    "https://api3.binance.com/api/v3/klines"
+]
+
+
+def fetch_binance_candles(
+    symbol,
+    interval,
+    limit=200
+):
+
+    params = {
+        "symbol": symbol,
+        "interval": interval,
+        "limit": limit
+    }
+
+    for endpoint in BINANCE_ENDPOINTS:
+
+        try:
+
+            response = SESSION.get(
+                endpoint,
+                params=params,
+                timeout=10
+            )
+
+            if response.status_code != 200:
+                continue
+
+            raw = response.json()
+
+            if not isinstance(raw, list):
+                continue
+
+            if len(raw) < 10:
+                continue
+
+            df = pd.DataFrame(
+                raw,
+                columns=[
+                    "time",
+                    "open",
+                    "high",
+                    "low",
+                    "close",
+                    "vol",
+                    "close_time",
+                    "quote_volume",
+                    "trades",
+                    "taker_buy_base",
+                    "taker_buy_quote",
+                    "ignore"
+                ]
+            )
+
+            numeric_cols = [
+                "open",
+                "high",
+                "low",
+                "close",
+                "vol",
+                "quote_volume",
+                "taker_buy_base",
+                "taker_buy_quote"
+            ]
+
+            for col in numeric_cols:
+
+                df[col] = pd.to_numeric(
+                    df[col],
+                    errors="coerce"
+                )
+
+            df["time"] = pd.to_numeric(
+                df["time"],
+                errors="coerce"
+            )
+
+            df = df.dropna(
+                subset=[
+                    "open",
+                    "high",
+                    "low",
+                    "close",
+                    "vol"
+                ]
+            )
+
+            return df.reset_index(
+                drop=True
+            )
+
+        except Exception as e:
+
+            logging.debug(
+                f"{symbol} {interval} endpoint error: {e}"
+            )
+
+            continue
+
+    logging.warning(
+        f"Binance data unavailable: "
+        f"{symbol} {interval}"
+    )
+
     return None
 
-def calculate_rsi(df, periods=14):
-    if df is None or len(df) < periods: return 50
-    close_delta = df['close'].diff()
-    up = close_delta.clip(lower=0)
-    down = -1 * close_delta.clip(upper=0)
-    ma_up = up.ewm(com=periods - 1, adjust=False).mean()
-    ma_down = down.ewm(com=periods - 1, adjust=False).mean()
-    rsi = ma_up / ma_down
-    rsi = 100 - (100 / (1 + rsi))
-    return rsi.iloc[-1]
 
-def analyze_trend_ema(df, period=20):
-    if df is None or len(df) < period: return "NEUTRAL"
-    ema = df['close'].ewm(span=period, adjust=False).mean().iloc[-1]
-    return "UP" if df['close'].iloc[-1] > ema else "DOWN"
+# ============================================================
+# 2-MINUTE AGGREGATION
+# ============================================================
 
-def check_volume_strength(df):
-    if df is None or len(df) < 10: return False
-    avg_vol = df['vol'].iloc[-10:-1].mean()
-    curr_vol = df['vol'].iloc[-1]
-    return curr_vol >= (avg_vol * 0.8)
+def make_2m_from_1m(df_1m):
 
-def detect_advanced_patterns_and_structure(df_1h, df_15m):
-    analysis = {
-        "pattern": None, 
-        "structure": "NEUTRAL", 
-        "ob_price": None, 
-        "ob_low": None,
-        "fvg": "NO",
-        "next_target": None
+    if df_1m is None or len(df_1m) < 4:
+        return None
+
+    df = df_1m.copy()
+
+    df["datetime"] = pd.to_datetime(
+        df["time"],
+        unit="ms",
+        utc=True
+    )
+
+    df = df.set_index("datetime")
+
+    aggregated = df.resample(
+        "2min"
+    ).agg({
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "vol": "sum"
+    })
+
+    aggregated = aggregated.dropna()
+
+    aggregated["time"] = (
+        aggregated.index.astype(
+            "int64"
+        ) // 10**6
+    )
+
+    aggregated = aggregated.reset_index(
+        drop=True
+    )
+
+    return aggregated[
+        [
+            "time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "vol"
+        ]
+    ]
+
+
+# ============================================================
+# RSI
+# ============================================================
+
+def calculate_rsi(
+    df,
+    periods=14
+):
+
+    if df is None or len(df) < periods + 2:
+        return 50.0
+
+    delta = df["close"].diff()
+
+    gain = delta.clip(
+        lower=0
+    )
+
+    loss = -delta.clip(
+        upper=0
+    )
+
+    avg_gain = gain.ewm(
+        com=periods - 1,
+        adjust=False
+    ).mean()
+
+    avg_loss = loss.ewm(
+        com=periods - 1,
+        adjust=False
+    ).mean()
+
+    if avg_loss.iloc[-1] == 0:
+        return 100.0
+
+    rs = avg_gain.iloc[-1] / avg_loss.iloc[-1]
+
+    rsi = 100 - (
+        100 / (1 + rs)
+    )
+
+    return float(
+        max(0, min(100, rsi))
+    )
+
+
+# ============================================================
+# EMA TREND
+# ============================================================
+
+def ema_trend(
+    df,
+    fast=20,
+    slow=50
+):
+
+    if df is None or len(df) < slow:
+        return "NEUTRAL"
+
+    ema_fast = df["close"].ewm(
+        span=fast,
+        adjust=False
+    ).mean().iloc[-2]
+
+    ema_slow = df["close"].ewm(
+        span=slow,
+        adjust=False
+    ).mean().iloc[-2]
+
+    if ema_fast > ema_slow:
+        return "BULLISH"
+
+    if ema_fast < ema_slow:
+        return "BEARISH"
+
+    return "NEUTRAL"
+
+
+# ============================================================
+# VOLUME
+# ============================================================
+
+def volume_analysis(df):
+
+    if df is None or len(df) < 20:
+
+        return {
+            "confirmed": False,
+            "ratio": 0.0
+        }
+
+    # Ignore currently forming candle
+    previous = df.iloc[:-1]
+
+    if len(previous) < 20:
+
+        return {
+            "confirmed": False,
+            "ratio": 0.0
+        }
+
+    avg_volume = previous[
+        "vol"
+    ].tail(20).mean()
+
+    current_volume = previous[
+        "vol"
+    ].iloc[-1]
+
+    if avg_volume <= 0:
+
+        return {
+            "confirmed": False,
+            "ratio": 0.0
+        }
+
+    ratio = current_volume / avg_volume
+
+    return {
+        "confirmed": bool(
+            ratio >= 1.15
+        ),
+        "ratio": round(
+            float(ratio),
+            2
+        )
     }
-    if df_15m is None or len(df_15m) < 50: return analysis
 
-    recent_high = df_15m['high'].iloc[-30:-2].max()
-    recent_low = df_15m['low'].iloc[-30:-2].min()
-    current_close = df_15m['close'].iloc[-1]
 
-    if current_close > recent_high:
-        analysis["structure"] = "BULLISH_BOS"
-        analysis["next_target"] = df_15m['high'].iloc[-50:].max()
-    elif current_close < recent_low:
-        analysis["structure"] = "BEARISH_BOS"
-        analysis["next_target"] = df_15m['low'].iloc[-50:].min()
+# ============================================================
+# BUYER / SELLER PRESSURE
+# ============================================================
 
-    lows = df_15m['low'].iloc[-40:].values
-    min_idx1 = np.argmin(lows[:20])
-    min_idx2 = 20 + np.argmin(lows[20:])
-    val1, val2 = lows[min_idx1], lows[min_idx2]
-    
-    if abs(val1 - val2) / val1 < 0.008:
-        if current_close > df_15m['high'].iloc[min_idx1:min_idx2].max():
-            analysis["pattern"] = "W_PATTERN_BULLISH"
+def pressure_analysis(
+    df,
+    lookback=20
+):
 
-    highs = df_15m['high'].iloc[-40:].values
-    max_idx1 = np.argmax(highs[:20])
-    max_idx2 = 20 + np.argmax(highs[20:])
-    h_val1, h_val2 = highs[max_idx1], highs[max_idx2]
+    if df is None or len(df) < lookback + 2:
 
-    if abs(h_val1 - h_val2) / h_val1 < 0.008:
-        if current_close < df_15m['low'].iloc[max_idx1:max_idx2].min():
-            analysis["pattern"] = "M_PATTERN_BEARISH"
+        return {
+            "buyer": 50.0,
+            "seller": 50.0,
+            "dominant": "NEUTRAL"
+        }
 
-    if df_1h is not None and len(df_1h) >= 3:
-        for i in range(len(df_1h)-2, 1, -1):
-            if df_1h['close'].iloc[i] < df_1h['open'].iloc[i]:
-                analysis["ob_price"] = df_1h['high'].iloc[i]
-                analysis["ob_low"] = df_1h['low'].iloc[i]
-                break
+    data = df.iloc[
+        -(lookback + 1):-1
+    ]
 
-        if df_1h['low'].iloc[-1] > df_1h['high'].iloc[-3]: 
-            analysis["fvg"] = "BULLISH"  
-        elif df_1h['high'].iloc[-1] < df_1h['low'].iloc[-3]: 
-            analysis["fvg"] = "BEARISH"
+    buyer = 0.0
+    seller = 0.0
 
-    return analysis
+    for _, candle in data.iterrows():
 
-def track_active_trades(symbol, current_price):
-    trade = SIGNAL_TRACKER[symbol]["active_trade"]
-    if not trade: return
+        body = abs(
+            candle["close"] -
+            candle["open"]
+        )
 
-    if trade["type"] == "BUY":  
-        hit_target = current_price >= trade["target"]  
-        hit_sl = current_price <= trade["sl"]  
-    else:  
-        hit_target = current_price <= trade["target"]  
-        hit_sl = current_price >= trade["sl"]  
+        weighted_body = (
+            body *
+            candle["vol"]
+        )
 
-    if hit_target or hit_sl:  
-        outcome = "WIN (Target Hit)" if hit_target else "LOSS (Stop Loss Hit)"  
-        pnl_pct = ((current_price - trade["entry_price"]) / trade["entry_price"]) * 100  
-        if trade["type"] == "SELL": pnl_pct = -pnl_pct  
+        if candle["close"] > candle["open"]:
 
-        log_data = {  
-            "timestamp": time.time(), "symbol": symbol, "direction": trade["type"],  
-            "entry_price": trade["entry_price"], "exit_price": current_price, "pnl_percentage": round(pnl_pct, 2),  
-            "outcome": outcome, "technical_context": trade["context"]  
-        }  
-        save_ai_log(log_data)  
-          
-        pk_time = get_pakistan_time()  
-        close_msg = (  
-            f"📊 TRADE CLOSED: {symbol}\n"  
-            f"Time (PKT): {pk_time}\n"  
-            f"Result: {outcome}\n"  
-            f"Exit Price: ${current_price:,.4f}\n"  
-            f"P&L: {pnl_pct:.2f}%"  
-        )  
-        send_trade_email(f"📊 Trade Closed: {symbol} - {outcome}", close_msg)  
-        SIGNAL_TRACKER[symbol]["active_trade"] = None
+            buyer += weighted_body
 
-def analyze_asset_pipeline(symbol):
-    df_1d = fetch_candles_with_backup(symbol, "1d", 30)
-    df_4h = fetch_candles_with_backup(symbol, "4h", 50)
-    df_1h = fetch_candles_with_backup(symbol, "1h", 100)
-    df_30m = fetch_candles_with_backup(symbol, "30m", 100)
-    df_15m = fetch_candles_with_backup(symbol, "15m", 150)
-    df_5m = fetch_candles_with_backup(symbol, "5m", 150)
+        elif candle["close"] < candle["open"]:
 
-    if any(df is None for df in [df_1d, df_4h, df_1h, df_30m, df_15m, df_5m]):  
-        return {"status": "DATA ERROR"}  
+            seller += weighted_body
 
-    current_price = df_5m['close'].iloc[-1]  
-    track_active_trades(symbol, current_price)  
+    total = buyer + seller
 
-    prev_day_close = df_1d['close'].iloc[-2]
-    curr_day_close = df_1d['close'].iloc[-1]
-    daily_bias = "BULLISH" if curr_day_close > prev_day_close else "BEARISH"
+    if total <= 0:
 
-    vol_1d_ok = check_volume_strength(df_1d)
-    vol_4h_ok = check_volume_strength(df_4h)
-    vol_1h_ok = check_volume_strength(df_1h)
-    vol_30m_ok = check_volume_strength(df_30m)
-    volume_confirmed = (vol_1d_ok or vol_4h_ok) and (vol_1h_ok or vol_30m_ok)
+        return {
+            "buyer": 50.0,
+            "seller": 50.0,
+            "dominant": "NEUTRAL"
+        }
 
-    trend_4h = analyze_trend_ema(df_4h, period=20)
-    market_data = detect_advanced_patterns_and_structure(df_1h, df_15m)  
+    buyer_pct = (
+        buyer / total
+    ) * 100
 
-    rsi_1d = calculate_rsi(df_1d)
-    rsi_1h = calculate_rsi(df_1h)
-    rsi_5m = calculate_rsi(df_5m)
+    seller_pct = (
+        seller / total
+    ) * 100
 
-    action, sl_price, target_price, trade_type = None, 0.0, 0.0, ""
+    if buyer_pct > seller_pct:
+        dominant = "BUYER"
 
-    if volume_confirmed:
-        if (daily_bias == "BULLISH" or trend_4h == "UP") and (market_data["pattern"] == "W_PATTERN_BULLISH" or market_data["structure"] == "BULLISH_BOS"):
-            if rsi_5m <= 65 and rsi_1h >= 40:
-                action = "STRONGLY BUY"
-                trade_type = "BUY"
+    elif seller_pct > buyer_pct:
+        dominant = "SELLER"
 
-        elif (daily_bias == "BEARISH" or trend_4h == "DOWN") and (market_data["pattern"] == "M_PATTERN_BEARISH" or market_data["structure"] == "BEARISH_BOS"):
-            if rsi_5m >= 35 and rsi_1h <= 60:
-                action = "STRONGLY SELL"
-                trade_type = "SELL"
-                
-    # Fixed Stop Loss: Exactly 1% Below Entry Price
-    sl_price = current_price * 0.990  
-    
-    # Fixed Target: Exactly 2% Profit Target
-    target_price = current_price * 1.020  
+    else:
+        dominant = "NEUTRAL"
 
-    if action and not SIGNAL_TRACKER[symbol]["active_trade"]:
-        risk_pct = abs((sl_price - current_price) / current_price) * 100  
-        potential_move = abs((target_price - current_price) / current_price) * 100  
+    return {
+        "buyer": round(
+            float(buyer_pct),
+            1
+        ),
+        "seller": round(
+            float(seller_pct),
+            1
+        ),
+        "dominant": dominant
+    }
 
-        # Strict Validation: Target must not equal entry price and must provide good reward
-        if potential_move >= 2.0 and current_price != target_price:
-            context = {
-                "rsi_5m": round(rsi_5m, 2),
-                "rsi_1h": round(rsi_1h, 2),
-                "rsi_1d": round(rsi_1d, 2),
-                "pattern": market_data["pattern"], 
-                "structure": market_data["structure"], 
-                "daily_bias": daily_bias,
-                "volume_confirmed": volume_confirmed
-            }  
-            SIGNAL_TRACKER[symbol]["active_trade"] = {  
-                "type": trade_type, "entry_price": current_price, "target": target_price, "sl": sl_price, "context": context  
-            }  
-              
-            pk_time = get_pakistan_time()  
-            msg = (  
-                f"🚨 CRYPTO TRADE SIGNAL ALERT 🚨\n\n"  
-                f"Coin / Asset: {symbol}\n"  
-                f"Time (Pakistan/Karachi): {pk_time}\n"  
-                f"Action: {action}\n"  
-                f"Pattern / Structure: {market_data['pattern'] or market_data['structure']}\n"  
-                f"Entry Price: ${current_price:,.4f}\n"  
-                f"Target Price: ${target_price:,.4f} (+{potential_move:.2f}%)\n"  
-                f"Stop Loss: ${sl_price:,.4f} (Risk: {risk_pct:.2f}%)\n\n"  
-                f"Engine Context -> Daily Bias: {daily_bias} | Volume Confirmed: {volume_confirmed} | RSI: {rsi_5m:.1f}"  
-            )  
-            send_trade_email(f"🚨 {action} Signal: {symbol}", msg)  
-            SIGNAL_TRACKER[symbol]["last_processed_pattern"] = market_data["pattern"]  
-            return {"status": action}  
 
-    return {"status": "SCANNING"}
+# ============================================================
+# SWING POINTS
+# ============================================================
 
-def main_loop():
-    logging.info("Advanced Multi-TF Engine with Strict 1% Stop Loss & 2% Target Started...")
-    while True:
-        check_and_send_daily_report()
+def find_swings(
+    df,
+    left=2,
+    right=2
+):
 
-        for asset in ASSETS:  
-            analyze_asset_pipeline(asset)  
-            time.sleep(1)  
-        
-        time.sleep(180)
+    if df is None or len(df) < 20:
 
-if __name__ == "__main__":
-    main_loop()
-        
+        return [], []
+
+    highs = []
+    lows = []
+
+    h = df["high"].values
+    l = df["low"].values
+
+    for i in range(
+        left,
+        len(df) - right
+    ):
+
+        high_window = h[
+            i-left:i+right+1
+        ]
+
+        low_window = l[
+            i-left:i+right+1
+        ]
+
+        if h[i] == max(
+            high_window
+        ):
+
+            highs.append(
+                (i, float(h[i]))
+            )
+
+        if l[i] == min(
+            low_window
+        ):
+
+            lows.append(
+                (i, float(l[i]))
+            )
+
+    return highs, lows
+
+
+# ============================================================
+# MARKET STRUCTURE
+# ============================================================
+
+def market_structure(df):
+
+    if df is None or len(df) < 30:
+
+        return {
+            "trend": "UNKNOWN",
+            "structure": "UNKNOWN",
+            "bos": False,
+            "bos_direction": "NONE",
+            "choch": False,
+            "liquidity_sweep": "NONE",
+            "swing_high": None,
+            "swing_low": None
+        }
+
+    highs, lows = find_swings(df)
+
+    if len(highs) < 3 or len(lows) < 3:
+
+        trend = ema_trend(
+            df,
+            20,
+            50
+        )
+
+        return {
+            "trend": trend,
+            "structure": "MIXED",
+            "bos": False,
+            "bos_direction": "NONE",
+            "choch": False,
+            "liquidity_sweep": "NONE",
+            "swing_high": float(
+                df["high"].iloc[:-1].tail(20).max()
+            ),
+            "swing_low": float(
+                df["low"].iloc[:-1].tail(20).min()
+            )
+        }
+
+    last_highs = highs[-3:]
+    last_lows = lows[-3:]
+
+    h1 = last_highs[-2][1]
+    h2 = last_highs[-1][1]
+
+    l1 = last_lows[-2][1]
+    l2 = last_lows[-1][1]
+
+    if h2 > h1 and l2 > l1:
+
+        structure = "HH_HL"
+        trend = "BULLISH"
+
+    elif h2 < h1 and l2 < l1:
+
+        structure = "LH_LL"
+        trend = "BEARISH"
+
+    else:
+
+        structure = "MIXED"
+        trend = ema_trend(
+            df,
+            20,
+            50
+        )
+
+    # Last closed candle
+    last = df.iloc[-2]
+
+    previous_high = max(
+        x[1]
+        for x in highs[:-1]
+    )
+
+    previous_low = min(
+        x[1]
+        for x in lows[:-1]
+    )
+
+    bos_up = (
+        last["close"] >
+        previous_high
+    )
+
+    bos_down = (
+        last["close"] <
+        previous_low
+    )
+
+    bos = bos_up or bos_down
+
+    if bos_up:
+        bos_direction = "UP"
+
+    elif bos_down:
+        bos_direction = "DOWN"
+
+    else:
+        bos_direction = "NONE"
+
+    # CHoCH approximation:
+    # Break opposite to established structure.
+    choch = False
+
+    if trend == "BULLISH" and bos_down:
+        choch = True
+
+    elif trend == "BEARISH" and bos_up:
+        choch = True
+
+    # Liquidity sweep
+    prior_high = max(
+        df["high"].iloc[-12:-2]
+    )
+
+    prior_low = min(
+        df["low"].iloc[-12:-2]
+    )
+
+    liquidity_sweep = "NONE"
+
+    if (
+        last["high"] > prior_high
+        and last["close"] < prior_high
+    ):
+        liquidity_sweep = "SELL_SIDE"
+
+    elif (
+        last["low"] < prior_low
+        and last["close"] > prior_low
+    ):
+        liquidity_sweep = "BUY_SIDE"
+
+    return {
+        "trend": trend,
+        "structure": structure,
+        "bos": bool(bos),
+        "bos_direction": bos_direction,
+        "choch": bool(choch),
+        "liquidity_sweep": liquidity_sweep,
+        "swing_high": float(h2),
+        "swing_low": float(l2)
+    }
+
+
+# ============================================================
+# FAIR VALUE GAP
+# ============================================================
+
+def detect_fvg(df):
+
+    if df is None or len(df) < 10:
+
+        return {
+            "bullish": False,
+            "bearish": False,
+            "low": None,
+            "high": None
+        }
+
+    # Use three CLOSED candles:
+    c1 = df.iloc[-4]
+    c2 = df.iloc[-3]
+    c3 = df.iloc[-2]
+
+    bullish = (
+        c3["low"] >
+        c1["high"]
+    )
+
+    bearish = (
+        c3["high"] <
+        c1["low"]
+    )
+
+    if bullish:
+
+        return {
+            "bullish": True,
+            "bearish": False,
+            "low": float(c1["high"]),
+            "high": float(c3["low"])
+        }
+
+    if bearish:
+
+        return {
+            "bullish": False,
+            "bearish": True,
+            "low": float(c3["high"]),
+            "high": float(c1["low"])
+        }
+
+    return {
+        "bullish": False,
+        "bearish":
