@@ -13,49 +13,47 @@ import numpy as np
 
 
 # ============================================================
-# 🧠 MARKET BRAIN v10
+# 🧠 MARKET BRAIN v11
+# ADAPTIVE LEARNING TRADING ENGINE
 # ============================================================
 #
-# CORE STRUCTURE
-#
-# 1H  -> MAIN MARKET DIRECTION
-#        Pressure
-#        Volume
-#        EMA
-#        RSI
-#        High/Low structure
-#        FVG
-#        Order Block
-#        Support / Resistance
-#
+# 1D  -> MARKET CONTEXT
+# 4H  -> MAJOR STRUCTURE
+# 1H  -> MAIN SETUP
 # 5M  -> ENTRY ONLY
-#        Candle direction
-#        Candle body confirmation
-#        NO FVG
-#        NO ORDER BLOCK
-#        NO RSI
-#        NO EMA
 #
-# TRADE
+# NORMAL RULES AT START
+# AI LEARNS FROM CLOSED TRADES
 #
-# BUY:
-# Entry = 5M confirmation price
-# SL    = -1%
-# TP    = +2%
+# LEARNING WINDOW:
+# LAST 50 CLOSED TRADES
 #
-# SELL:
-# Entry = 5M confirmation price
-# SL    = +1%
-# TP    = -2%
+# AI STUDIES:
+# RSI
+# EMA
+# PRESSURE
+# VOLUME
+# STRUCTURE
+# FVG
+# ORDER BLOCK
+# SUPPORT / RESISTANCE
+# 5M ENTRY
 #
-# 20 COINS
-# SCAN = every 2 minutes
-# TIMEZONE = Pakistan
+# AI learns:
+# WIN PATTERNS
+# LOSS PATTERNS
+# FEATURE PERFORMANCE
+# MARKET REGIME
 #
-# Gmail:
-# New trade alert
-# Trade close result
-# Rolling 24-hour report
+# DEFAULT:
+# SL = 1%
+# TP = 2%
+#
+# AI may adapt SL/TP only after enough evidence.
+#
+# REPORT:
+# 08:00 AM Pakistan = previous 12 hours
+# 08:00 PM Pakistan = previous 12 hours
 #
 # ============================================================
 
@@ -94,7 +92,7 @@ def utc_timestamp():
 
 
 # ============================================================
-# GMAIL CONFIG
+# GMAIL
 # ============================================================
 
 SMTP_SERVER = "smtp.gmail.com"
@@ -109,33 +107,29 @@ GMAIL_RECEIVER = os.environ.get(
 )
 
 
-# ============================================================
-# SEND EMAIL
-# ============================================================
-
 def send_email(subject, body):
 
     if not GMAIL_USER:
-        logger.error("GMAIL_USER is missing.")
+        logger.error("GMAIL_USER missing.")
         return False
 
     if not GMAIL_PASS:
-        logger.error("GMAIL_PASS is missing.")
+        logger.error("GMAIL_PASS missing.")
         return False
 
     if not GMAIL_RECEIVER:
-        logger.error("GMAIL_RECEIVER is missing.")
+        logger.error("GMAIL_RECEIVER missing.")
         return False
 
     try:
 
-        message = EmailMessage()
+        msg = EmailMessage()
 
-        message["Subject"] = subject
-        message["From"] = GMAIL_USER
-        message["To"] = GMAIL_RECEIVER
+        msg["Subject"] = subject
+        msg["From"] = GMAIL_USER
+        msg["To"] = GMAIL_RECEIVER
 
-        message.set_content(body)
+        msg.set_content(body)
 
         with smtplib.SMTP(
             SMTP_SERVER,
@@ -152,10 +146,11 @@ def send_email(subject, body):
                 GMAIL_PASS
             )
 
-            server.send_message(message)
+            server.send_message(msg)
 
         logger.info(
-            "Gmail alert sent successfully."
+            "Gmail sent: %s",
+            subject
         )
 
         return True
@@ -163,7 +158,8 @@ def send_email(subject, body):
     except Exception as e:
 
         logger.error(
-            f"Gmail error: {e}"
+            "Gmail error: %s",
+            e
         )
 
         return False
@@ -175,30 +171,39 @@ def send_email(subject, body):
 
 SCAN_INTERVAL_SECONDS = 120
 
-TAKE_PROFIT_PERCENT = 2.0
-STOP_LOSS_PERCENT = 1.0
+BASE_TP_PERCENT = 2.0
+BASE_SL_PERCENT = 1.0
 
-# Strong signal threshold
-MIN_SIGNAL_SCORE = 65
+# AI adaptive range
+MIN_SL_PERCENT = 0.8
+MAX_SL_PERCENT = 1.5
 
-# Required difference between directions
-MIN_DIRECTION_GAP = 10
+MIN_TP_PERCENT = 1.6
+MAX_TP_PERCENT = 3.0
 
-# Same direction cooldown
+# Normal signal rules
+MIN_SIGNAL_SCORE = 60
+MIN_DIRECTION_GAP = 8
+
 COOLDOWN_SECONDS = 15 * 60
 
-# 24-hour report
-REPORT_INTERVAL_SECONDS = 24 * 60 * 60
+# AI learning
+LEARNING_WINDOW = 50
+MIN_LEARNING_TRADES = 50
 
-# Files
+# Reports
+REPORT_HOUR_MORNING = 8
+REPORT_HOUR_EVENING = 20
+
+REPORT_FILE = "report_schedule.json"
+
 MEMORY_FILE = "market_brain_memory.json"
 TRADE_LOG_FILE = "ai_trade_learning_log.json"
 ACTIVE_TRADES_FILE = "active_trades.json"
-LAST_REPORT_FILE = "last_24h_report.json"
 
 
 # ============================================================
-# 20 BINANCE ASSETS
+# 20 COINS
 # ============================================================
 
 ASSETS = [
@@ -226,6 +231,26 @@ ASSETS = [
 
 
 # ============================================================
+# HTTP
+# ============================================================
+
+SESSION = requests.Session()
+
+SESSION.headers.update({
+    "User-Agent": "Mozilla/5.0",
+    "Accept": "application/json"
+})
+
+
+BINANCE_ENDPOINTS = [
+    "https://api.binance.com/api/v3/klines",
+    "https://data-api.binance.vision/api/v3/klines",
+    "https://api1.binance.com/api/v3/klines",
+    "https://api3.binance.com/api/v3/klines"
+]
+
+
+# ============================================================
 # TRACKER
 # ============================================================
 
@@ -240,31 +265,7 @@ SIGNAL_TRACKER = {
 
 
 # ============================================================
-# HTTP SESSION
-# ============================================================
-
-SESSION = requests.Session()
-
-SESSION.headers.update({
-    "User-Agent": "Mozilla/5.0",
-    "Accept": "application/json"
-})
-
-
-# ============================================================
-# BINANCE ENDPOINTS
-# ============================================================
-
-BINANCE_ENDPOINTS = [
-    "https://api.binance.com/api/v3/klines",
-    "https://data-api.binance.vision/api/v3/klines",
-    "https://api1.binance.com/api/v3/klines",
-    "https://api3.binance.com/api/v3/klines"
-]
-
-
-# ============================================================
-# JSON SAFE
+# JSON HELPERS
 # ============================================================
 
 def json_safe(value):
@@ -275,23 +276,10 @@ def json_safe(value):
     if isinstance(value, bool):
         return bool(value)
 
-    if isinstance(value, str):
-        return value
-
-    if isinstance(value, int):
+    if isinstance(value, (int, np.integer)):
         return int(value)
 
-    if isinstance(value, float):
-
-        if math.isnan(value) or math.isinf(value):
-            return None
-
-        return float(value)
-
-    if isinstance(value, np.integer):
-        return int(value)
-
-    if isinstance(value, np.floating):
+    if isinstance(value, (float, np.floating)):
 
         value = float(value)
 
@@ -300,14 +288,11 @@ def json_safe(value):
 
         return value
 
-    if isinstance(value, np.bool_):
-        return bool(value)
+    if isinstance(value, str):
+        return value
 
     if isinstance(value, pd.Timestamp):
         return value.isoformat()
-
-    if isinstance(value, np.ndarray):
-        return value.tolist()
 
     if isinstance(value, dict):
 
@@ -326,14 +311,7 @@ def json_safe(value):
     return str(value)
 
 
-# ============================================================
-# GENERIC JSON LOAD
-# ============================================================
-
-def load_json_file(
-    filename,
-    default
-):
+def load_json_file(filename, default):
 
     if not os.path.exists(filename):
         return default
@@ -346,33 +324,24 @@ def load_json_file(
             encoding="utf-8"
         ) as f:
 
-            data = json.load(f)
-
-        return data
+            return json.load(f)
 
     except Exception as e:
 
         logger.warning(
-            f"{filename} load error: {e}"
+            "%s load error: %s",
+            filename,
+            e
         )
 
         return default
 
 
-# ============================================================
-# GENERIC JSON SAVE
-# ============================================================
-
-def save_json_file(
-    filename,
-    data
-):
+def save_json_file(filename, data):
 
     temp = filename + ".tmp"
 
     try:
-
-        safe_data = json_safe(data)
 
         with open(
             temp,
@@ -381,7 +350,7 @@ def save_json_file(
         ) as f:
 
             json.dump(
-                safe_data,
+                json_safe(data),
                 f,
                 indent=4,
                 ensure_ascii=False,
@@ -398,28 +367,79 @@ def save_json_file(
     except Exception as e:
 
         logger.error(
-            f"{filename} save error: {e}"
+            "%s save error: %s",
+            filename,
+            e
         )
 
         return False
 
 
 # ============================================================
-# MEMORY
+# 🧠 DEFAULT AI BRAIN
 # ============================================================
 
 def default_memory():
 
     return {
+
         "created_at": utc_timestamp(),
+
         "observations": 0,
         "signals": 0,
+
         "wins": 0,
         "losses": 0,
         "closed_trades": 0,
-        "symbols_seen": [],
-        "patterns": {},
-        "last_learning_update": None
+
+        "learning_cycles": 0,
+
+        "last_learning_update": None,
+
+        "last_learning_trade_count": 0,
+
+        # ----------------------------------------------------
+        # Adaptive feature weights
+        # ----------------------------------------------------
+
+        "weights": {
+
+            "pressure": 1.00,
+            "volume": 1.00,
+            "ema": 1.00,
+            "rsi": 1.00,
+            "structure": 1.00,
+            "fvg": 1.00,
+            "order_block": 1.00,
+            "support_resistance": 1.00,
+            "entry_5m": 1.00
+        },
+
+        # ----------------------------------------------------
+        # Feature statistics
+        # ----------------------------------------------------
+
+        "feature_stats": {},
+
+        # ----------------------------------------------------
+        # Market regime statistics
+        # ----------------------------------------------------
+
+        "regimes": {},
+
+        # ----------------------------------------------------
+        # SL / TP learning
+        # ----------------------------------------------------
+
+        "risk_model": {
+
+            "sl_percent": BASE_SL_PERCENT,
+            "tp_percent": BASE_TP_PERCENT,
+
+            "reason": "BASE_SETTINGS",
+
+            "sample_size": 0
+        }
     }
 
 
@@ -455,10 +475,7 @@ def load_trade_logs():
         []
     )
 
-    if not isinstance(data, list):
-        return []
-
-    return data
+    return data if isinstance(data, list) else []
 
 
 def save_trade_logs(logs):
@@ -469,10 +486,6 @@ def save_trade_logs(logs):
     )
 
 
-# ============================================================
-# ADD TRADE LOG
-# ============================================================
-
 def add_trade_log(trade):
 
     logs = load_trade_logs()
@@ -481,7 +494,6 @@ def add_trade_log(trade):
         "trade_id"
     )
 
-    # Prevent duplicate trade records
     for existing in logs:
 
         if existing.get(
@@ -499,10 +511,6 @@ def add_trade_log(trade):
     return True
 
 
-# ============================================================
-# UPDATE EXISTING TRADE
-# ============================================================
-
 def update_trade_log(trade):
 
     logs = load_trade_logs()
@@ -513,13 +521,13 @@ def update_trade_log(trade):
 
     found = False
 
-    for index, existing in enumerate(logs):
+    for i, existing in enumerate(logs):
 
         if existing.get(
             "trade_id"
         ) == trade_id:
 
-            logs[index] = json_safe(
+            logs[i] = json_safe(
                 trade
             )
 
@@ -536,24 +544,7 @@ def update_trade_log(trade):
 
 
 # ============================================================
-# LOAD ACTIVE TRADES
-# ============================================================
-
-def load_active_trades():
-
-    data = load_json_file(
-        ACTIVE_TRADES_FILE,
-        {}
-    )
-
-    if not isinstance(data, dict):
-        return {}
-
-    return data
-
-
-# ============================================================
-# SAVE ACTIVE TRADES
+# ACTIVE TRADES
 # ============================================================
 
 def save_active_trades():
@@ -564,9 +555,11 @@ def save_active_trades():
 
         trade = SIGNAL_TRACKER[
             symbol
-        ].get("active_trade")
+        ].get(
+            "active_trade"
+        )
 
-        if trade is not None:
+        if trade:
 
             data[symbol] = trade
 
@@ -576,13 +569,12 @@ def save_active_trades():
     )
 
 
-# ============================================================
-# RESTORE ACTIVE TRADES
-# ============================================================
-
 def restore_active_trades():
 
-    active = load_active_trades()
+    active = load_json_file(
+        ACTIVE_TRADES_FILE,
+        {}
+    )
 
     if not isinstance(active, dict):
         return
@@ -616,14 +608,14 @@ def restore_active_trades():
         )
 
         logger.info(
-            f"Restored active trade: "
-            f"{symbol} "
-            f"{trade.get('direction')}"
+            "Restored %s %s",
+            symbol,
+            trade.get("direction")
         )
 
 
 # ============================================================
-# FETCH CANDLES
+# MARKET DATA
 # ============================================================
 
 def fetch_candles(
@@ -653,10 +645,7 @@ def fetch_candles(
 
             raw = response.json()
 
-            if not isinstance(
-                raw,
-                list
-            ):
+            if not isinstance(raw, list):
                 continue
 
             if len(raw) < 20:
@@ -682,7 +671,7 @@ def fetch_candles(
                 columns=columns
             )
 
-            numeric_columns = [
+            numeric = [
                 "open",
                 "high",
                 "low",
@@ -693,7 +682,7 @@ def fetch_candles(
                 "taker_buy_quote"
             ]
 
-            for col in numeric_columns:
+            for col in numeric:
 
                 df[col] = pd.to_numeric(
                     df[col],
@@ -715,48 +704,33 @@ def fetch_candles(
                 ]
             )
 
-            df = df.reset_index(
+            return df.reset_index(
                 drop=True
             )
 
-            return df
-
-        except Exception as e:
-
-            logger.debug(
-                f"{symbol} {interval}: {e}"
-            )
+        except Exception:
+            continue
 
     return None
 
 
 # ============================================================
-# PRESSURE ANALYSIS
+# PRESSURE
 # ============================================================
 
-def pressure_analysis(
-    df,
-    candles=12
-):
+def pressure_analysis(df, candles=12):
 
-    neutral = {
+    result = {
         "buyer": 50.0,
         "seller": 50.0,
         "dominant": "NEUTRAL"
     }
 
-    if df is None:
-        return neutral
+    if df is None or len(df) < candles + 3:
+        return result
 
-    if len(df) < candles + 3:
-        return neutral
-
-    # Ignore currently forming candle
     closed = df.iloc[:-1]
-
-    data = closed.tail(
-        candles
-    )
+    data = closed.tail(candles)
 
     buyer = 0.0
     seller = 0.0
@@ -776,42 +750,38 @@ def pressure_analysis(
             candle["open"]
         )
 
-        body_strength = (
+        body_ratio = (
             body /
             candle_range
         )
 
         volume = max(
             float(candle["volume"]),
-            0.0
+            0
         )
 
-        weighted_pressure = (
-            body_strength *
+        pressure = (
+            body_ratio *
             volume
         )
 
         if candle["close"] > candle["open"]:
-
-            buyer += weighted_pressure
+            buyer += pressure
 
         elif candle["close"] < candle["open"]:
-
-            seller += weighted_pressure
+            seller += pressure
 
     total = buyer + seller
 
     if total <= 0:
-        return neutral
+        return result
 
     buyer_pct = (
-        buyer /
-        total
+        buyer / total
     ) * 100
 
     seller_pct = (
-        seller /
-        total
+        seller / total
     ) * 100
 
     if buyer_pct > seller_pct:
@@ -826,59 +796,45 @@ def pressure_analysis(
     return {
         "buyer": round(
             buyer_pct,
-            1
+            2
         ),
         "seller": round(
             seller_pct,
-            1
+            2
         ),
         "dominant": dominant
     }
 
 
 # ============================================================
-# VOLUME ANALYSIS
+# VOLUME
 # ============================================================
 
-def volume_analysis(
-    df,
-    lookback=20
-):
+def volume_analysis(df, lookback=20):
 
-    if df is None:
-        return {
-            "ratio": 1.0,
-            "strong": False,
-            "direction": "NEUTRAL"
-        }
+    result = {
+        "ratio": 1.0,
+        "strong": False,
+        "direction": "NEUTRAL"
+    }
 
-    if len(df) < lookback + 3:
-
-        return {
-            "ratio": 1.0,
-            "strong": False,
-            "direction": "NEUTRAL"
-        }
+    if df is None or len(df) < lookback + 3:
+        return result
 
     closed = df.iloc[:-1]
 
     current = closed.iloc[-1]
 
-    previous_volume = closed[
+    previous = closed[
         "volume"
     ].iloc[
         -(lookback + 1):-1
     ]
 
-    average = previous_volume.mean()
+    average = previous.mean()
 
     if average <= 0:
-
-        return {
-            "ratio": 1.0,
-            "strong": False,
-            "direction": "NEUTRAL"
-        }
+        return result
 
     ratio = (
         float(current["volume"]) /
@@ -907,18 +863,12 @@ def volume_analysis(
 
 
 # ============================================================
-# RSI — 1H ONLY
+# RSI
 # ============================================================
 
-def calculate_rsi(
-    df,
-    period=14
-):
+def calculate_rsi(df, period=14):
 
-    if df is None:
-        return 50.0
-
-    if len(df) < period + 3:
+    if df is None or len(df) < period + 3:
         return 50.0
 
     closed = df.iloc[:-1]
@@ -956,8 +906,7 @@ def calculate_rsi(
     )
 
     rsi = 100 - (
-        100 /
-        (1 + rs)
+        100 / (1 + rs)
     )
 
     return round(
@@ -975,48 +924,41 @@ def calculate_rsi(
 
 
 # ============================================================
-# EMA — 1H ONLY
+# EMA
 # ============================================================
 
-def ema_direction(
-    df,
-    fast=20,
-    slow=50
-):
+def ema_direction(df):
 
-    if df is None:
-        return "NEUTRAL"
-
-    if len(df) < slow + 3:
+    if df is None or len(df) < 53:
         return "NEUTRAL"
 
     closed = df.iloc[:-1]
 
-    fast_ema = closed[
+    ema20 = closed[
         "close"
     ].ewm(
-        span=fast,
+        span=20,
         adjust=False
     ).mean().iloc[-1]
 
-    slow_ema = closed[
+    ema50 = closed[
         "close"
     ].ewm(
-        span=slow,
+        span=50,
         adjust=False
     ).mean().iloc[-1]
 
-    if fast_ema > slow_ema:
+    if ema20 > ema50:
         return "BULLISH"
 
-    if fast_ema < slow_ema:
+    if ema20 < ema50:
         return "BEARISH"
 
     return "NEUTRAL"
 
 
 # ============================================================
-# 1H MARKET STRUCTURE
+# STRUCTURE
 # ============================================================
 
 def one_hour_structure(
@@ -1031,10 +973,7 @@ def one_hour_structure(
         "low": None
     }
 
-    if df is None:
-        return result
-
-    if len(df) < lookback + 3:
+    if df is None or len(df) < lookback + 3:
         return result
 
     closed = df.iloc[:-1]
@@ -1053,84 +992,139 @@ def one_hour_structure(
         previous["low"].min()
     )
 
-    bullish = (
+    result["high"] = resistance
+    result["low"] = support
+
+    result["bullish"] = bool(
         current["high"] > resistance
         and
         current["close"] > resistance
     )
 
-    bearish = (
+    result["bearish"] = bool(
         current["low"] < support
         and
         current["close"] < support
     )
 
-    return {
-        "bullish": bool(bullish),
-        "bearish": bool(bearish),
-        "high": resistance,
-        "low": support
-    }
+    return result
 
-   # ============================================================
-# 1H FVG
+
+# ============================================================
+# FVG
 # ============================================================
 
 def detect_fvg(df):
 
     result = {
         "bullish": False,
-        "bearish": False
+        "bearish": False,
+        "size_percent": 0.0,
+        "age": 0
     }
 
-    if df is None:
-        return result
-
-    if len(df) < 10:
+    if df is None or len(df) < 10:
         return result
 
     closed = df.iloc[:-1]
 
-    if len(closed) < 4:
-        return result
+    # Search recent candles for a valid FVG.
+    for i in range(
+        len(closed) - 1,
+        max(2, len(closed) - 8),
+        -1
+    ):
 
-    c1 = closed.iloc[-3]
-    c3 = closed.iloc[-1]
+        c1 = closed.iloc[i - 2]
+        c3 = closed.iloc[i]
 
-    if c3["low"] > c1["high"]:
+        if c3["low"] > c1["high"]:
 
-        result["bullish"] = True
+            gap = (
+                c3["low"] -
+                c1["high"]
+            )
 
-    elif c3["high"] < c1["low"]:
+            midpoint = (
+                c3["low"] +
+                c1["high"]
+            ) / 2
 
-        result["bearish"] = True
+            result.update({
+                "bullish": True,
+                "size_percent": round(
+                    gap / midpoint * 100,
+                    3
+                ),
+                "age": len(closed) - 1 - i
+            })
+
+            return result
+
+        if c3["high"] < c1["low"]:
+
+            gap = (
+                c1["low"] -
+                c3["high"]
+            )
+
+            midpoint = (
+                c1["low"] +
+                c3["high"]
+            ) / 2
+
+            result.update({
+                "bearish": True,
+                "size_percent": round(
+                    gap / midpoint * 100,
+                    3
+                ),
+                "age": len(closed) - 1 - i
+            })
+
+            return result
 
     return result
 
 
 # ============================================================
-# 1H ORDER BLOCK
+# ORDER BLOCK
 # ============================================================
 
 def detect_order_block(df):
 
     result = {
         "bullish": False,
-        "bearish": False
+        "bearish": False,
+        "strength": 0.0
     }
 
-    if df is None:
-        return result
-
-    if len(df) < 10:
+    if df is None or len(df) < 10:
         return result
 
     closed = df.iloc[:-1]
 
-    last = closed.iloc[-1]
     previous = closed.iloc[-2]
+    last = closed.iloc[-1]
 
-    # Bullish OB
+    prev_range = (
+        previous["high"] -
+        previous["low"]
+    )
+
+    if prev_range <= 0:
+        return result
+
+    body = abs(
+        previous["close"] -
+        previous["open"]
+    )
+
+    strength = (
+        body /
+        prev_range
+    )
+
     if (
         previous["close"] <
         previous["open"]
@@ -1142,9 +1136,14 @@ def detect_order_block(df):
         previous["high"]
     ):
 
-        result["bullish"] = True
+        result.update({
+            "bullish": True,
+            "strength": round(
+                strength,
+                3
+            )
+        })
 
-    # Bearish OB
     elif (
         previous["close"] >
         previous["open"]
@@ -1156,13 +1155,19 @@ def detect_order_block(df):
         previous["low"]
     ):
 
-        result["bearish"] = True
+        result.update({
+            "bearish": True,
+            "strength": round(
+                strength,
+                3
+            )
+        })
 
     return result
 
 
 # ============================================================
-# 1H SUPPORT / RESISTANCE
+# SUPPORT / RESISTANCE
 # ============================================================
 
 def support_resistance(
@@ -1177,10 +1182,7 @@ def support_resistance(
         "near_resistance": False
     }
 
-    if df is None:
-        return result
-
-    if len(df) < lookback + 3:
+    if df is None or len(df) < lookback + 3:
         return result
 
     closed = df.iloc[:-1]
@@ -1204,24 +1206,20 @@ def support_resistance(
     if price <= 0:
         return result
 
-    support_distance = (
-        abs(price - support) /
-        price
-    )
-
-    resistance_distance = (
-        abs(resistance - price) /
-        price
-    )
-
     result.update({
+
         "support": support,
+
         "resistance": resistance,
-        "near_support": bool(
-            support_distance <= 0.008
+
+        "near_support": (
+            abs(price - support) /
+            price <= 0.008
         ),
-        "near_resistance": bool(
-            resistance_distance <= 0.008
+
+        "near_resistance": (
+            abs(resistance - price) /
+            price <= 0.008
         )
     })
 
@@ -1229,19 +1227,49 @@ def support_resistance(
 
 
 # ============================================================
-# 5M ENTRY ONLY
+# MARKET REGIME
 # ============================================================
-#
-# IMPORTANT:
-#
-# No RSI
-# No EMA
-# No FVG
-# No Order Block
-# No Support/Resistance
-#
-# Only candle confirmation.
-#
+
+def market_regime(
+    h1,
+    h4
+):
+
+    if h1 is None:
+        return "UNKNOWN"
+
+    closed = h1.iloc[:-1]
+
+    if len(closed) < 30:
+        return "UNKNOWN"
+
+    returns = closed[
+        "close"
+    ].pct_change().tail(20)
+
+    volatility = (
+        returns.std() * 100
+    )
+
+    ema = ema_direction(
+        h1
+    )
+
+    if volatility >= 1.5:
+        return "HIGH_VOLATILITY"
+
+    if ema in [
+        "BULLISH",
+        "BEARISH"
+    ]:
+
+        return "TRENDING"
+
+    return "RANGING"
+
+
+# ============================================================
+# 5M ENTRY ONLY
 # ============================================================
 
 def five_min_entry(
@@ -1252,16 +1280,13 @@ def five_min_entry(
     result = {
         "confirmed": False,
         "price": None,
+        "body_ratio": 0.0,
         "reason": "NO_CONFIRMATION"
     }
 
-    if df is None:
+    if df is None or len(df) < 5:
         return result
 
-    if len(df) < 5:
-        return result
-
-    # Ignore currently forming candle
     closed = df.iloc[:-1]
 
     last = closed.iloc[-1]
@@ -1288,19 +1313,13 @@ def five_min_entry(
         candle_range
     )
 
-    # --------------------------------------------
-    # BUY
-    # --------------------------------------------
-
+    # NORMAL RULE:
+    # Do NOT make this too strict.
     if direction == "BUY":
 
-        bullish = (
+        if (
             last["close"] >
             last["open"]
-        )
-
-        if (
-            bullish
             and
             body_ratio >= 0.25
         ):
@@ -1308,22 +1327,18 @@ def five_min_entry(
             return {
                 "confirmed": True,
                 "price": price,
-                "reason": "5M_BULLISH_ENTRY"
+                "body_ratio": round(
+                    body_ratio,
+                    3
+                ),
+                "reason": "5M_BULLISH_CANDLE"
             }
 
-    # --------------------------------------------
-    # SELL
-    # --------------------------------------------
-
-    if direction == "SELL":
-
-        bearish = (
-            last["close"] <
-            last["open"]
-        )
+    elif direction == "SELL":
 
         if (
-            bearish
+            last["close"] <
+            last["open"]
             and
             body_ratio >= 0.25
         ):
@@ -1331,105 +1346,175 @@ def five_min_entry(
             return {
                 "confirmed": True,
                 "price": price,
-                "reason": "5M_BEARISH_ENTRY"
+                "body_ratio": round(
+                    body_ratio,
+                    3
+                ),
+                "reason": "5M_BEARISH_CANDLE"
             }
 
     return result
 
 
 # ============================================================
+# AI WEIGHT
+# ============================================================
+
+def get_weight(name):
+
+    weights = BRAIN_MEMORY.get(
+        "weights",
+        {}
+    )
+
+    value = weights.get(
+        name,
+        1.0
+    )
+
+    try:
+        value = float(value)
+    except Exception:
+        value = 1.0
+
+    # IMPORTANT:
+    # AI cannot destroy the strategy.
+    return max(
+        0.50,
+        min(
+            1.50,
+            value
+        )
+    )
+
+
+# ============================================================
+# ADAPTIVE SCORE
+# ============================================================
+
+def weighted_score(
+    points,
+    feature
+):
+
+    return points * get_weight(
+        feature
+    )
+
+
+# ============================================================
 # TRADE LEVELS
 # ============================================================
+
+def get_risk_model():
+
+    model = BRAIN_MEMORY.get(
+        "risk_model",
+        {}
+    )
+
+    sl = float(
+        model.get(
+            "sl_percent",
+            BASE_SL_PERCENT
+        )
+    )
+
+    tp = float(
+        model.get(
+            "tp_percent",
+            BASE_TP_PERCENT
+        )
+    )
+
+    sl = max(
+        MIN_SL_PERCENT,
+        min(
+            MAX_SL_PERCENT,
+            sl
+        )
+    )
+
+    tp = max(
+        MIN_TP_PERCENT,
+        min(
+            MAX_TP_PERCENT,
+            tp
+        )
+    )
+
+    return sl, tp
+
 
 def calculate_trade_levels(
     direction,
     entry
 ):
 
+    sl_percent, tp_percent = (
+        get_risk_model()
+    )
+
     if direction == "BUY":
 
-        stop_loss = (
-            entry *
-            (
-                1 -
-                STOP_LOSS_PERCENT /
-                100
-            )
+        sl = entry * (
+            1 - sl_percent / 100
         )
 
-        take_profit = (
-            entry *
-            (
-                1 +
-                TAKE_PROFIT_PERCENT /
-                100
-            )
+        tp = entry * (
+            1 + tp_percent / 100
         )
 
     else:
 
-        stop_loss = (
-            entry *
-            (
-                1 +
-                STOP_LOSS_PERCENT /
-                100
-            )
+        sl = entry * (
+            1 + sl_percent / 100
         )
 
-        take_profit = (
-            entry *
-            (
-                1 -
-                TAKE_PROFIT_PERCENT /
-                100
-            )
+        tp = entry * (
+            1 - tp_percent / 100
         )
 
     return (
         float(entry),
-        float(stop_loss),
-        float(take_profit)
+        float(sl),
+        float(tp),
+        sl_percent,
+        tp_percent
     )
 
 
 # ============================================================
-# SIGNAL ENGINE
+# MAIN MARKET ANALYSIS
 # ============================================================
 
 def analyze_market(
     symbol,
     h1,
-    m5
+    m5,
+    h4=None
 ):
 
     if h1 is None or m5 is None:
         return None
 
-    # ========================================================
-    # 1H ANALYSIS
-    # ========================================================
-
     pressure = pressure_analysis(
-        h1,
-        candles=12
+        h1
     )
 
     volume = volume_analysis(
-        h1,
-        lookback=20
+        h1
     )
 
     structure = one_hour_structure(
-        h1,
-        lookback=50
+        h1
     )
 
     fvg = detect_fvg(
         h1
     )
 
-    order_block = detect_order_block(
+    ob = detect_order_block(
         h1
     )
 
@@ -1442,13 +1527,13 @@ def analyze_market(
     )
 
     sr = support_resistance(
-        h1,
-        lookback=50
+        h1
     )
 
-    # ========================================================
-    # SCORES
-    # ========================================================
+    regime = market_regime(
+        h1,
+        h4
+    )
 
     buy_score = 0
     sell_score = 0
@@ -1456,178 +1541,219 @@ def analyze_market(
     buy_reasons = []
     sell_reasons = []
 
-    # --------------------------------------------------------
+    # ========================================================
     # PRESSURE
-    # --------------------------------------------------------
+    # ========================================================
 
     if pressure["buyer"] >= 55:
 
-        buy_score += 20
+        buy_score += weighted_score(
+            18,
+            "pressure"
+        )
 
         buy_reasons.append(
-            f"1H Buyer Pressure "
-            f"{pressure['buyer']:.1f}%"
+            "Buyer pressure"
         )
 
     elif pressure["seller"] >= 55:
 
-        sell_score += 20
-
-        sell_reasons.append(
-            f"1H Seller Pressure "
-            f"{pressure['seller']:.1f}%"
+        sell_score += weighted_score(
+            18,
+            "pressure"
         )
 
-    # --------------------------------------------------------
+        sell_reasons.append(
+            "Seller pressure"
+        )
+
+    # ========================================================
     # VOLUME
-    # --------------------------------------------------------
+    # ========================================================
 
     if volume["strong"]:
 
         if volume["direction"] == "BUYER":
 
-            buy_score += 12
+            buy_score += weighted_score(
+                12,
+                "volume"
+            )
 
             buy_reasons.append(
-                f"Strong buyer volume "
-                f"{volume['ratio']:.2f}x"
+                f"Volume {volume['ratio']:.2f}x"
             )
 
         elif volume["direction"] == "SELLER":
 
-            sell_score += 12
-
-            sell_reasons.append(
-                f"Strong seller volume "
-                f"{volume['ratio']:.2f}x"
+            sell_score += weighted_score(
+                12,
+                "volume"
             )
 
-    # --------------------------------------------------------
+            sell_reasons.append(
+                f"Volume {volume['ratio']:.2f}x"
+            )
+
+    # ========================================================
     # EMA
-    # --------------------------------------------------------
+    # ========================================================
 
     if ema == "BULLISH":
 
-        buy_score += 10
+        buy_score += weighted_score(
+            10,
+            "ema"
+        )
 
         buy_reasons.append(
-            "1H EMA bullish"
+            "EMA bullish"
         )
 
     elif ema == "BEARISH":
 
-        sell_score += 10
-
-        sell_reasons.append(
-            "1H EMA bearish"
+        sell_score += weighted_score(
+            10,
+            "ema"
         )
 
-    # --------------------------------------------------------
+        sell_reasons.append(
+            "EMA bearish"
+        )
+
+    # ========================================================
     # STRUCTURE
-    # --------------------------------------------------------
+    # ========================================================
 
     if structure["bullish"]:
 
-        buy_score += 18
+        buy_score += weighted_score(
+            18,
+            "structure"
+        )
 
         buy_reasons.append(
-            "1H bullish structure break"
+            "Bullish structure break"
         )
 
     if structure["bearish"]:
 
-        sell_score += 18
-
-        sell_reasons.append(
-            "1H bearish structure break"
+        sell_score += weighted_score(
+            18,
+            "structure"
         )
 
-    # --------------------------------------------------------
+        sell_reasons.append(
+            "Bearish structure break"
+    )
+        # ========================================================
     # FVG
-    # --------------------------------------------------------
+    # ========================================================
 
     if fvg["bullish"]:
 
-        buy_score += 8
+        buy_score += weighted_score(
+            8,
+            "fvg"
+        )
 
         buy_reasons.append(
-            "1H bullish FVG"
+            "Bullish FVG"
         )
 
     if fvg["bearish"]:
 
-        sell_score += 8
-
-        sell_reasons.append(
-            "1H bearish FVG"
+        sell_score += weighted_score(
+            8,
+            "fvg"
         )
 
-    # --------------------------------------------------------
+        sell_reasons.append(
+            "Bearish FVG"
+        )
+
+    # ========================================================
     # ORDER BLOCK
-    # --------------------------------------------------------
+    # ========================================================
 
-    if order_block["bullish"]:
+    if ob["bullish"]:
 
-        buy_score += 8
+        buy_score += weighted_score(
+            8,
+            "order_block"
+        )
 
         buy_reasons.append(
-            "1H bullish order block"
+            "Bullish Order Block"
         )
 
-    if order_block["bearish"]:
+    if ob["bearish"]:
 
-        sell_score += 8
+        sell_score += weighted_score(
+            8,
+            "order_block"
+        )
 
         sell_reasons.append(
-            "1H bearish order block"
+            "Bearish Order Block"
         )
 
-    # --------------------------------------------------------
+    # ========================================================
     # RSI
-    #
-    # Flexible / supportive only.
-    # --------------------------------------------------------
+    # ========================================================
 
     if 45 <= rsi <= 68:
 
         if ema == "BULLISH":
 
-            buy_score += 5
+            buy_score += weighted_score(
+                5,
+                "rsi"
+            )
 
             buy_reasons.append(
-                "1H RSI supports BUY"
+                "RSI supports BUY"
             )
 
         elif ema == "BEARISH":
 
-            sell_score += 5
-
-            sell_reasons.append(
-                "1H RSI supports SELL"
+            sell_score += weighted_score(
+                5,
+                "rsi"
             )
 
-    # --------------------------------------------------------
-    # SUPPORT / RESISTANCE
-    # --------------------------------------------------------
+            sell_reasons.append(
+                "RSI supports SELL"
+            )
+
+    # ========================================================
+    # S/R
+    # ========================================================
 
     if sr["near_support"]:
 
-        buy_score += 7
+        buy_score += weighted_score(
+            7,
+            "support_resistance"
+        )
 
         buy_reasons.append(
-            "1H near support"
+            "Near support"
         )
 
     if sr["near_resistance"]:
 
-        sell_score += 7
+        sell_score += weighted_score(
+            7,
+            "support_resistance"
+        )
 
         sell_reasons.append(
-            "1H near resistance"
+            "Near resistance"
         )
 
     # ========================================================
-    # DECIDE DIRECTION
+    # DIRECTION
     # ========================================================
 
     direction = "HOLD"
@@ -1652,13 +1778,12 @@ def analyze_market(
 
     # ========================================================
     # 5M ENTRY
-    #
-    # ONLY AFTER 1H DIRECTION IS STRONG
     # ========================================================
 
     entry_check = {
         "confirmed": False,
         "price": None,
+        "body_ratio": 0,
         "reason": "NO_CONFIRMATION"
     }
 
@@ -1672,29 +1797,20 @@ def analyze_market(
             direction
         )
 
-        if entry_check["confirmed"]:
+    final_score = max(
+        buy_score,
+        sell_score
+    )
 
-            final_score = max(
-                buy_score,
-                sell_score
-            ) + 5
+    if entry_check["confirmed"]:
 
-        else:
-
-            final_score = max(
-                buy_score,
-                sell_score
-            )
-
-    else:
-
-        final_score = max(
-            buy_score,
-            sell_score
+        final_score += weighted_score(
+            5,
+            "entry_5m"
         )
 
     # ========================================================
-    # FINAL TRADE
+    # TRADE
     # ========================================================
 
     trade = None
@@ -1708,168 +1824,199 @@ def analyze_market(
         entry_check["confirmed"]
     ):
 
-        entry = entry_check["price"]
+        entry = entry_check[
+            "price"
+        ]
 
-        entry, sl, tp = calculate_trade_levels(
+        (
+            entry,
+            sl,
+            tp,
+            sl_percent,
+            tp_percent
+        ) = calculate_trade_levels(
             direction,
             entry
         )
 
         trade = {
-            "trade_id": (
-                f"{symbol}_"
-                f"{direction}_"
-                f"{int(time.time())}"
-            ),
 
-            "symbol": symbol,
+            "trade_id":
+                f"{symbol}_{direction}_{int(time.time())}",
 
-            "direction": direction,
+            "symbol":
+                symbol,
 
-            "score": int(
-                final_score
-            ),
+            "direction":
+                direction,
 
-            "buy_score": int(
-                buy_score
-            ),
+            "score":
+                int(round(final_score)),
 
-            "sell_score": int(
-                sell_score
-            ),
+            "buy_score":
+                int(round(buy_score)),
 
-            "entry": entry,
+            "sell_score":
+                int(round(sell_score)),
 
-            "stop_loss": sl,
+            "entry":
+                entry,
 
-            "take_profit": tp,
+            "stop_loss":
+                sl,
 
-            "risk_reward": "1:2",
+            "take_profit":
+                tp,
 
-            "created_at": utc_timestamp(),
+            "sl_percent":
+                sl_percent,
 
-            "created_time_pk": pakistan_time(),
+            "tp_percent":
+                tp_percent,
 
-            "status": "OPEN",
+            "risk_reward":
+                round(
+                    tp_percent /
+                    sl_percent,
+                    2
+                ),
 
-            "entry_reason": entry_check[
-                "reason"
-            ],
+            "created_at":
+                utc_timestamp(),
 
-            "buyer_pressure": pressure[
-                "buyer"
-            ],
+            "created_time_pk":
+                pakistan_time(),
 
-            "seller_pressure": pressure[
-                "seller"
-            ],
+            "status":
+                "OPEN",
 
-            "dominant_pressure": pressure[
-                "dominant"
-            ],
+            "market_regime":
+                regime,
 
-            "volume_ratio": volume[
-                "ratio"
-            ],
+            "entry_reason":
+                entry_check["reason"],
 
-            "volume_strong": volume[
-                "strong"
-            ],
+            "entry_body_ratio":
+                entry_check["body_ratio"],
 
-            "volume_direction": volume[
-                "direction"
-            ],
+            # ---------------------------------------------
+            # MARKET FEATURES
+            # ---------------------------------------------
 
-            "h1_ema": ema,
+            "buyer_pressure":
+                pressure["buyer"],
 
-            "h1_rsi": rsi,
+            "seller_pressure":
+                pressure["seller"],
 
-            "h1_bullish_structure": structure[
-                "bullish"
-            ],
+            "dominant_pressure":
+                pressure["dominant"],
 
-            "h1_bearish_structure": structure[
-                "bearish"
-            ],
+            "volume_ratio":
+                volume["ratio"],
 
-            "h1_bullish_fvg": fvg[
-                "bullish"
-            ],
+            "volume_strong":
+                volume["strong"],
 
-            "h1_bearish_fvg": fvg[
-                "bearish"
-            ],
+            "volume_direction":
+                volume["direction"],
 
-            "h1_bullish_ob": order_block[
-                "bullish"
-            ],
+            "h1_ema":
+                ema,
 
-            "h1_bearish_ob": order_block[
-                "bearish"
-            ],
+            "h1_rsi":
+                rsi,
 
-            "reasons": (
-                buy_reasons
-                if direction == "BUY"
-                else sell_reasons
-            )
+            "h1_bullish_structure":
+                structure["bullish"],
+
+            "h1_bearish_structure":
+                structure["bearish"],
+
+            "fvg_bullish":
+                fvg["bullish"],
+
+            "fvg_bearish":
+                fvg["bearish"],
+
+            "fvg_size_percent":
+                fvg["size_percent"],
+
+            "fvg_age":
+                fvg["age"],
+
+            "ob_bullish":
+                ob["bullish"],
+
+            "ob_bearish":
+                ob["bearish"],
+
+            "ob_strength":
+                ob["strength"],
+
+            "near_support":
+                sr["near_support"],
+
+            "near_resistance":
+                sr["near_resistance"],
+
+            "support":
+                sr["support"],
+
+            "resistance":
+                sr["resistance"],
+
+            # ---------------------------------------------
+            # SNAPSHOT OF AI WEIGHTS
+            # ---------------------------------------------
+
+            "weights_at_entry":
+                dict(
+                    BRAIN_MEMORY.get(
+                        "weights",
+                        {}
+                    )
+                ),
+
+            # ---------------------------------------------
+            # REASONS
+            # ---------------------------------------------
+
+            "reasons":
+                (
+                    buy_reasons
+                    if direction == "BUY"
+                    else sell_reasons
+                )
         }
 
     return {
-        "symbol": symbol,
 
-        "direction": direction,
+        "symbol":
+            symbol,
 
-        "score": int(
-            final_score
-        ),
+        "direction":
+            direction,
 
-        "buy_score": int(
-            buy_score
-        ),
+        "score":
+            int(round(final_score)),
 
-        "sell_score": int(
-            sell_score
-        ),
+        "buy_score":
+            int(round(buy_score)),
 
-        "trade": trade,
+        "sell_score":
+            int(round(sell_score)),
 
-        "buyer_pressure": pressure[
-            "buyer"
-        ],
+        "trade":
+            trade,
 
-        "seller_pressure": pressure[
-            "seller"
-        ],
-
-        "dominant_pressure": pressure[
-            "dominant"
-        ],
-
-        "volume_ratio": volume[
-            "ratio"
-        ],
-
-        "volume_strong": volume[
-            "strong"
-        ],
-
-        "volume_direction": volume[
-            "direction"
-        ],
-
-        "h1_ema": ema,
-
-        "h1_rsi": rsi,
-
-        "buy_reasons": buy_reasons,
-
-        "sell_reasons": sell_reasons
+        "regime":
+            regime
     }
 
 
 # ============================================================
-# DUPLICATE / ACTIVE TRADE PROTECTION
+# TRADE PROTECTION
 # ============================================================
 
 def should_send_trade(
@@ -1880,10 +2027,6 @@ def should_send_trade(
     tracker = SIGNAL_TRACKER[
         symbol
     ]
-
-    # --------------------------------------------
-    # NEVER create another trade while one is open
-    # --------------------------------------------
 
     if tracker.get(
         "active_trade"
@@ -1915,7 +2058,7 @@ def should_send_trade(
 
 
 # ============================================================
-# REGISTER SIGNAL
+# REGISTER
 # ============================================================
 
 def register_trade(
@@ -1946,207 +2089,186 @@ def register_trade(
     )
 
     save_active_trades()
-
     save_memory()
 
+
 # ============================================================
-# GMAIL TRADE ALERT
+# TRADE EMAIL
 # ============================================================
 
-def create_trade_email(
-    trade
-):
+def create_trade_email(trade):
 
     direction = trade[
         "direction"
     ]
 
-    symbol = trade[
-        "symbol"
-    ]
-
     if direction == "BUY":
-
         icon = "🟢"
-
-        sl_text = "-1.00%"
-        tp_text = "+2.00%"
-
-        pressure_name = (
-            "Buyer Pressure"
-        )
-
-        pressure_value = (
-            trade["buyer_pressure"]
-        )
-
+        pressure = trade[
+            "buyer_pressure"
+        ]
     else:
-
         icon = "🔴"
-
-        sl_text = "+1.00%"
-        tp_text = "-2.00%"
-
-        pressure_name = (
-            "Seller Pressure"
-        )
-
-        pressure_value = (
-            trade["seller_pressure"]
-        )
+        pressure = trade[
+            "seller_pressure"
+        ]
 
     subject = (
         f"{icon} MARKET BRAIN "
-        f"STRONG {direction} — "
-        f"{symbol}"
+        f"{direction} — "
+        f"{trade['symbol']}"
     )
 
     body = f"""
 ==================================================
-🧠 MARKET BRAIN — STRONG {direction}
+🧠 MARKET BRAIN — {direction}
 ==================================================
 
-COIN
-{symbol}
+Coin:
+{trade["symbol"]}
 
-DIRECTION
-{icon} {direction}
+Direction:
+{direction}
 
-SIGNAL SCORE
+Score:
 {trade["score"]}/100
 
+Market Regime:
+{trade["market_regime"]}
+
 ==================================================
-TRADE SETUP
+TRADE
 ==================================================
 
-ENTRY PRICE
+Entry:
 {trade["entry"]:.10f}
 
-STOP LOSS
+Stop Loss:
 {trade["stop_loss"]:.10f}
-{sl_text}
+({trade["sl_percent"]:.2f}%)
 
-TARGET PRICE
+Target:
 {trade["take_profit"]:.10f}
-{tp_text}
+({trade["tp_percent"]:.2f}%)
 
-RISK / REWARD
-1 : 2
+Risk / Reward:
+1 : {trade["risk_reward"]}
 
 ==================================================
-MARKET PRESSURE
+PRESSURE
 ==================================================
 
-{pressure_name}
-{pressure_value:.1f}%
-
-Buyer Pressure
+Buyer:
 {trade["buyer_pressure"]:.1f}%
 
-Seller Pressure
+Seller:
 {trade["seller_pressure"]:.1f}%
 
-Dominant Pressure
+Dominant:
 {trade["dominant_pressure"]}
 
 ==================================================
 VOLUME
 ==================================================
 
-Volume Ratio
-{trade["volume_ratio"]:.2f}x Average
+Ratio:
+{trade["volume_ratio"]:.2f}x
 
-Volume Status
-{"STRONG" if trade["volume_strong"] else "NORMAL"}
-
-Volume Direction
+Direction:
 {trade["volume_direction"]}
 
+Status:
+{"STRONG" if trade["volume_strong"] else "NORMAL"}
+
 ==================================================
-1H MARKET ANALYSIS
+1H ANALYSIS
 ==================================================
 
-1H EMA
+EMA:
 {trade["h1_ema"]}
 
-1H RSI
+RSI:
 {trade["h1_rsi"]:.2f}
 
-1H Bullish Structure
+Bullish Structure:
 {trade["h1_bullish_structure"]}
 
-1H Bearish Structure
+Bearish Structure:
 {trade["h1_bearish_structure"]}
 
-1H Bullish FVG
-{trade["h1_bullish_fvg"]}
+Bullish FVG:
+{trade["fvg_bullish"]}
 
-1H Bearish FVG
-{trade["h1_bearish_fvg"]}
+Bearish FVG:
+{trade["fvg_bearish"]}
 
-1H Bullish Order Block
-{trade["h1_bullish_ob"]}
+FVG Size:
+{trade["fvg_size_percent"]:.3f}%
 
-1H Bearish Order Block
-{trade["h1_bearish_ob"]}
+FVG Age:
+{trade["fvg_age"]}
+
+Bullish OB:
+{trade["ob_bullish"]}
+
+Bearish OB:
+{trade["ob_bearish"]}
+
+OB Strength:
+{trade["ob_strength"]}
+
+Near Support:
+{trade["near_support"]}
+
+Near Resistance:
+{trade["near_resistance"]}
 
 ==================================================
 5M ENTRY
 ==================================================
 
-5M Entry Confirmation
+Confirmation:
 {trade["entry_reason"]}
 
-IMPORTANT:
-5M is used ONLY for entry confirmation.
+Body Ratio:
+{trade["entry_body_ratio"]}
 
-No 5M FVG
-No 5M Order Block
-No 5M RSI
-No 5M EMA
+5M is ENTRY ONLY.
 
 ==================================================
-SIGNAL REASONS
+AI WEIGHTS AT ENTRY
 ==================================================
-"""
 
-    for reason in trade[
-        "reasons"
-    ]:
-
-        body += (
-            f"\n• {reason}"
-        )
-
-    body += f"""
+{json.dumps(
+    trade["weights_at_entry"],
+    indent=2
+)}
 
 ==================================================
 TIME
 ==================================================
 
-Trade Created
 {trade["created_time_pk"]}
 
-Timezone
-Pakistan Time (UTC+5)
+Pakistan Time UTC+5
 
-Trade ID
+Trade ID:
 {trade["trade_id"]}
 
 ==================================================
-
-SL = 1%
-TP = 2%
-Risk / Reward = 1:2
-
-This is a market-analysis signal.
 """
+
+    for reason in trade["reasons"]:
+
+        body += (
+            f"\n• {reason}"
+        )
 
     return subject, body
 
 
 # ============================================================
-# TRADE CLOSE EMAIL
+# CLOSE EMAIL
 # ============================================================
 
 def create_close_email(
@@ -2154,17 +2276,15 @@ def create_close_email(
     result
 ):
 
-    if result == "WIN":
-
-        icon = "🟢"
-
-    else:
-
-        icon = "🔴"
+    icon = (
+        "🟢"
+        if result == "WIN"
+        else "🔴"
+    )
 
     subject = (
         f"{icon} MARKET BRAIN "
-        f"TRADE {result} — "
+        f"{result} — "
         f"{trade['symbol']}"
     )
 
@@ -2183,22 +2303,31 @@ Result:
 {icon} {result}
 
 Entry:
-{trade["entry"]:.10f}
-
-Stop Loss:
-{trade["stop_loss"]:.10f}
-
-Target:
-{trade["take_profit"]:.10f}
+{trade["entry"]}
 
 Closed Price:
-{trade["closed_price"]:.10f}
+{trade["closed_price"]}
+
+SL:
+{trade["stop_loss"]}
+
+TP:
+{trade["take_profit"]}
+
+SL %:
+{trade["sl_percent"]:.2f}%
+
+TP %:
+{trade["tp_percent"]:.2f}%
 
 Created:
 {trade["created_time_pk"]}
 
 Closed:
 {trade["closed_time_pk"]}
+
+Market Regime:
+{trade["market_regime"]}
 
 Buyer Pressure:
 {trade["buyer_pressure"]:.1f}%
@@ -2209,12 +2338,21 @@ Seller Pressure:
 Volume:
 {trade["volume_ratio"]:.2f}x
 
-Score:
-{trade["score"]}/100
+RSI:
+{trade["h1_rsi"]}
+
+EMA:
+{trade["h1_ema"]}
+
+FVG:
+{trade["fvg_bullish"] or trade["fvg_bearish"]}
+
+Order Block:
+{trade["ob_bullish"] or trade["ob_bearish"]}
 
 ==================================================
 
-Result recorded in Market Brain learning memory.
+Trade saved to AI learning memory.
 """
 
     return subject, body
@@ -2241,10 +2379,6 @@ def check_active_trade(
     if df is None:
         return None
 
-    if len(df) < 2:
-        return None
-
-    # Use the latest available price
     current = float(
         df["close"].iloc[-1]
     )
@@ -2254,10 +2388,6 @@ def check_active_trade(
     ]
 
     result = None
-
-    # ========================================================
-    # BUY
-    # ========================================================
 
     if direction == "BUY":
 
@@ -2273,11 +2403,7 @@ def check_active_trade(
 
             result = "LOSS"
 
-    # ========================================================
-    # SELL
-    # ========================================================
-
-    elif direction == "SELL":
+    else:
 
         if current <= trade[
             "take_profit"
@@ -2293,13 +2419,9 @@ def check_active_trade(
 
     if result:
 
-        trade[
-            "status"
-        ] = result
+        trade["status"] = result
 
-        trade[
-            "closed_price"
-        ] = current
+        trade["closed_price"] = current
 
         trade[
             "closed_time_pk"
@@ -2309,17 +2431,14 @@ def check_active_trade(
             "closed_at"
         ] = utc_timestamp()
 
-        if result == "WIN":
-
-            trade[
-                "realized_rr"
-            ] = 2.0
-
-        else:
-
-            trade[
-                "realized_rr"
-            ] = -1.0
+        trade[
+            "realized_rr"
+        ] = (
+            trade["tp_percent"] /
+            trade["sl_percent"]
+            if result == "WIN"
+            else -1.0
+        )
 
         return result
 
@@ -2327,7 +2446,479 @@ def check_active_trade(
 
 
 # ============================================================
-# LEARNING
+# 🧠 AI LEARNING
+# ============================================================
+
+FEATURES = [
+    "pressure",
+    "volume",
+    "ema",
+    "rsi",
+    "structure",
+    "fvg",
+    "order_block",
+    "support_resistance",
+    "entry_5m"
+]
+
+
+def feature_present(
+    trade,
+    feature
+):
+
+    if feature == "pressure":
+
+        return (
+            trade.get(
+                "buyer_pressure",
+                50
+            ) >= 55
+            or
+            trade.get(
+                "seller_pressure",
+                50
+            ) >= 55
+        )
+
+    if feature == "volume":
+
+        return bool(
+            trade.get(
+                "volume_strong",
+                False
+            )
+        )
+
+    if feature == "ema":
+
+        return (
+            trade.get(
+                "h1_ema"
+            )
+            in
+            ["BULLISH", "BEARISH"]
+        )
+
+    if feature == "rsi":
+
+        rsi = float(
+            trade.get(
+                "h1_rsi",
+                50
+            )
+        )
+
+        return 45 <= rsi <= 68
+
+    if feature == "structure":
+
+        return bool(
+            trade.get(
+                "h1_bullish_structure",
+                False
+            )
+            or
+            trade.get(
+                "h1_bearish_structure",
+                False
+            )
+        )
+
+    if feature == "fvg":
+
+        return bool(
+            trade.get(
+                "fvg_bullish",
+                False
+            )
+            or
+            trade.get(
+                "fvg_bearish",
+                False
+            )
+        )
+
+    if feature == "order_block":
+
+        return bool(
+            trade.get(
+                "ob_bullish",
+                False
+            )
+            or
+            trade.get(
+                "ob_bearish",
+                False
+            )
+        )
+
+    if feature == "support_resistance":
+
+        return bool(
+            trade.get(
+                "near_support",
+                False
+            )
+            or
+            trade.get(
+                "near_resistance",
+                False
+            )
+        )
+
+    if feature == "entry_5m":
+
+        return bool(
+            trade.get(
+                "entry_reason"
+            )
+        )
+
+    return False
+
+
+def learn_from_last_50():
+
+    logs = load_trade_logs()
+
+    closed = [
+        t
+        for t in logs
+        if t.get("status")
+        in ["WIN", "LOSS"]
+    ]
+
+    closed = closed[
+        -LEARNING_WINDOW:
+    ]
+
+    if len(closed) < MIN_LEARNING_TRADES:
+
+        logger.info(
+            "AI learning waiting: %s/%s closed trades",
+            len(closed),
+            MIN_LEARNING_TRADES
+        )
+
+        return
+
+    logger.info(
+        "🧠 AI LEARNING STARTED — "
+        "last %s trades",
+        len(closed)
+    )
+
+    stats = {}
+
+# ========================================================
+    # FEATURE ANALYSIS
+    # ========================================================
+
+    for feature in FEATURES:
+
+        applicable = [
+            t
+            for t in closed
+            if feature_present(
+                t,
+                feature
+            )
+        ]
+
+        if not applicable:
+            continue
+
+        wins = sum(
+            1
+            for t in applicable
+            if t.get("status") == "WIN"
+        )
+
+        losses = sum(
+            1
+            for t in applicable
+            if t.get("status") == "LOSS"
+        )
+
+        total = wins + losses
+
+        win_rate = (
+            wins / total * 100
+            if total
+            else 0
+        )
+
+        stats[feature] = {
+
+            "trades": total,
+
+            "wins": wins,
+
+            "losses": losses,
+
+            "win_rate": round(
+                win_rate,
+                2
+            )
+        }
+
+    BRAIN_MEMORY[
+        "feature_stats"
+    ] = stats
+
+    # ========================================================
+    # ADJUST WEIGHTS
+    # ========================================================
+
+    weights = BRAIN_MEMORY[
+        "weights"
+    ]
+
+    for feature, data in stats.items():
+
+        if data["trades"] < 8:
+            continue
+
+        win_rate = data[
+            "win_rate"
+        ]
+
+        old = float(
+            weights.get(
+                feature,
+                1.0
+            )
+        )
+
+        # Good feature
+        if win_rate >= 65:
+
+            new = old + 0.05
+
+        # Weak feature
+        elif win_rate <= 42:
+
+            new = old - 0.05
+
+        else:
+
+            new = old
+
+        # Keep adaptation controlled
+        new = max(
+            0.50,
+            min(
+                1.50,
+                new
+            )
+        )
+
+        weights[
+            feature
+        ] = round(
+            new,
+            3
+        )
+
+    # ========================================================
+    # REGIME LEARNING
+    # ========================================================
+
+    regimes = {}
+
+    for trade in closed:
+
+        regime = trade.get(
+            "market_regime",
+            "UNKNOWN"
+        )
+
+        if regime not in regimes:
+
+            regimes[regime] = {
+                "wins": 0,
+                "losses": 0
+            }
+
+        if trade.get(
+            "status"
+        ) == "WIN":
+
+            regimes[
+                regime
+            ]["wins"] += 1
+
+        else:
+
+            regimes[
+                regime
+            ]["losses"] += 1
+
+    BRAIN_MEMORY[
+        "regimes"
+    ] = regimes
+
+    # ========================================================
+    # RISK MODEL LEARNING
+    # ========================================================
+    #
+    # IMPORTANT:
+    # Don't change SL/TP aggressively.
+    #
+    # The bot starts with:
+    # SL 1%
+    # TP 2%
+    #
+    # Only after 50 trades we inspect whether
+    # current risk model is repeatedly failing.
+    # ========================================================
+
+    wins = sum(
+        1
+        for t in closed
+        if t.get("status") == "WIN"
+    )
+
+    losses = sum(
+        1
+        for t in closed
+        if t.get("status") == "LOSS"
+    )
+
+    win_rate = (
+        wins /
+        len(closed) *
+        100
+    )
+
+    risk_model = BRAIN_MEMORY[
+        "risk_model"
+    ]
+
+    current_sl = float(
+        risk_model.get(
+            "sl_percent",
+            BASE_SL_PERCENT
+        )
+    )
+
+    current_tp = float(
+        risk_model.get(
+            "tp_percent",
+            BASE_TP_PERCENT
+        )
+    )
+
+    # Conservative adaptation.
+    #
+    # If loss rate is unusually high:
+    # slightly widen SL and TP.
+    #
+    # If performance is healthy:
+    # maintain the base model.
+
+    if win_rate < 35:
+
+        current_sl += 0.05
+        current_tp += 0.10
+
+        reason = (
+            "50-trade sample shows "
+            "high loss rate"
+        )
+
+    elif win_rate >= 60:
+
+        # Don't aggressively change a good system.
+        reason = (
+            "50-trade sample healthy; "
+            "risk model maintained"
+        )
+
+    else:
+
+        reason = (
+            "50-trade sample neutral; "
+            "risk model maintained"
+        )
+
+    current_sl = max(
+        MIN_SL_PERCENT,
+        min(
+            MAX_SL_PERCENT,
+            current_sl
+        )
+    )
+
+    current_tp = max(
+        MIN_TP_PERCENT,
+        min(
+            MAX_TP_PERCENT,
+            current_tp
+        )
+    )
+
+    risk_model.update({
+
+        "sl_percent":
+            round(
+                current_sl,
+                3
+            ),
+
+        "tp_percent":
+            round(
+                current_tp,
+                3
+            ),
+
+        "reason":
+            reason,
+
+        "sample_size":
+            len(closed),
+
+        "win_rate":
+            round(
+                win_rate,
+                2
+            )
+    })
+
+    BRAIN_MEMORY[
+        "learning_cycles"
+    ] += 1
+
+    BRAIN_MEMORY[
+        "last_learning_trade_count"
+    ] = len(closed)
+
+    save_memory()
+
+    logger.info(
+        "🧠 AI LEARNING COMPLETE"
+    )
+
+    logger.info(
+        "Win rate: %.1f%%",
+        win_rate
+    )
+
+    logger.info(
+        "Weights: %s",
+        weights
+    )
+
+    logger.info(
+        "SL %.2f%% | TP %.2f%%",
+        current_sl,
+        current_tp
+    )
+
+
+# ============================================================
+# LEARN AFTER TRADE
 # ============================================================
 
 def learn_from_trade(
@@ -2351,45 +2942,18 @@ def learn_from_trade(
             "losses"
         ] += 1
 
-    pattern_key = (
-        f'{trade["direction"]}_'
-        f'{trade["score"]}'
-    )
-
-    patterns = BRAIN_MEMORY[
-        "patterns"
-    ]
-
-    if pattern_key not in patterns:
-
-        patterns[
-            pattern_key
-        ] = {
-            "wins": 0,
-            "losses": 0
-        }
-
-    if result == "WIN":
-
-        patterns[
-            pattern_key
-        ]["wins"] += 1
-
-    elif result == "LOSS":
-
-        patterns[
-            pattern_key
-        ]["losses"] += 1
-
     update_trade_log(
         trade
     )
 
     save_memory()
 
+    # Learn only when 50 closed trades exist.
+    learn_from_last_50()
+
 
 # ============================================================
-# CHECK ALL ACTIVE TRADES
+# CHECK ALL TRADES
 # ============================================================
 
 def check_all_active_trades():
@@ -2417,9 +2981,10 @@ def check_all_active_trades():
             if result:
 
                 logger.info(
-                    f"{symbol} "
-                    f"{trade['direction']} "
-                    f"closed: {result}"
+                    "%s %s -> %s",
+                    symbol,
+                    trade["direction"],
+                    result
                 )
 
                 learn_from_trade(
@@ -2427,7 +2992,6 @@ def check_all_active_trades():
                     result
                 )
 
-                # Send close notification
                 subject, body = (
                     create_close_email(
                         trade,
@@ -2449,7 +3013,9 @@ def check_all_active_trades():
         except Exception as e:
 
             logger.error(
-                f"{symbol} trade check error: {e}"
+                "%s trade check: %s",
+                symbol,
+                e
             )
 
     if changed:
@@ -2461,22 +3027,23 @@ def check_all_active_trades():
 # SCAN SYMBOL
 # ============================================================
 
-def scan_symbol(
-    symbol
-):
+def scan_symbol(symbol):
 
     logger.info(
-        f"Scanning {symbol}"
+        "Scanning %s",
+        symbol
     )
-
-    # ========================================================
-    # ONLY TWO TIMEFRAMES
-    # ========================================================
 
     h1 = fetch_candles(
         symbol,
         "1h",
-        80
+        100
+    )
+
+    h4 = fetch_candles(
+        symbol,
+        "4h",
+        100
     )
 
     m5 = fetch_candles(
@@ -2486,17 +3053,13 @@ def scan_symbol(
     )
 
     if h1 is None or m5 is None:
-
-        logger.warning(
-            f"{symbol}: incomplete data"
-        )
-
         return
 
     analysis = analyze_market(
         symbol,
         h1,
-        m5
+        m5,
+        h4
     )
 
     if analysis is None:
@@ -2506,22 +3069,13 @@ def scan_symbol(
         "observations"
     ] += 1
 
-    if symbol not in BRAIN_MEMORY[
-        "symbols_seen"
-    ]:
-
-        BRAIN_MEMORY[
-            "symbols_seen"
-        ].append(
-            symbol
-        )
-
     logger.info(
-        f"{symbol} | "
-        f"BUY={analysis['buy_score']} | "
-        f"SELL={analysis['sell_score']} | "
-        f"FINAL={analysis['direction']} | "
-        f"SCORE={analysis['score']}"
+        "%s | BUY=%s | SELL=%s | %s | SCORE=%s",
+        symbol,
+        analysis["buy_score"],
+        analysis["sell_score"],
+        analysis["direction"],
+        analysis["score"]
     )
 
     trade = analysis[
@@ -2531,25 +3085,12 @@ def scan_symbol(
     if trade is None:
         return
 
-    # ========================================================
-    # ACTIVE TRADE PROTECTION
-    # ========================================================
-
     if not should_send_trade(
         symbol,
         trade["direction"]
     ):
 
-        logger.info(
-            f"{symbol}: "
-            f"trade blocked by protection."
-        )
-
         return
-
-    # ========================================================
-    # SEND EMAIL FIRST
-    # ========================================================
 
     subject, body = (
         create_trade_email(
@@ -2562,10 +3103,6 @@ def scan_symbol(
         body
     )
 
-    # ========================================================
-    # ONLY REGISTER TRADE IF EMAIL SENT
-    # ========================================================
-
     if sent:
 
         register_trade(
@@ -2574,107 +3111,88 @@ def scan_symbol(
         )
 
         logger.info(
-            f"TRADE CREATED: "
-            f"{symbol} "
-            f"{trade['direction']} "
-            f"Score={trade['score']}"
+            "🟢 TRADE CREATED %s %s",
+            symbol,
+            trade["direction"]
         )
 
     else:
 
         logger.warning(
-            f"{symbol}: "
-            f"trade NOT registered because "
-            f"Gmail failed."
+            "%s Gmail failed; "
+            "trade not registered.",
+            symbol
         )
 
 
 # ============================================================
-# 24-HOUR REPORT
+# 12-HOUR REPORT DATA
 # ============================================================
 
-def create_24_hour_report():
+def create_12_hour_report():
 
     logs = load_trade_logs()
 
     now = time.time()
 
-    start_time = (
-        now -
-        REPORT_INTERVAL_SECONDS
+    start = now - (
+        12 * 60 * 60
     )
 
     recent = []
 
     for trade in logs:
 
-        created_at = trade.get(
+        created = trade.get(
             "created_at",
             0
         )
 
         try:
-            created_at = float(
-                created_at
-            )
+            created = float(created)
         except Exception:
             continue
 
-        if created_at >= start_time:
+        if created >= start:
 
             recent.append(
                 trade
             )
 
-    total = len(recent)
-
     wins = sum(
         1
-        for trade in recent
-        if trade.get("status") == "WIN"
+        for t in recent
+        if t.get("status") == "WIN"
     )
 
     losses = sum(
         1
-        for trade in recent
-        if trade.get("status") == "LOSS"
+        for t in recent
+        if t.get("status") == "LOSS"
     )
 
     open_trades = sum(
         1
-        for trade in recent
-        if trade.get("status") == "OPEN"
+        for t in recent
+        if t.get("status") == "OPEN"
     )
 
-    buy_trades = sum(
-        1
-        for trade in recent
-        if trade.get("direction") == "BUY"
-    )
-
-    sell_trades = sum(
-        1
-        for trade in recent
-        if trade.get("direction") == "SELL"
-    )
+    total = len(recent)
 
     closed = wins + losses
 
-    if closed > 0:
+    win_rate = (
+        wins /
+        closed *
+        100
+        if closed
+        else 0
+    )
 
-        win_rate = (
-            wins /
-            closed
-        ) * 100
-
-    else:
-
-        win_rate = 0.0
-
-    total_rr = (
-        wins * 2.0
+    net_rr = (
+        wins * 2
         -
-        losses * 1.0
+        losses
     )
 
     return {
@@ -2683,57 +3201,59 @@ def create_24_hour_report():
         "wins": wins,
         "losses": losses,
         "open": open_trades,
-        "buy": buy_trades,
-        "sell": sell_trades,
         "closed": closed,
         "win_rate": win_rate,
-        "net_rr": total_rr
+        "net_rr": net_rr
     }
 
 
 # ============================================================
-# SEND 24-HOUR REPORT
+# REPORT EMAIL
 # ============================================================
 
-def send_24_hour_report():
+def send_12_hour_report():
 
-    report = create_24_hour_report()
+    report = create_12_hour_report()
+
+    weights = BRAIN_MEMORY.get(
+        "weights",
+        {}
+    )
+
+    risk = BRAIN_MEMORY.get(
+        "risk_model",
+        {}
+    )
 
     subject = (
         "🧠 MARKET BRAIN — "
-        "24 HOUR PERFORMANCE"
+        "12 HOUR REPORT"
     )
 
     body = f"""
 ==================================================
 🧠 MARKET BRAIN
-24 HOUR PERFORMANCE REPORT
+12 HOUR PERFORMANCE REPORT
 ==================================================
 
 Pakistan Time:
 {pakistan_time()}
 
 ==================================================
-SUMMARY
+RESULT
 ==================================================
 
 Total Trades:
 {report["total"]}
 
-BUY Trades:
-{report["buy"]}
+🟢 WIN:
+{report["wins"]}
 
-SELL Trades:
-{report["sell"]}
+🔴 LOSS:
+{report["losses"]}
 
-Wins:
-🟢 {report["wins"]}
-
-Losses:
-🔴 {report["losses"]}
-
-Open:
-🟡 {report["open"]}
+🟡 OPEN:
+{report["open"]}
 
 Closed:
 {report["closed"]}
@@ -2742,7 +3262,35 @@ Win Rate:
 {report["win_rate"]:.1f}%
 
 Net R:R:
-{report["net_rr"]:+.1f}R
+{report["net_rr"]:+.2f}R
+
+==================================================
+CURRENT AI RISK MODEL
+==================================================
+
+SL:
+{risk.get("sl_percent", BASE_SL_PERCENT):.2f}%
+
+TP:
+{risk.get("tp_percent", BASE_TP_PERCENT):.2f}%
+
+Learning Sample:
+{risk.get("sample_size", 0)}
+
+==================================================
+AI WEIGHTS
+==================================================
+
+"""
+
+    for name, value in weights.items():
+
+        body += (
+            f"{name}: "
+            f"{float(value):.3f}\n"
+        )
+
+    body += """
 
 ==================================================
 TRADE HISTORY
@@ -2752,34 +3300,35 @@ TRADE HISTORY
     if not report["recent"]:
 
         body += (
-            "\nNo trades in the last 24 hours.\n"
+            "\nNo trades during this 12-hour period.\n"
         )
 
     else:
 
-        for number, trade in enumerate(
+        for i, trade in enumerate(
             report["recent"],
-            start=1
+            1
         ):
 
-            result = trade.get(
+            status = trade.get(
                 "status",
                 "UNKNOWN"
             )
 
-            if result == "WIN":
-                result_icon = "🟢"
-
-            elif result == "LOSS":
-                result_icon = "🔴"
-
-            else:
-                result_icon = "🟡"
+            icon = (
+                "🟢"
+                if status == "WIN"
+                else
+                "🔴"
+                if status == "LOSS"
+                else
+                "🟡"
+            )
 
             body += f"""
 
 --------------------------------------------------
-TRADE #{number}
+TRADE #{i}
 --------------------------------------------------
 
 Coin:
@@ -2789,19 +3338,19 @@ Direction:
 {trade.get("direction")}
 
 Score:
-{trade.get("score")}/100
+{trade.get("score")}
+
+Result:
+{icon} {status}
 
 Entry:
 {trade.get("entry")}
 
-Stop Loss:
+SL:
 {trade.get("stop_loss")}
 
-Target:
+TP:
 {trade.get("take_profit")}
-
-Result:
-{result_icon} {result}
 
 Created:
 {trade.get("created_time_pk")}
@@ -2818,19 +3367,61 @@ Seller Pressure:
 Volume:
 {trade.get("volume_ratio", "-")}x
 
+RSI:
+{trade.get("h1_rsi", "-")}
+
+EMA:
+{trade.get("h1_ema", "-")}
+
+FVG:
+{trade.get("fvg_bullish", False)
+ or trade.get("fvg_bearish", False)}
+
+Order Block:
+{trade.get("ob_bullish", False)
+ or trade.get("ob_bearish", False)}
+
+Market Regime:
+{trade.get("market_regime", "-")}
+
 """
 
     body += """
 
 ==================================================
+AI LEARNING
+==================================================
 
-Report period:
-Rolling previous 24 hours
+The Brain stores every closed trade.
 
-Timezone:
-Pakistan Time (UTC+5)
+After 50 closed trades it evaluates:
 
-Market Brain report.
+• RSI
+• EMA
+• Pressure
+• Volume
+• Structure
+• FVG
+• Order Block
+• Support / Resistance
+• 5M Entry
+• Market Regime
+
+Winning features receive more weight.
+Weak features receive less weight.
+
+AI adaptation is limited so the strategy
+does not become excessively restrictive.
+
+==================================================
+
+Report:
+12-hour rolling period
+
+Pakistan Time:
+UTC+5
+
+==================================================
 """
 
     sent = send_email(
@@ -2838,54 +3429,124 @@ Market Brain report.
         body
     )
 
-    if sent:
-
-        save_json_file(
-            LAST_REPORT_FILE,
-            {
-                "sent_at": utc_timestamp(),
-                "sent_time_pk": pakistan_time()
-            }
-        )
-
     return sent
 
 
 # ============================================================
-# SHOULD SEND 24H REPORT
+# FIXED 8AM / 8PM REPORT SCHEDULER
 # ============================================================
 
-def should_send_24h_report():
+def report_slot():
+
+    now = pakistan_datetime()
+
+    if now.hour < REPORT_HOUR_MORNING:
+
+        slot_date = (
+            now.date() -
+            timedelta(days=1)
+        )
+
+        return (
+            f"{slot_date}_20"
+        )
+
+    if now.hour < REPORT_HOUR_EVENING:
+
+        return (
+            f"{now.date()}_08"
+        )
+
+    return (
+        f"{now.date()}_20"
+    )
+
+
+def should_send_scheduled_report():
+
+    now = pakistan_datetime()
+
+    # Only trigger close to 8 AM or 8 PM.
+    #
+    # Main loop scans every ~2 minutes,
+    # so a 10-minute window is enough.
+
+    if now.hour == 8 and now.minute < 10:
+
+        slot = f"{now.date()}_08"
+
+    elif now.hour == 20 and now.minute < 10:
+
+        slot = f"{now.date()}_20"
+
+    else:
+
+        return False
 
     data = load_json_file(
-        LAST_REPORT_FILE,
+        REPORT_FILE,
         {}
     )
 
-    if not isinstance(data, dict):
-        return True
+    if data.get(
+        "last_slot"
+    ) == slot:
 
-    last_sent = data.get(
-        "sent_at",
-        0
+        return False
+
+    return True
+
+
+def mark_report_sent():
+
+    now = pakistan_datetime()
+
+    if now.hour == 8:
+
+        slot = f"{now.date()}_08"
+
+    else:
+
+        slot = f"{now.date()}_20"
+
+    save_json_file(
+        REPORT_FILE,
+        {
+            "last_slot": slot,
+            "sent_at": utc_timestamp(),
+            "sent_time_pk": pakistan_time()
+        }
     )
 
-    try:
-        last_sent = float(
-            last_sent
+
+def scheduled_report_check():
+
+    if not should_send_scheduled_report():
+        return
+
+    logger.info(
+        "🧠 Scheduled 12-hour report triggered."
+    )
+
+    sent = send_12_hour_report()
+
+    if sent:
+
+        mark_report_sent()
+
+        logger.info(
+            "12-hour report sent."
         )
-    except Exception:
-        return True
 
-    return (
-        time.time() -
-        last_sent
-        >= REPORT_INTERVAL_SECONDS
-    )
+    else:
+
+        logger.warning(
+            "12-hour report Gmail failed."
+        )
 
 
 # ============================================================
-# MAIN LOOP
+# START
 # ============================================================
 
 def main():
@@ -2895,42 +3556,45 @@ def main():
     )
 
     logger.info(
-        "🧠 MARKET BRAIN v10 STARTED"
+        "🧠 MARKET BRAIN v11 STARTED"
     )
 
     logger.info(
-        f"Assets: {len(ASSETS)}"
+        "Coins: %s",
+        len(ASSETS)
     )
 
     logger.info(
-        "Main timeframe: 1H"
+        "1H = Main setup"
     )
 
     logger.info(
-        "Entry timeframe: 5M"
+        "5M = Entry only"
     )
 
     logger.info(
-        "TP: 2%"
+        "Base SL = %.2f%%",
+        BASE_SL_PERCENT
     )
 
     logger.info(
-        "SL: 1%"
+        "Base TP = %.2f%%",
+        BASE_TP_PERCENT
     )
 
     logger.info(
-        "Risk/Reward: 1:2"
+        "AI learning window = %s trades",
+        LEARNING_WINDOW
     )
 
     logger.info(
-        "Timezone: Pakistan UTC+5"
+        "Reports = 08:00 AM / 08:00 PM PKT"
     )
 
     logger.info(
         "================================================"
     )
 
-    # Restore trades after restart
     restore_active_trades()
 
     while True:
@@ -2939,15 +3603,21 @@ def main():
 
         try:
 
-            # =================================================
-            # CHECK EXISTING TRADES FIRST
-            # =================================================
+            # --------------------------------------------
+            # 1. Existing trades first
+            # --------------------------------------------
 
             check_all_active_trades()
 
-            # =================================================
-            # SCAN ALL 20 COINS
-            # =================================================
+            # --------------------------------------------
+            # 2. Fixed report scheduler
+            # --------------------------------------------
+
+            scheduled_report_check()
+
+            # --------------------------------------------
+            # 3. Scan coins
+            # --------------------------------------------
 
             for symbol in ASSETS:
 
@@ -2960,37 +3630,21 @@ def main():
                 except Exception as e:
 
                     logger.error(
-                        f"{symbol} "
-                        f"scan error: {e}"
+                        "%s scan error: %s",
+                        symbol,
+                        e
                     )
 
-                # Small delay to avoid hammering API
                 time.sleep(
                     0.5
                 )
-
-            # =================================================
-            # 24 HOUR REPORT
-            # =================================================
-
-            if should_send_24h_report():
-
-                try:
-
-                    send_24_hour_report()
-
-                except Exception as e:
-
-                    logger.error(
-                        f"24h report error: {e}"
-                    )
 
             save_memory()
 
         except KeyboardInterrupt:
 
             logger.info(
-                "Market Brain stopped manually."
+                "Bot stopped."
             )
 
             save_active_trades()
@@ -3001,12 +3655,9 @@ def main():
         except Exception as e:
 
             logger.error(
-                f"Main loop error: {e}"
+                "Main loop error: %s",
+                e
             )
-
-        # =====================================================
-        # MAINTAIN 2-MINUTE SCAN CYCLE
-        # =====================================================
 
         elapsed = (
             time.time() -
@@ -3020,8 +3671,8 @@ def main():
         )
 
         logger.info(
-            f"Next scan in "
-            f"{sleep_time:.0f} seconds."
+            "Next scan in %.0f seconds.",
+            sleep_time
         )
 
         time.sleep(
@@ -3030,7 +3681,7 @@ def main():
 
 
 # ============================================================
-# START
+# RUN
 # ============================================================
 
 if __name__ == "__main__":
@@ -3042,6 +3693,6 @@ if __name__ == "__main__":
     except Exception as e:
 
         logger.critical(
-            f"Fatal error: {e}"
-    )
-    
+            "Fatal error: %s",
+            e
+        )
