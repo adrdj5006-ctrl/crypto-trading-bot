@@ -54,7 +54,24 @@ import numpy as np
 # CONFIG
 # ============================================================
 
-BASE_URL = os.getenv("BINANCE_BASE_URL", "https://api.binance.com")
+# Public market-data endpoint first. Binance recommends data-api.binance.vision
+# for APIs that only serve public market data. We keep several official
+# fallbacks because GitHub runners can receive region/IP-specific 4xx errors.
+BASE_URL = os.getenv("BINANCE_BASE_URL", "https://data-api.binance.vision")
+BINANCE_ENDPOINTS = []
+for _endpoint in [
+    BASE_URL,
+    "https://data-api.binance.vision",
+    "https://api.binance.com",
+    "https://api-gcp.binance.com",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+    "https://api4.binance.com",
+]:
+    if _endpoint and _endpoint not in BINANCE_ENDPOINTS:
+        BINANCE_ENDPOINTS.append(_endpoint)
+ACTIVE_BINANCE_ENDPOINT = None
 PKT = ZoneInfo("Asia/Karachi")
 
 SYMBOLS = [
@@ -74,12 +91,12 @@ CANDLE_LIMIT = 300
 SCAN_SECONDS = int(os.getenv("SCAN_SECONDS", "60"))
 
 # More opportunity than the old version, but still protected.
-MIN_SCORE = float(os.getenv("MIN_SCORE", "58"))
-DIRECTION_GAP = float(os.getenv("DIRECTION_GAP", "5"))
+MIN_SCORE = float(os.getenv("MIN_SCORE", "55"))
+DIRECTION_GAP = float(os.getenv("DIRECTION_GAP", "4"))
 
 # Risk / reward
 MIN_RR = float(os.getenv("MIN_RR", "2.0"))
-MAX_RR = float(os.getenv("MAX_RR", "4.5"))
+MAX_RR = float(os.getenv("MAX_RR", "5.0"))
 MIN_SL_PCT = float(os.getenv("MIN_SL_PCT", "0.20"))
 MAX_SL_PCT = float(os.getenv("MAX_SL_PCT", "3.50"))
 MAX_TARGET_PCT = float(os.getenv("MAX_TARGET_PCT", "15.0"))
@@ -89,13 +106,13 @@ ATR_SL_BUFFER = float(os.getenv("ATR_SL_BUFFER", "0.25"))
 ATR_TARGET_MULT = float(os.getenv("ATR_TARGET_MULT", "2.50"))
 
 # Trade frequency / exposure
-MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "6"))
+MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "8"))
 MAX_NEW_TRADES_PER_SCAN = int(os.getenv("MAX_NEW_TRADES_PER_SCAN", "2"))
-COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "90"))
+COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "60"))
 
 # Entry quality
-MIN_1H_VOLUME_RATIO = float(os.getenv("MIN_1H_VOLUME_RATIO", "0.85"))
-MIN_1H_BODY_RATIO = float(os.getenv("MIN_1H_BODY_RATIO", "0.20"))
+MIN_1H_VOLUME_RATIO = float(os.getenv("MIN_1H_VOLUME_RATIO", "0.75"))
+MIN_1H_BODY_RATIO = float(os.getenv("MIN_1H_BODY_RATIO", "0.15"))
 
 # Learning
 LEARNING_FILE = Path("ai_learning.json")
@@ -210,14 +227,79 @@ SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": "MARKET-BRAIN-AI/2.0"})
 
 
+def _endpoint_order():
+    """Put the last known working endpoint first, then official fallbacks."""
+    if ACTIVE_BINANCE_ENDPOINT and ACTIVE_BINANCE_ENDPOINT in BINANCE_ENDPOINTS:
+        return [ACTIVE_BINANCE_ENDPOINT] + [
+            x for x in BINANCE_ENDPOINTS if x != ACTIVE_BINANCE_ENDPOINT
+        ]
+    return list(BINANCE_ENDPOINTS)
+
+
+def _mark_endpoint(endpoint):
+    global ACTIVE_BINANCE_ENDPOINT
+    if ACTIVE_BINANCE_ENDPOINT != endpoint:
+        ACTIVE_BINANCE_ENDPOINT = endpoint
+        logger.info("Binance market-data endpoint active: %s", endpoint)
+
+
+def _request_binance(path, params=None, timeout=15):
+    """Request public Binance market data with endpoint failover.
+
+    451/403/429/5xx/network errors rotate to another official endpoint.
+    The last successful endpoint is remembered so the bot does not keep
+    hammering a blocked GitHub runner route.
+    """
+    last_error = None
+
+    for endpoint in _endpoint_order():
+        url = f"{endpoint.rstrip('/')}{path}"
+        try:
+            r = SESSION.get(url, params=params or {}, timeout=timeout)
+
+            if r.status_code in (401, 403, 418, 429, 451):
+                retry_after = r.headers.get("Retry-After")
+                logger.warning(
+                    "Binance endpoint blocked/rate-limited: %s | HTTP %s | retry-after=%s",
+                    endpoint, r.status_code, retry_after or "-"
+                )
+                last_error = RuntimeError(
+                    f"HTTP {r.status_code} from {endpoint}"
+                )
+                continue
+
+            if r.status_code >= 500:
+                logger.warning(
+                    "Binance server error: %s | HTTP %s",
+                    endpoint, r.status_code
+                )
+                last_error = RuntimeError(
+                    f"HTTP {r.status_code} from {endpoint}"
+                )
+                continue
+
+            r.raise_for_status()
+            _mark_endpoint(endpoint)
+            return r
+
+        except requests.RequestException as e:
+            logger.warning("Binance endpoint failed: %s | %s", endpoint, e)
+            last_error = e
+            continue
+
+    if last_error:
+        raise last_error
+    raise RuntimeError("No Binance market-data endpoint available")
+
+
 def fetch_klines(symbol, interval, limit=CANDLE_LIMIT):
-    url = f"{BASE_URL}/api/v3/klines"
     params = {"symbol": symbol, "interval": interval, "limit": limit}
 
-    for attempt in range(3):
+    # One pass across all official endpoints is preferable to retrying the
+    # same blocked GitHub runner route three times.
+    for attempt in range(2):
         try:
-            r = SESSION.get(url, params=params, timeout=15)
-            r.raise_for_status()
+            r = _request_binance("/api/v3/klines", params=params, timeout=15)
             raw = r.json()
 
             cols = [
@@ -226,6 +308,9 @@ def fetch_klines(symbol, interval, limit=CANDLE_LIMIT):
                 "taker_buy_base", "taker_buy_quote", "ignore"
             ]
             df = pd.DataFrame(raw, columns=cols)
+
+            if df.empty:
+                raise ValueError("Binance returned empty kline data")
 
             for c in ["open", "high", "low", "close", "volume"]:
                 df[c] = pd.to_numeric(df[c], errors="coerce")
@@ -237,31 +322,51 @@ def fetch_klines(symbol, interval, limit=CANDLE_LIMIT):
                 df["close_time"], unit="ms", utc=True
             )
 
-            return df.dropna().reset_index(drop=True)
+            df = df.dropna().reset_index(drop=True)
+            if len(df) < 10:
+                raise ValueError(f"Only {len(df)} candles returned")
+
+            return df
 
         except Exception as e:
             logger.warning(
-                "%s %s attempt %s: %s",
+                "%s %s data attempt %s failed: %s",
                 symbol, interval, attempt + 1, e
             )
-            time.sleep(1.5 * (attempt + 1))
+            if attempt == 0:
+                time.sleep(2)
 
     return pd.DataFrame()
 
 
 def fetch_price(symbol):
     try:
-        url = f"{BASE_URL}/api/v3/ticker/price"
-        r = SESSION.get(
-            url,
+        r = _request_binance(
+            "/api/v3/ticker/price",
             params={"symbol": symbol},
             timeout=10
         )
-        r.raise_for_status()
         return float(r.json()["price"])
     except Exception as e:
         logger.warning("Price fetch failed %s: %s", symbol, e)
         return None
+
+
+def check_binance_data_feed():
+    """Fail fast with a clear log if the runner cannot reach Binance data."""
+    try:
+        r = _request_binance("/api/v3/ping", timeout=10)
+        logger.info(
+            "BINANCE DATA FEED OK | endpoint=%s | HTTP=%s",
+            ACTIVE_BINANCE_ENDPOINT, r.status_code
+        )
+        return True
+    except Exception as e:
+        logger.error(
+            "BINANCE DATA FEED FAILED on all official endpoints: %s",
+            e
+        )
+        return False
 
 
 # ============================================================
@@ -1086,7 +1191,7 @@ def score_market(symbol, d1, h4, h1):
         "patterns": patterns,
         "candles": candles,
 }
-    # ============================================================
+# ============================================================
 # LEVEL ENGINE
 # ============================================================
 
@@ -1838,6 +1943,9 @@ def scan_all():
         reverse=True
     )
 
+    if not candidates:
+        logger.info("No valid trade candidates this scan. This is normal when setup/levels do not qualify.")
+
     opened = 0
 
     for result in candidates:
@@ -1901,11 +2009,18 @@ def main():
     logger.info("Minimum Score: %.2f", MIN_SCORE)
     logger.info("Max Open Trades: %d", MAX_OPEN_TRADES)
     logger.info("New Trades / Scan: %d", MAX_NEW_TRADES_PER_SCAN)
+    logger.info("Binance endpoints: %d official fallbacks configured", len(BINANCE_ENDPOINTS))
     logger.info(
         "Pakistan Time: %s",
         now_pkt().strftime("%Y-%m-%d %H:%M:%S")
     )
     logger.info("==============================================")
+
+    # Verify market-data access once at startup. If GitHub blocks one Binance
+    # route (e.g. HTTP 451), the failover layer will select another official
+    # public-data endpoint before the first scan.
+    if not check_binance_data_feed():
+        logger.error("NO TRADE: Binance market data is unreachable from this runner.")
 
     while True:
         try:
