@@ -1,45 +1,72 @@
-# MARKET BRAIN AI — Python / GitHub Edition v2
 # ============================================================
-# 1D = major bias
-# 4H = structure / liquidity / zones / target map
-# 1H = setup + entry + SL + TP
+# MARKET BRAIN AI — ADAPTIVE 1D / 4H / 1H EDITION
+# ============================================================
 #
-# NO 5M ANALYSIS
+# 1D = Major Market Bias
+# 4H = Structure / Liquidity / SMC / Pressure
+# 1H = Setup + Entry + Dynamic SL + Dynamic TP
 #
-# Features:
+# NO 5M
+# NO 12-HOUR REPORT
+#
+# ALERTS:
+#   1) NEW TRADE
+#   2) TRADE CLOSED -> WIN / LOSS
+#
+# FEATURES:
 # - HH / HL / LH / LL
 # - BOS / CHoCH
-# - liquidity sweeps
-# - equal highs / lows
-# - double top / bottom
-# - head & shoulders / inverse H&S (structure approximation)
-# - triangles / wedges / flags
-# - range breakouts
-# - FVG / Order Block / breaker-style confirmation
-# - premium / discount
-# - pressure / volume / EMA / RSI / ATR
-# - support / resistance
-# - dynamic 1H entry
-# - 4H + 1H structural SL/TP
-# - minimum 2R reward:risk
-# - adaptive statistical learning
-# - detailed trade memory
-# - MAE / MFE tracking
-# - immediate NEW TRADE Gmail alert
-# - immediate WIN / LOSS / SL HIT Gmail alert
-# - persistent state for GitHub restarts
+# - Liquidity Sweeps
+# - Equal High / Equal Low
+# - Double Top / Double Bottom
+# - Head & Shoulders
+# - Triple Top / Bottom
+# - Triangles
+# - Wedges
+# - Flags
+# - Range Breakout
+# - FVG
+# - Order Block
+# - Breaker
+# - Premium / Discount
+# - Buyer / Seller Pressure
+# - Volume
+# - EMA
+# - RSI
+# - ATR
+# - Support / Resistance
+# - Candlestick confirmation
+#
+# ADAPTIVE LEARNING:
+# - Learns each indicator/setup separately
+# - Learns BUY vs SELL
+# - Learns each symbol
+# - Learns setup combinations
+# - Rewards indicators involved in WINs
+# - Penalizes indicators involved in LOSSes
+# - Uses sample-size protection
+# - Stores MAE / MFE
+# - Stores failure information
+#
+# TRADE PROTECTION:
+# - Persistent trade memory
+# - Duplicate trade protection
+# - Duplicate email protection
+# - Candle-based signal identity
+# - Open-trade restoration
 #
 # IMPORTANT:
-# A 70-80% win rate cannot be guaranteed by code.
-# The engine is designed to increase trade opportunity while
-# rejecting weak/poor-RR setups and learning from closed trades.
+# This is a statistical adaptive engine, NOT a neural network.
+# No strategy can guarantee 70%-80% win rate.
 # ============================================================
 
 import os
 import time
 import json
+import uuid
 import logging
 import smtplib
+
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
 from pathlib import Path
@@ -54,31 +81,36 @@ import numpy as np
 # CONFIG
 # ============================================================
 
-# Public market-data endpoint first. Binance recommends data-api.binance.vision
-# for APIs that only serve public market data. We keep several official
-# fallbacks because GitHub runners can receive region/IP-specific 4xx errors.
-BASE_URL = os.getenv("BINANCE_BASE_URL", "https://data-api.binance.vision")
-BINANCE_ENDPOINTS = []
-for _endpoint in [
-    BASE_URL,
-    "https://data-api.binance.vision",
-    "https://api.binance.com",
-    "https://api-gcp.binance.com",
-    "https://api1.binance.com",
-    "https://api2.binance.com",
-    "https://api3.binance.com",
-    "https://api4.binance.com",
-]:
-    if _endpoint and _endpoint not in BINANCE_ENDPOINTS:
-        BINANCE_ENDPOINTS.append(_endpoint)
-ACTIVE_BINANCE_ENDPOINT = None
+# Binance normal API can return HTTP 451 in some regions.
+# Public market-data endpoint is used by default.
+BASE_URL = os.getenv(
+    "BINANCE_BASE_URL",
+    "https://data-api.binance.vision"
+)
+
 PKT = ZoneInfo("Asia/Karachi")
 
 SYMBOLS = [
-    "BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT",
-    "ADAUSDT", "DOGEUSDT", "AVAXUSDT", "DOTUSDT", "LINKUSDT",
-    "NEARUSDT", "SUIUSDT", "OPUSDT", "ARBUSDT", "INJUSDT",
-    "APTUSDT", "LTCUSDT", "TRXUSDT", "UNIUSDT", "ATOMUSDT",
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "ADAUSDT",
+    "DOGEUSDT",
+    "AVAXUSDT",
+    "DOTUSDT",
+    "LINKUSDT",
+    "NEARUSDT",
+    "SUIUSDT",
+    "OPUSDT",
+    "ARBUSDT",
+    "INJUSDT",
+    "APTUSDT",
+    "LTCUSDT",
+    "TRXUSDT",
+    "UNIUSDT",
+    "ATOMUSDT",
 ]
 
 TIMEFRAMES = {
@@ -88,50 +120,124 @@ TIMEFRAMES = {
 }
 
 CANDLE_LIMIT = 300
+
+# Bot scans every minute.
+# This does NOT mean 1-minute analysis.
+# It only means the 1H trade is checked more frequently.
 SCAN_SECONDS = int(os.getenv("SCAN_SECONDS", "60"))
 
-# More opportunity than the old version, but still protected.
-MIN_SCORE = float(os.getenv("MIN_SCORE", "55"))
-DIRECTION_GAP = float(os.getenv("DIRECTION_GAP", "4"))
+# ============================================================
+# ENTRY / SCORE SETTINGS
+# ============================================================
 
-# Risk / reward
-MIN_RR = float(os.getenv("MIN_RR", "2.0"))
-MAX_RR = float(os.getenv("MAX_RR", "5.0"))
-MIN_SL_PCT = float(os.getenv("MIN_SL_PCT", "0.20"))
-MAX_SL_PCT = float(os.getenv("MAX_SL_PCT", "3.50"))
-MAX_TARGET_PCT = float(os.getenv("MAX_TARGET_PCT", "15.0"))
+# Lower than old 65 to avoid "no trades for a week".
+MIN_SCORE = float(os.getenv("MIN_SCORE", "58"))
 
-# ATR is a buffer, not the main structural decision.
-ATR_SL_BUFFER = float(os.getenv("ATR_SL_BUFFER", "0.25"))
-ATR_TARGET_MULT = float(os.getenv("ATR_TARGET_MULT", "2.50"))
+# Smaller direction gap = more opportunities.
+DIRECTION_GAP = float(os.getenv("DIRECTION_GAP", "5"))
 
-# Trade frequency / exposure
-MAX_OPEN_TRADES = int(os.getenv("MAX_OPEN_TRADES", "8"))
-MAX_NEW_TRADES_PER_SCAN = int(os.getenv("MAX_NEW_TRADES_PER_SCAN", "2"))
-COOLDOWN_MINUTES = int(os.getenv("COOLDOWN_MINUTES", "60"))
+# Maximum new trades per scan.
+MAX_NEW_TRADES_PER_SCAN = int(
+    os.getenv("MAX_NEW_TRADES_PER_SCAN", "3")
+)
 
-# Entry quality
-MIN_1H_VOLUME_RATIO = float(os.getenv("MIN_1H_VOLUME_RATIO", "0.75"))
-MIN_1H_BODY_RATIO = float(os.getenv("MIN_1H_BODY_RATIO", "0.15"))
+# Maximum simultaneous positions.
+MAX_OPEN_TRADES = int(
+    os.getenv("MAX_OPEN_TRADES", "8")
+)
 
-# Learning
-LEARNING_FILE = Path("ai_learning.json")
-TRADE_MEMORY_FILE = Path("trade_memory.json")
-TRADE_CSV_FILE = Path("trade_learning_log.csv")
-STATE_FILE = Path("bot_state.json")
+# ============================================================
+# RISK SETTINGS
+# ============================================================
 
-# Gmail
+MIN_RR = float(os.getenv("MIN_RR", "1.8"))
+MAX_RR = float(os.getenv("MAX_RR", "4.5"))
+
+ATR_SL_MULT = float(os.getenv("ATR_SL_MULT", "1.20"))
+ATR_TARGET_MULT = float(os.getenv("ATR_TARGET_MULT", "2.80"))
+
+MIN_SL_PCT = float(os.getenv("MIN_SL_PCT", "0.35"))
+MAX_SL_PCT = float(os.getenv("MAX_SL_PCT", "3.00"))
+
+MIN_TARGET_PCT = float(os.getenv("MIN_TARGET_PCT", "0.70"))
+MAX_TARGET_PCT = float(os.getenv("MAX_TARGET_PCT", "12.0"))
+
+# ============================================================
+# LEARNING SETTINGS
+# ============================================================
+
+LEARNING_WIN_REWARD = float(
+    os.getenv("LEARNING_WIN_REWARD", "0.035")
+)
+
+LEARNING_LOSS_PENALTY = float(
+    os.getenv("LEARNING_LOSS_PENALTY", "0.025")
+)
+
+MIN_LEARNING_SAMPLES = int(
+    os.getenv("MIN_LEARNING_SAMPLES", "3")
+)
+
+MIN_INDICATOR_WEIGHT = float(
+    os.getenv("MIN_INDICATOR_WEIGHT", "0.70")
+)
+
+MAX_INDICATOR_WEIGHT = float(
+    os.getenv("MAX_INDICATOR_WEIGHT", "1.35")
+)
+
+# ============================================================
+# PERSISTENT FILES
+# ============================================================
+
+DATA_DIR = Path(
+    os.getenv("DATA_DIR", "market_brain_data")
+)
+
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+LEARNING_FILE = DATA_DIR / "ai_learning.json"
+TRADE_MEMORY_FILE = DATA_DIR / "trade_memory.json"
+TRADE_CSV_FILE = DATA_DIR / "trade_learning_log.csv"
+STATE_FILE = DATA_DIR / "bot_state.json"
+
+# ============================================================
+# GMAIL
+# ============================================================
+
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
+
 GMAIL_USER = os.getenv("GMAIL_USER")
 GMAIL_PASS = os.getenv("GMAIL_PASS")
-GMAIL_RECEIVER = os.getenv("GMAIL_RECEIVER", GMAIL_USER or "")
+GMAIL_RECEIVER = os.getenv(
+    "GMAIL_RECEIVER",
+    GMAIL_USER or ""
+)
+
+
+# ============================================================
+# LOGGING
+# ============================================================
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
+
 logger = logging.getLogger("MARKET_BRAIN")
+
+
+# ============================================================
+# HTTP SESSION
+# ============================================================
+
+SESSION = requests.Session()
+
+SESSION.headers.update({
+    "User-Agent": "MARKET-BRAIN-AI/2.0",
+    "Accept": "application/json",
+})
 
 
 # ============================================================
@@ -146,11 +252,24 @@ def iso_pkt(dt=None):
     return (dt or now_pkt()).isoformat()
 
 
+def safe_float(value, default=0.0):
+    try:
+        if value is None:
+            return default
+        value = float(value)
+        if not np.isfinite(value):
+            return default
+        return value
+    except Exception:
+        return default
+
+
 def safe_div(a, b, default=0.0):
     try:
-        if b is None or float(b) == 0:
+        b = float(b)
+        if b == 0:
             return default
-        return float(a) / float(b)
+        return float(a) / b
     except Exception:
         return default
 
@@ -159,63 +278,103 @@ def clamp(x, lo, hi):
     return max(lo, min(hi, x))
 
 
+def pct(value):
+    return f"{safe_float(value):.2f}%"
+
+
 def load_json(path, default):
     try:
         if path.exists():
-            return json.loads(path.read_text(encoding="utf-8"))
+            return json.loads(
+                path.read_text(encoding="utf-8")
+            )
     except Exception as e:
-        logger.warning("Could not load %s: %s", path, e)
+        logger.warning(
+            "Could not load %s: %s",
+            path,
+            e
+        )
+
     return default
 
 
 def save_json(path, data):
-    tmp = path.with_suffix(path.suffix + ".tmp")
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    tmp = path.with_suffix(
+        path.suffix + ".tmp"
+    )
+
     tmp.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False),
+        json.dumps(
+            data,
+            indent=2,
+            ensure_ascii=False
+        ),
         encoding="utf-8"
     )
+
     tmp.replace(path)
 
 
-def parse_dt(value):
-    if not value:
-        return None
-    try:
-        dt = datetime.fromisoformat(value)
-        if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=PKT)
-        return dt
-    except Exception:
-        return None
-
-
 # ============================================================
-# GMAIL
+# EMAIL
 # ============================================================
 
 def send_email(subject, body):
-    if not GMAIL_USER or not GMAIL_PASS or not GMAIL_RECEIVER:
-        logger.warning("Gmail credentials/receiver missing. Alert skipped.")
+
+    if not GMAIL_USER:
+        logger.error("GMAIL_USER missing")
+        return False
+
+    if not GMAIL_PASS:
+        logger.error("GMAIL_PASS missing")
+        return False
+
+    if not GMAIL_RECEIVER:
+        logger.error("GMAIL_RECEIVER missing")
         return False
 
     try:
         msg = EmailMessage()
+
         msg["Subject"] = subject
         msg["From"] = GMAIL_USER
         msg["To"] = GMAIL_RECEIVER
+
         msg.set_content(body)
 
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as server:
+        with smtplib.SMTP(
+            SMTP_SERVER,
+            SMTP_PORT,
+            timeout=30
+        ) as server:
+
             server.ehlo()
             server.starttls()
             server.ehlo()
-            server.login(GMAIL_USER, GMAIL_PASS)
+
+            server.login(
+                GMAIL_USER,
+                GMAIL_PASS
+            )
+
             server.send_message(msg)
 
-        logger.info("Gmail sent: %s", subject)
+        logger.info(
+            "Email sent: %s",
+            subject
+        )
+
         return True
+
     except Exception as e:
-        logger.error("Gmail error: %s", e)
+
+        logger.error(
+            "Email error: %s",
+            e
+        )
+
         return False
 
 
@@ -223,211 +382,277 @@ def send_email(subject, body):
 # BINANCE DATA
 # ============================================================
 
-SESSION = requests.Session()
-SESSION.headers.update({"User-Agent": "MARKET-BRAIN-AI/2.0"})
+def fetch_klines(
+    symbol,
+    interval,
+    limit=CANDLE_LIMIT
+):
 
+    url = (
+        f"{BASE_URL}/api/v3/klines"
+    )
 
-def _endpoint_order():
-    """Put the last known working endpoint first, then official fallbacks."""
-    if ACTIVE_BINANCE_ENDPOINT and ACTIVE_BINANCE_ENDPOINT in BINANCE_ENDPOINTS:
-        return [ACTIVE_BINANCE_ENDPOINT] + [
-            x for x in BINANCE_ENDPOINTS if x != ACTIVE_BINANCE_ENDPOINT
-        ]
-    return list(BINANCE_ENDPOINTS)
+    params = {
+        "symbol": symbol,
+        "interval": interval,
+        "limit": limit,
+    }
 
+    for attempt in range(3):
 
-def _mark_endpoint(endpoint):
-    global ACTIVE_BINANCE_ENDPOINT
-    if ACTIVE_BINANCE_ENDPOINT != endpoint:
-        ACTIVE_BINANCE_ENDPOINT = endpoint
-        logger.info("Binance market-data endpoint active: %s", endpoint)
-
-
-def _request_binance(path, params=None, timeout=15):
-    """Request public Binance market data with endpoint failover.
-
-    451/403/429/5xx/network errors rotate to another official endpoint.
-    The last successful endpoint is remembered so the bot does not keep
-    hammering a blocked GitHub runner route.
-    """
-    last_error = None
-
-    for endpoint in _endpoint_order():
-        url = f"{endpoint.rstrip('/')}{path}"
         try:
-            r = SESSION.get(url, params=params or {}, timeout=timeout)
 
-            if r.status_code in (401, 403, 418, 429, 451):
-                retry_after = r.headers.get("Retry-After")
-                logger.warning(
-                    "Binance endpoint blocked/rate-limited: %s | HTTP %s | retry-after=%s",
-                    endpoint, r.status_code, retry_after or "-"
-                )
-                last_error = RuntimeError(
-                    f"HTTP {r.status_code} from {endpoint}"
-                )
-                continue
+            response = SESSION.get(
+                url,
+                params=params,
+                timeout=20
+            )
 
-            if r.status_code >= 500:
-                logger.warning(
-                    "Binance server error: %s | HTTP %s",
-                    endpoint, r.status_code
-                )
-                last_error = RuntimeError(
-                    f"HTTP {r.status_code} from {endpoint}"
-                )
-                continue
+            response.raise_for_status()
 
-            r.raise_for_status()
-            _mark_endpoint(endpoint)
-            return r
+            raw = response.json()
 
-        except requests.RequestException as e:
-            logger.warning("Binance endpoint failed: %s | %s", endpoint, e)
-            last_error = e
-            continue
+            if not isinstance(raw, list):
+                return pd.DataFrame()
 
-    if last_error:
-        raise last_error
-    raise RuntimeError("No Binance market-data endpoint available")
-
-
-def fetch_klines(symbol, interval, limit=CANDLE_LIMIT):
-    params = {"symbol": symbol, "interval": interval, "limit": limit}
-
-    # One pass across all official endpoints is preferable to retrying the
-    # same blocked GitHub runner route three times.
-    for attempt in range(2):
-        try:
-            r = _request_binance("/api/v3/klines", params=params, timeout=15)
-            raw = r.json()
-
-            cols = [
-                "open_time", "open", "high", "low", "close", "volume",
-                "close_time", "quote_volume", "trades",
-                "taker_buy_base", "taker_buy_quote", "ignore"
+            columns = [
+                "open_time",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "close_time",
+                "quote_volume",
+                "trades",
+                "taker_buy_base",
+                "taker_buy_quote",
+                "ignore",
             ]
-            df = pd.DataFrame(raw, columns=cols)
 
-            if df.empty:
-                raise ValueError("Binance returned empty kline data")
+            df = pd.DataFrame(
+                raw,
+                columns=columns
+            )
 
-            for c in ["open", "high", "low", "close", "volume"]:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
+            numeric_columns = [
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+            ]
+
+            for col in numeric_columns:
+
+                df[col] = pd.to_numeric(
+                    df[col],
+                    errors="coerce"
+                )
 
             df["open_time"] = pd.to_datetime(
-                df["open_time"], unit="ms", utc=True
+                df["open_time"],
+                unit="ms",
+                utc=True
             )
+
             df["close_time"] = pd.to_datetime(
-                df["close_time"], unit="ms", utc=True
+                df["close_time"],
+                unit="ms",
+                utc=True
             )
 
-            df = df.dropna().reset_index(drop=True)
-            if len(df) < 10:
-                raise ValueError(f"Only {len(df)} candles returned")
+            df = df.dropna().reset_index(
+                drop=True
+            )
 
-            return df
+            # ------------------------------------------------
+            # IMPORTANT:
+            # Remove currently forming candle.
+            # All signals use CLOSED candles only.
+            # ------------------------------------------------
+
+            now_utc = pd.Timestamp.now(
+                tz="UTC"
+            )
+
+            if not df.empty:
+
+                last_close = df[
+                    "close_time"
+                ].iloc[-1]
+
+                if last_close > now_utc:
+
+                    df = df.iloc[:-1].copy()
+
+            return df.reset_index(
+                drop=True
+            )
 
         except Exception as e:
+
             logger.warning(
-                "%s %s data attempt %s failed: %s",
-                symbol, interval, attempt + 1, e
+                "%s %s attempt %d: %s",
+                symbol,
+                interval,
+                attempt + 1,
+                e
             )
-            if attempt == 0:
-                time.sleep(2)
+
+            time.sleep(
+                1.5 * (attempt + 1)
+            )
 
     return pd.DataFrame()
-
-
-def fetch_price(symbol):
-    try:
-        r = _request_binance(
-            "/api/v3/ticker/price",
-            params={"symbol": symbol},
-            timeout=10
-        )
-        return float(r.json()["price"])
-    except Exception as e:
-        logger.warning("Price fetch failed %s: %s", symbol, e)
-        return None
-
-
-def check_binance_data_feed():
-    """Fail fast with a clear log if the runner cannot reach Binance data."""
-    try:
-        r = _request_binance("/api/v3/ping", timeout=10)
-        logger.info(
-            "BINANCE DATA FEED OK | endpoint=%s | HTTP=%s",
-            ACTIVE_BINANCE_ENDPOINT, r.status_code
-        )
-        return True
-    except Exception as e:
-        logger.error(
-            "BINANCE DATA FEED FAILED on all official endpoints: %s",
-            e
-        )
-        return False
 
 
 # ============================================================
 # INDICATORS
 # ============================================================
 
-def ema(s, n):
-    return s.ewm(span=n, adjust=False).mean()
+def ema(series, length):
+
+    return series.ewm(
+        span=length,
+        adjust=False
+    ).mean()
 
 
-def rsi(s, n=14):
-    delta = s.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
+def rsi(series, length=14):
 
-    avg_gain = gain.ewm(alpha=1/n, adjust=False).mean()
-    avg_loss = loss.ewm(alpha=1/n, adjust=False).mean()
+    delta = series.diff()
 
-    rs = avg_gain / avg_loss.replace(0, np.nan)
-    out = 100 - (100 / (1 + rs))
-    return out.fillna(50)
+    gain = delta.clip(
+        lower=0
+    )
+
+    loss = -delta.clip(
+        upper=0
+    )
+
+    avg_gain = gain.ewm(
+        alpha=1 / length,
+        adjust=False
+    ).mean()
+
+    avg_loss = loss.ewm(
+        alpha=1 / length,
+        adjust=False
+    ).mean()
+
+    rs = avg_gain / avg_loss.replace(
+        0,
+        np.nan
+    )
+
+    output = 100 - (
+        100 / (1 + rs)
+    )
+
+    return output.fillna(50)
 
 
-def atr(df, n=14):
-    prev_close = df["close"].shift(1)
+def atr(df, length=14):
 
-    tr = pd.concat([
-        df["high"] - df["low"],
-        (df["high"] - prev_close).abs(),
-        (df["low"] - prev_close).abs(),
-    ], axis=1).max(axis=1)
+    previous_close = df[
+        "close"
+    ].shift(1)
 
-    return tr.ewm(alpha=1/n, adjust=False).mean()
+    true_range = pd.concat(
+        [
+            df["high"] - df["low"],
+            (
+                df["high"] -
+                previous_close
+            ).abs(),
+            (
+                df["low"] -
+                previous_close
+            ).abs(),
+        ],
+        axis=1
+    ).max(axis=1)
+
+    return true_range.ewm(
+        alpha=1 / length,
+        adjust=False
+    ).mean()
 
 
 def add_indicators(df):
+
     x = df.copy()
 
-    x["ema20"] = ema(x["close"], 20)
-    x["ema50"] = ema(x["close"], 50)
-    x["ema200"] = ema(x["close"], 200)
-    x["rsi"] = rsi(x["close"], 14)
-    x["atr"] = atr(x, 14)
+    x["ema20"] = ema(
+        x["close"],
+        20
+    )
 
-    x["avg_volume"] = x["volume"].rolling(20).mean()
+    x["ema50"] = ema(
+        x["close"],
+        50
+    )
+
+    x["ema200"] = ema(
+        x["close"],
+        200
+    )
+
+    x["rsi"] = rsi(
+        x["close"],
+        14
+    )
+
+    x["atr"] = atr(
+        x,
+        14
+    )
+
+    x["avg_volume"] = (
+        x["volume"]
+        .rolling(20)
+        .mean()
+    )
+
     x["volume_ratio"] = (
         x["volume"] /
-        x["avg_volume"].replace(0, np.nan)
-    ).replace([np.inf, -np.inf], np.nan).fillna(1.0)
+        x["avg_volume"].replace(
+            0,
+            np.nan
+        )
+    )
 
-    x["body"] = (x["close"] - x["open"]).abs()
-    x["range"] = (x["high"] - x["low"]).replace(0, np.nan)
+    x["body"] = (
+        x["close"] -
+        x["open"]
+    ).abs()
+
+    x["range"] = (
+        x["high"] -
+        x["low"]
+    ).replace(
+        0,
+        np.nan
+    )
+
     x["body_ratio"] = (
-        x["body"] / x["range"]
-    ).replace([np.inf, -np.inf], np.nan).fillna(0)
+        x["body"] /
+        x["range"]
+    )
 
     x["upper_wick"] = (
-        x["high"] - x[["open", "close"]].max(axis=1)
+        x["high"] -
+        x[["open", "close"]].max(
+            axis=1
+        )
     )
+
     x["lower_wick"] = (
-        x[["open", "close"]].min(axis=1) - x["low"]
+        x[["open", "close"]].min(
+            axis=1
+        ) -
+        x["low"]
     )
 
     return x
@@ -437,217 +662,250 @@ def add_indicators(df):
 # PRESSURE
 # ============================================================
 
-def pressure(df, length=12):
+def pressure(
+    df,
+    length=12
+):
+
     d = df.tail(length)
 
-    rng = (d["high"] - d["low"]).replace(0, np.nan)
-    strength = (d["close"] - d["open"]).abs() / rng
-    weighted = strength.fillna(0) * d["volume"]
+    candle_range = (
+        d["high"] -
+        d["low"]
+    ).replace(
+        0,
+        np.nan
+    )
 
-    buy = weighted[d["close"] > d["open"]].sum()
-    sell = weighted[d["close"] < d["open"]].sum()
+    strength = (
+        (
+            d["close"] -
+            d["open"]
+        ).abs() /
+        candle_range
+    )
+
+    weighted = (
+        strength.fillna(0) *
+        d["volume"]
+    )
+
+    buy = weighted[
+        d["close"] >
+        d["open"]
+    ].sum()
+
+    sell = weighted[
+        d["close"] <
+        d["open"]
+    ].sum()
+
     total = buy + sell
 
     if total <= 0:
+
         return 50.0, 50.0
 
-    return buy / total * 100, sell / total * 100
+    return (
+        buy / total * 100,
+        sell / total * 100
+    )
 
 
 # ============================================================
-# SWING / MARKET STRUCTURE
+# SWINGS
 # ============================================================
 
-def pivots(df, left=3, right=3):
+def pivots(
+    df,
+    left=3,
+    right=3
+):
+
     highs = []
     lows = []
 
-    h = df["high"].values
-    l = df["low"].values
+    high_values = df[
+        "high"
+    ].values
 
-    for i in range(left, len(df) - right):
-        if h[i] == max(h[i-left:i+right+1]):
-            highs.append((i, float(h[i])))
+    low_values = df[
+        "low"
+    ].values
 
-        if l[i] == min(l[i-left:i+right+1]):
-            lows.append((i, float(l[i])))
+    for i in range(
+        left,
+        len(df) - right
+    ):
+
+        if high_values[i] == max(
+            high_values[
+                i-left:i+right+1
+            ]
+        ):
+
+            highs.append(
+                (
+                    i,
+                    float(high_values[i])
+                )
+            )
+
+        if low_values[i] == min(
+            low_values[
+                i-left:i+right+1
+            ]
+        ):
+
+            lows.append(
+                (
+                    i,
+                    float(low_values[i])
+                )
+            )
 
     return highs, lows
 
 
 def structure_info(df):
-    highs, lows = pivots(df, 3, 3)
 
-    last_h = prev_h = None
-    last_l = prev_l = None
+    highs, lows = pivots(
+        df,
+        3,
+        3
+    )
+
+    last_high = None
+    previous_high = None
+
+    last_low = None
+    previous_low = None
 
     if len(highs) >= 2:
-        prev_h = highs[-2][1]
-        last_h = highs[-1][1]
+
+        previous_high = highs[-2][1]
+        last_high = highs[-1][1]
 
     if len(lows) >= 2:
-        prev_l = lows[-2][1]
-        last_l = lows[-1][1]
 
-    hh = bool(last_h is not None and prev_h is not None and last_h > prev_h)
-    lh = bool(last_h is not None and prev_h is not None and last_h < prev_h)
-    hl = bool(last_l is not None and prev_l is not None and last_l > prev_l)
-    ll = bool(last_l is not None and prev_l is not None and last_l < prev_l)
+        previous_low = lows[-2][1]
+        last_low = lows[-1][1]
 
-    close_now = float(df["close"].iloc[-1])
-    close_prev = float(df["close"].iloc[-2])
+    hh = (
+        last_high is not None and
+        previous_high is not None and
+        last_high > previous_high
+    )
+
+    lh = (
+        last_high is not None and
+        previous_high is not None and
+        last_high < previous_high
+    )
+
+    hl = (
+        last_low is not None and
+        previous_low is not None and
+        last_low > previous_low
+    )
+
+    ll = (
+        last_low is not None and
+        previous_low is not None and
+        last_low < previous_low
+    )
+
+    close = float(
+        df["close"].iloc[-1]
+    )
+
+    previous_close = float(
+        df["close"].iloc[-2]
+    )
 
     bull_bos = (
-        last_h is not None and
-        close_now > last_h and
-        close_prev <= last_h
+        last_high is not None and
+        close > last_high and
+        previous_close <= last_high
     )
 
     bear_bos = (
-        last_l is not None and
-        close_now < last_l and
-        close_prev >= last_l
+        last_low is not None and
+        close < last_low and
+        previous_close >= last_low
     )
 
-    # Approximate prior direction using recent confirmed structure.
-    state = 0
-    start = max(20, len(df) - 100)
+    # --------------------------------------------------------
+    # CHoCH approximation
+    # --------------------------------------------------------
 
-    for i in range(start, len(df)):
-        sub = df.iloc[:i+1]
-        hs, ls = pivots(sub, 3, 3)
+    previous_state = 0
 
-        if hs and float(sub["close"].iloc[-1]) > hs[-1][1]:
-            state = 1
+    start = max(
+        10,
+        len(df) - 80
+    )
 
-        if ls and float(sub["close"].iloc[-1]) < ls[-1][1]:
-            state = -1
+    for i in range(
+        start,
+        len(df)
+    ):
 
-    bull_choch = bull_bos and state == -1
-    bear_choch = bear_bos and state == 1
+        sub = df.iloc[
+            :i+1
+        ]
+
+        hs, ls = pivots(
+            sub,
+            3,
+            3
+        )
+
+        if hs:
+
+            if float(
+                sub["close"].iloc[-1]
+            ) > hs[-1][1]:
+
+                previous_state = 1
+
+        if ls:
+
+            if float(
+                sub["close"].iloc[-1]
+            ) < ls[-1][1]:
+
+                previous_state = -1
+
+    bull_choch = (
+        bull_bos and
+        previous_state == -1
+    )
+
+    bear_choch = (
+        bear_bos and
+        previous_state == 1
+    )
 
     return {
-        "last_high": last_h,
-        "prev_high": prev_h,
-        "last_low": last_l,
-        "prev_low": prev_l,
+        "last_high": last_high,
+        "previous_high": previous_high,
+        "last_low": last_low,
+        "previous_low": previous_low,
+
         "HH": hh,
         "HL": hl,
         "LH": lh,
         "LL": ll,
+
         "bull_bos": bull_bos,
         "bear_bos": bear_bos,
+
         "bull_choch": bull_choch,
         "bear_choch": bear_choch,
+
         "highs": highs,
         "lows": lows,
-    }
-
-
-# ============================================================
-# PATTERN ENGINE
-# ============================================================
-
-def detect_patterns(df, st):
-    close = float(df["close"].iloc[-1])
-    ema20_now = float(df["ema20"].iloc[-1])
-    ema50_now = float(df["ema50"].iloc[-1])
-
-    last_h = st["last_high"]
-    prev_h = st["prev_high"]
-    last_l = st["last_low"]
-    prev_l = st["prev_low"]
-
-    equal_high = (
-        last_h is not None and
-        prev_h is not None and
-        abs(last_h - prev_h) / max(last_h, 1e-12) < 0.003
-    )
-
-    equal_low = (
-        last_l is not None and
-        prev_l is not None and
-        abs(last_l - prev_l) / max(last_l, 1e-12) < 0.003
-    )
-
-    recent_low = float(df["low"].iloc[-11:-1].min())
-    recent_high = float(df["high"].iloc[-11:-1].max())
-
-    double_top = (
-        equal_high and
-        close < recent_low
-    )
-
-    double_bottom = (
-        equal_low and
-        close > recent_high
-    )
-
-    head_shoulders = st["HH"] and st["LH"] and st["LL"]
-    inverse_hs = st["LL"] and st["HL"] and st["HH"]
-
-    triple_top = equal_high and st["LH"] and close < ema20_now
-    triple_bottom = equal_low and st["HL"] and close > ema20_now
-
-    ascending_triangle = equal_high and st["HL"]
-    descending_triangle = equal_low and st["LH"]
-    symmetrical_triangle = st["LH"] and st["HL"]
-
-    rising_wedge = st["HH"] and st["HL"] and st["LH"]
-    falling_wedge = st["LL"] and st["HL"] and st["LH"]
-
-    bull_flag = (
-        ema20_now > ema50_now and
-        float(df["low"].tail(8).min()) >
-        float(df["low"].tail(20).min()) and
-        close > ema20_now
-    )
-
-    bear_flag = (
-        ema20_now < ema50_now and
-        float(df["high"].tail(8).max()) <
-        float(df["high"].tail(20).max()) and
-        close < ema20_now
-    )
-
-    range_high = float(df["high"].tail(50).max())
-    range_low = float(df["low"].tail(50).min())
-    range_width = safe_div(range_high - range_low, close)
-
-    range_market = range_width < 0.06
-
-    previous_range_high = float(df["high"].iloc[-51:-1].max())
-    previous_range_low = float(df["low"].iloc[-51:-1].min())
-
-    range_break_bull = (
-        range_market and
-        close > previous_range_high
-    )
-
-    range_break_bear = (
-        range_market and
-        close < previous_range_low
-    )
-
-    return {
-        "equal_high": equal_high,
-        "equal_low": equal_low,
-        "double_top": double_top,
-        "double_bottom": double_bottom,
-        "head_shoulders": head_shoulders,
-        "inverse_hs": inverse_hs,
-        "triple_top": triple_top,
-        "triple_bottom": triple_bottom,
-        "ascending_triangle": ascending_triangle,
-        "descending_triangle": descending_triangle,
-        "symmetrical_triangle": symmetrical_triangle,
-        "rising_wedge": rising_wedge,
-        "falling_wedge": falling_wedge,
-        "bull_flag": bull_flag,
-        "bear_flag": bear_flag,
-        "range_market": range_market,
-        "range_break_bull": range_break_bull,
-        "range_break_bear": range_break_bear,
     }
 
 
@@ -655,138 +913,533 @@ def detect_patterns(df, st):
 # SMC
 # ============================================================
 
-def detect_smc(df, st):
+def detect_smc(
+    df,
+    structure
+):
+
     high = df["high"]
     low = df["low"]
     close = df["close"]
     op = df["open"]
 
     bull_fvg = (
-        len(df) >= 3 and
-        float(low.iloc[-1]) > float(high.iloc[-3])
+        float(low.iloc[-1]) >
+        float(high.iloc[-3])
     )
 
     bear_fvg = (
-        len(df) >= 3 and
-        float(high.iloc[-1]) < float(low.iloc[-3])
+        float(high.iloc[-1]) <
+        float(low.iloc[-3])
     )
 
     bull_ob = (
-        float(close.iloc[-1]) > float(op.iloc[-1]) and
-        float(close.iloc[-1]) > float(high.iloc[-2]) and
-        float(close.iloc[-2]) < float(op.iloc[-2])
+        float(close.iloc[-1]) >
+        float(op.iloc[-1])
+        and
+        float(close.iloc[-1]) >
+        float(high.iloc[-2])
+        and
+        float(close.iloc[-2]) <
+        float(op.iloc[-2])
     )
 
     bear_ob = (
-        float(close.iloc[-1]) < float(op.iloc[-1]) and
-        float(close.iloc[-1]) < float(low.iloc[-2]) and
-        float(close.iloc[-2]) > float(op.iloc[-2])
+        float(close.iloc[-1]) <
+        float(op.iloc[-1])
+        and
+        float(close.iloc[-1]) <
+        float(low.iloc[-2])
+        and
+        float(close.iloc[-2]) >
+        float(op.iloc[-2])
     )
 
     bull_breaker = (
-        float(close.iloc[-2]) < float(op.iloc[-2]) and
-        float(close.iloc[-1]) > float(high.iloc[-2])
+        float(close.iloc[-2]) <
+        float(op.iloc[-2])
+        and
+        float(close.iloc[-1]) >
+        float(high.iloc[-2])
     )
 
     bear_breaker = (
-        float(close.iloc[-2]) > float(op.iloc[-2]) and
-        float(close.iloc[-1]) < float(low.iloc[-2])
+        float(close.iloc[-2]) >
+        float(op.iloc[-2])
+        and
+        float(close.iloc[-1]) <
+        float(low.iloc[-2])
     )
 
-    last_low = st["last_low"]
-    last_high = st["last_high"]
+    last_low = structure[
+        "last_low"
+    ]
+
+    last_high = structure[
+        "last_high"
+    ]
 
     bull_sweep = (
-        last_low is not None and
-        float(low.iloc[-1]) < last_low and
-        float(close.iloc[-1]) > last_low
+        last_low is not None
+        and
+        float(low.iloc[-1]) <
+        last_low
+        and
+        float(close.iloc[-1]) >
+        last_low
     )
 
     bear_sweep = (
-        last_high is not None and
-        float(high.iloc[-1]) > last_high and
-        float(close.iloc[-1]) < last_high
+        last_high is not None
+        and
+        float(high.iloc[-1]) >
+        last_high
+        and
+        float(close.iloc[-1]) <
+        last_high
     )
 
-    range_high = float(high.tail(50).max())
-    range_low = float(low.tail(50).min())
+    range_high = float(
+        high.tail(50).max()
+    )
 
-    equilibrium = (range_high + range_low) / 2
-    price = float(close.iloc[-1])
+    range_low = float(
+        low.tail(50).min()
+    )
+
+    equilibrium = (
+        range_high +
+        range_low
+    ) / 2
+
+    price = float(
+        close.iloc[-1]
+    )
 
     return {
+
         "bull_fvg": bull_fvg,
         "bear_fvg": bear_fvg,
+
         "bull_ob": bull_ob,
         "bear_ob": bear_ob,
-        "bull_breaker": bull_breaker,
-        "bear_breaker": bear_breaker,
-        "bull_sweep": bull_sweep,
-        "bear_sweep": bear_sweep,
-        "range_high": range_high,
-        "range_low": range_low,
-        "equilibrium": equilibrium,
-        "discount": price < equilibrium,
-        "premium": price > equilibrium,
+
+        "bull_breaker":
+            bull_breaker,
+
+        "bear_breaker":
+            bear_breaker,
+
+        "bull_sweep":
+            bull_sweep,
+
+        "bear_sweep":
+            bear_sweep,
+
+        "range_high":
+            range_high,
+
+        "range_low":
+            range_low,
+
+        "equilibrium":
+            equilibrium,
+
+        "discount":
+            price < equilibrium,
+
+        "premium":
+            price > equilibrium,
     }
 
 
 # ============================================================
-# CANDLE ENGINE
+# CANDLE PATTERNS
 # ============================================================
 
 def candle_patterns(df):
+
     c = df.iloc[-1]
     p = df.iloc[-2]
 
-    body = abs(float(c["close"] - c["open"]))
-    rng = max(float(c["high"] - c["low"]), 1e-12)
+    body = abs(
+        float(
+            c["close"] -
+            c["open"]
+        )
+    )
 
-    upper = float(c["high"] - max(c["open"], c["close"]))
-    lower = float(min(c["open"], c["close"]) - c["low"])
+    candle_range = max(
+        float(
+            c["high"] -
+            c["low"]
+        ),
+        1e-12
+    )
+
+    upper = float(
+        c["high"] -
+        max(
+            c["open"],
+            c["close"]
+        )
+    )
+
+    lower = float(
+        min(
+            c["open"],
+            c["close"]
+        ) -
+        c["low"]
+    )
 
     bull_engulf = (
-        c["close"] > c["open"] and
-        p["close"] < p["open"] and
-        c["close"] >= p["open"] and
-        c["open"] <= p["close"]
+        c["close"] >
+        c["open"]
+        and
+        p["close"] <
+        p["open"]
+        and
+        c["close"] >=
+        p["open"]
+        and
+        c["open"] <=
+        p["close"]
     )
 
     bear_engulf = (
-        c["close"] < c["open"] and
-        p["close"] > p["open"] and
-        c["close"] <= p["open"] and
-        c["open"] >= p["close"]
+        c["close"] <
+        c["open"]
+        and
+        p["close"] >
+        p["open"]
+        and
+        c["close"] <=
+        p["open"]
+        and
+        c["open"] >=
+        p["close"]
     )
 
     hammer = (
-        lower > body * 2 and
-        upper <= max(body, 1e-12)
+        lower > body * 2
+        and
+        upper <= max(
+            body,
+            1e-12
+        )
     )
 
     shooting_star = (
-        upper > body * 2 and
-        lower <= max(body, 1e-12)
+        upper > body * 2
+        and
+        lower <= max(
+            body,
+            1e-12
+        )
     )
 
     bull_rejection = (
-        lower > body * 1.5 and
-        c["close"] > c["open"]
+        lower > body * 1.5
+        and
+        c["close"] >
+        c["open"]
     )
 
     bear_rejection = (
-        upper > body * 1.5 and
-        c["close"] < c["open"]
+        upper > body * 1.5
+        and
+        c["close"] <
+        c["open"]
     )
 
     return {
-        "bull_engulf": bool(bull_engulf),
-        "bear_engulf": bool(bear_engulf),
-        "hammer": bool(hammer),
-        "shooting_star": bool(shooting_star),
-        "bull_rejection": bool(bull_rejection),
-        "bear_rejection": bool(bear_rejection),
-        "body_ratio": body / rng,
+        "bull_engulf":
+            bool(bull_engulf),
+
+        "bear_engulf":
+            bool(bear_engulf),
+
+        "hammer":
+            bool(hammer),
+
+        "shooting_star":
+            bool(shooting_star),
+
+        "bull_rejection":
+            bool(bull_rejection),
+
+        "bear_rejection":
+            bool(bear_rejection),
+
+        "body_ratio":
+            body / candle_range,
+    }
+
+
+# ============================================================
+# PATTERN ENGINE
+# ============================================================
+
+def detect_patterns(
+    df,
+    st
+):
+
+    close = float(
+        df["close"].iloc[-1]
+    )
+
+    ema20 = float(
+        df["ema20"].iloc[-1]
+    )
+
+    last_h = st[
+        "last_high"
+    ]
+
+    prev_h = st[
+        "previous_high"
+    ]
+
+    last_l = st[
+        "last_low"
+    ]
+
+    prev_l = st[
+        "previous_low"
+    ]
+
+    equal_high = (
+        last_h is not None
+        and
+        prev_h is not None
+        and
+        abs(last_h - prev_h) /
+        max(last_h, 1e-12)
+        < 0.003
+    )
+
+    equal_low = (
+        last_l is not None
+        and
+        prev_l is not None
+        and
+        abs(last_l - prev_l) /
+        max(last_l, 1e-12)
+        < 0.003
+    )
+
+    double_top = (
+        equal_high
+        and
+        close <
+        float(
+            df["low"].iloc[-11:-1].min()
+        )
+    )
+
+    double_bottom = (
+        equal_low
+        and
+        close >
+        float(
+            df["high"].iloc[-11:-1].max()
+        )
+    )
+
+    head_shoulders = (
+        st["HH"] and
+        st["LH"]
+    )
+
+    inverse_hs = (
+        st["LL"] and
+        st["HL"]
+    )
+
+    triple_top = (
+        equal_high
+        and
+        st["LH"]
+        and
+        close < ema20
+    )
+
+    triple_bottom = (
+        equal_low
+        and
+        st["HL"]
+        and
+        close > ema20
+    )
+
+    ascending_triangle = (
+        equal_high and
+        st["HL"]
+    )
+
+    descending_triangle = (
+        equal_low and
+        st["LH"]
+    )
+
+    symmetrical_triangle = (
+        st["LH"] and
+        st["HL"]
+    )
+
+    rising_wedge = (
+        st["HH"] and
+        st["HL"] and
+        st["LH"]
+    )
+
+    falling_wedge = (
+        st["LL"] and
+        st["HL"] and
+        st["LH"]
+    )
+
+    bull_flag = (
+        ema20 >
+        float(
+            df["ema50"].iloc[-1]
+        )
+        and
+        df["low"].tail(8).min() >
+        df["low"].tail(20).min()
+        and
+        close > ema20
+    )
+
+    bear_flag = (
+        ema20 <
+        float(
+            df["ema50"].iloc[-1]
+        )
+        and
+        df["high"].tail(8).max() <
+        df["high"].tail(20).max()
+        and
+        close < ema20
+    )
+
+    range_high = float(
+        df["high"].tail(50).max()
+    )
+
+    range_low = float(
+        df["low"].tail(50).min()
+    )
+
+    range_width = safe_div(
+        range_high - range_low,
+        close
+    )
+
+    range_market = (
+        range_width < 0.08
+    )
+
+    previous_high = float(
+        df["high"].iloc[-2]
+    )
+
+    previous_low = float(
+        df["low"].iloc[-2]
+    )
+
+    range_break_bull = (
+        range_market
+        and
+        close > previous_high
+    )
+
+    range_break_bear = (
+        range_market
+        and
+        close < previous_low
+    )
+
+    mid = (
+        range_high +
+        range_low
+    ) / 2
+
+    cup_handle_bull = (
+        close > mid
+        and
+        close > ema20
+    )
+
+    cup_handle_bear = (
+        close < mid
+        and
+        close < ema20
+    )
+
+    return {
+
+        "equal_high":
+            equal_high,
+
+        "equal_low":
+            equal_low,
+
+        "double_top":
+            double_top,
+
+        "double_bottom":
+            double_bottom,
+
+        "head_shoulders":
+            head_shoulders,
+
+        "inverse_hs":
+            inverse_hs,
+
+        "triple_top":
+            triple_top,
+
+        "triple_bottom":
+            triple_bottom,
+
+        "ascending_triangle":
+            ascending_triangle,
+
+        "descending_triangle":
+            descending_triangle,
+
+        "symmetrical_triangle":
+            symmetrical_triangle,
+
+        "rising_wedge":
+            rising_wedge,
+
+        "falling_wedge":
+            falling_wedge,
+
+        "bull_flag":
+            bull_flag,
+
+        "bear_flag":
+            bear_flag,
+
+        "range_market":
+            range_market,
+
+        "range_break_bull":
+            range_break_bull,
+
+        "range_break_bear":
+            range_break_bear,
+
+        "cup_handle_bull":
+            cup_handle_bull,
+
+        "cup_handle_bear":
+            cup_handle_bear,
     }
 
 
@@ -795,606 +1448,2071 @@ def candle_patterns(df):
 # ============================================================
 
 def timeframe_context(df):
+
     x = add_indicators(df)
-    price = float(x["close"].iloc[-1])
 
-    buyer, seller = pressure(x)
-
-    bull = (
-        price > float(x["ema20"].iloc[-1]) >
-        float(x["ema50"].iloc[-1])
+    price = float(
+        x["close"].iloc[-1]
     )
 
-    bear = (
-        price < float(x["ema20"].iloc[-1]) <
-        float(x["ema50"].iloc[-1])
+    buyer_pressure, seller_pressure = (
+        pressure(x)
     )
 
     return {
+
         "price": price,
-        "ema20": float(x["ema20"].iloc[-1]),
-        "ema50": float(x["ema50"].iloc[-1]),
-        "ema200": float(x["ema200"].iloc[-1]),
-        "rsi": float(x["rsi"].iloc[-1]),
-        "atr": float(x["atr"].iloc[-1]),
-        "volume_ratio": float(x["volume_ratio"].iloc[-1]),
-        "body_ratio": float(x["body_ratio"].iloc[-1]),
-        "bull": bull,
-        "bear": bear,
-        "buyer_pressure": buyer,
-        "seller_pressure": seller,
-        "df": x,
+
+        "ema20":
+            float(x["ema20"].iloc[-1]),
+
+        "ema50":
+            float(x["ema50"].iloc[-1]),
+
+        "ema200":
+            float(x["ema200"].iloc[-1]),
+
+        "rsi":
+            float(x["rsi"].iloc[-1]),
+
+        "atr":
+            float(x["atr"].iloc[-1]),
+
+        "volume_ratio":
+            safe_float(
+                x["volume_ratio"].iloc[-1],
+                1.0
+            ),
+
+        "body_ratio":
+            safe_float(
+                x["body_ratio"].iloc[-1],
+                0.0
+            ),
+
+        "bull":
+            price >
+            float(x["ema20"].iloc[-1]) >
+            float(x["ema50"].iloc[-1]),
+
+        "bear":
+            price <
+            float(x["ema20"].iloc[-1]) <
+            float(x["ema50"].iloc[-1]),
+
+        "buyer_pressure":
+            buyer_pressure,
+
+        "seller_pressure":
+            seller_pressure,
+
+        "df":
+            x,
     }
 
 
 # ============================================================
-# LEARNING
+# DEFAULT LEARNING
 # ============================================================
 
 DEFAULT_LEARNING = {
+
     "global": {
         "wins": 0,
         "losses": 0,
-        "win_rate": 50.0
+        "win_rate": 50.0,
+        "net_r": 0.0,
     },
+
     "symbols": {},
-    "setups": {},
-    "features": {},
+
     "directions": {
-        "BUY": {"wins": 0, "losses": 0},
-        "SELL": {"wins": 0, "losses": 0}
-    }
+        "BUY": {
+            "wins": 0,
+            "losses": 0,
+            "profit_r": 0.0,
+        },
+
+        "SELL": {
+            "wins": 0,
+            "losses": 0,
+            "profit_r": 0.0,
+        },
+    },
+
+    "indicators": {},
+
+    "combinations": {},
+
+    "regimes": {},
 }
 
-LEARNING = load_json(LEARNING_FILE, DEFAULT_LEARNING)
+
+LEARNING = load_json(
+    LEARNING_FILE,
+    DEFAULT_LEARNING
+)
 
 
-def ensure_symbol_learning(symbol):
-    LEARNING.setdefault("symbols", {})
-    LEARNING["symbols"].setdefault(
+# ============================================================
+# LEARNING HELPERS
+# ============================================================
+
+def ensure_learning_structure():
+
+    LEARNING.setdefault(
+        "global",
+        DEFAULT_LEARNING["global"].copy()
+    )
+
+    LEARNING.setdefault(
+        "symbols",
+        {}
+    )
+
+    LEARNING.setdefault(
+        "directions",
+        {
+            "BUY": {
+                "wins": 0,
+                "losses": 0,
+                "profit_r": 0.0
+            },
+            "SELL": {
+                "wins": 0,
+                "losses": 0,
+                "profit_r": 0.0
+            },
+        }
+    )
+
+    LEARNING.setdefault(
+        "indicators",
+        {}
+    )
+
+    LEARNING.setdefault(
+        "combinations",
+        {}
+    )
+
+    LEARNING.setdefault(
+        "regimes",
+        {}
+    )
+
+
+ensure_learning_structure()
+
+
+def ensure_symbol(symbol):
+
+    LEARNING[
+        "symbols"
+    ].setdefault(
         symbol,
-        {"wins": 0, "losses": 0, "profit_r": 0.0}
+        {
+            "wins": 0,
+            "losses": 0,
+            "profit_r": 0.0,
+        }
     )
 
 
-def ensure_setup_learning(name):
-    LEARNING.setdefault("setups", {})
-    LEARNING["setups"].setdefault(
+def ensure_indicator(name):
+
+    LEARNING[
+        "indicators"
+    ].setdefault(
         name,
-        {"wins": 0, "losses": 0, "profit_r": 0.0}
+        {
+            "wins": 0,
+            "losses": 0,
+            "profit_r": 0.0,
+            "weight": 1.0,
+        }
     )
 
 
-def current_learning_factor(symbol, setup_names, direction):
-    ensure_symbol_learning(symbol)
+def ensure_combination(name):
 
-    rates = []
-
-    s = LEARNING["symbols"][symbol]
-    total = s["wins"] + s["losses"]
-
-    if total >= 8:
-        rates.append(s["wins"] / total * 100)
-
-    for name in setup_names:
-        ensure_setup_learning(name)
-        x = LEARNING["setups"][name]
-        total = x["wins"] + x["losses"]
-
-        if total >= 8:
-            rates.append(x["wins"] / total * 100)
-
-    d = LEARNING["directions"].setdefault(
-        direction,
-        {"wins": 0, "losses": 0}
+    LEARNING[
+        "combinations"
+    ].setdefault(
+        name,
+        {
+            "wins": 0,
+            "losses": 0,
+            "profit_r": 0.0,
+            "weight": 1.0,
+        }
     )
-    total = d["wins"] + d["losses"]
 
-    if total >= 8:
-        rates.append(d["wins"] / total * 100)
 
-    if not rates:
+# ============================================================
+# INDICATOR WEIGHT
+# ============================================================
+
+def indicator_weight(name):
+
+    ensure_indicator(name)
+
+    item = LEARNING[
+        "indicators"
+    ][name]
+
+    samples = (
+        item["wins"] +
+        item["losses"]
+    )
+
+    if samples < MIN_LEARNING_SAMPLES:
         return 1.0
 
-    avg = float(np.mean(rates))
+    return clamp(
+        safe_float(
+            item.get(
+                "weight",
+                1.0
+            ),
+            1.0
+        ),
+        MIN_INDICATOR_WEIGHT,
+        MAX_INDICATOR_WEIGHT
+    )
 
-    if avg >= 68:
-        return 1.06
-    if avg <= 38:
-        return 0.94
+
+def combination_weight(names):
+
+    if not names:
+        return 1.0
+
+    key = "|".join(
+        sorted(
+            set(names)
+        )
+    )
+
+    ensure_combination(key)
+
+    item = LEARNING[
+        "combinations"
+    ][key]
+
+    samples = (
+        item["wins"] +
+        item["losses"]
+    )
+
+    if samples < MIN_LEARNING_SAMPLES:
+        return 1.0
+
+    return clamp(
+        safe_float(
+            item.get(
+                "weight",
+                1.0
+            ),
+            1.0
+        ),
+        MIN_INDICATOR_WEIGHT,
+        MAX_INDICATOR_WEIGHT
+)
+    # ============================================================
+# LEARNING FACTOR
+# ============================================================
+
+def learning_factor(
+    symbol,
+    direction
+):
+
+    ensure_symbol(symbol)
+
+    records = []
+
+    symbol_data = LEARNING[
+        "symbols"
+    ][symbol]
+
+    symbol_samples = (
+        symbol_data["wins"] +
+        symbol_data["losses"]
+    )
+
+    if symbol_samples >= 5:
+
+        records.append(
+            symbol_data["wins"] /
+            symbol_samples *
+            100
+        )
+
+    direction_data = LEARNING[
+        "directions"
+    ][direction]
+
+    direction_samples = (
+        direction_data["wins"] +
+        direction_data["losses"]
+    )
+
+    if direction_samples >= 5:
+
+        records.append(
+            direction_data["wins"] /
+            direction_samples *
+            100
+        )
+
+    if not records:
+        return 1.0
+
+    avg = float(
+        np.mean(records)
+    )
+
+    if avg >= 65:
+        return 1.04
+
+    if avg <= 40:
+        return 0.96
 
     return 1.0
-
-
-def update_learning(trade):
-    symbol = trade["symbol"]
-    direction = trade["direction"]
-    result = trade["result"]
-    r_multiple = float(trade.get("r_multiple", 0))
-
-    ensure_symbol_learning(symbol)
-
-    d = LEARNING["directions"].setdefault(
-        direction,
-        {"wins": 0, "losses": 0}
-    )
-
-    if result == "WIN":
-        LEARNING["global"]["wins"] += 1
-        LEARNING["symbols"][symbol]["wins"] += 1
-        d["wins"] += 1
-
-    elif result == "LOSS":
-        LEARNING["global"]["losses"] += 1
-        LEARNING["symbols"][symbol]["losses"] += 1
-        d["losses"] += 1
-
-    LEARNING["symbols"][symbol]["profit_r"] += r_multiple
-
-    for setup in trade.get("setups", []):
-        ensure_setup_learning(setup)
-
-        LEARNING["setups"][setup]["profit_r"] += r_multiple
-
-        if result == "WIN":
-            LEARNING["setups"][setup]["wins"] += 1
-        elif result == "LOSS":
-            LEARNING["setups"][setup]["losses"] += 1
-
-    total = (
-        LEARNING["global"]["wins"] +
-        LEARNING["global"]["losses"]
-    )
-
-    LEARNING["global"]["win_rate"] = (
-        LEARNING["global"]["wins"] / total * 100
-        if total else 50.0
-    )
-
-    save_json(LEARNING_FILE, LEARNING)
 
 
 # ============================================================
 # SCORE ENGINE
 # ============================================================
 
-def score_market(symbol, d1, h4, h1):
+def score_market(
+    symbol,
+    d1,
+    h4,
+    h1
+):
+
     buy = 0.0
     sell = 0.0
 
-    reasons_buy = []
-    reasons_sell = []
+    buy_reasons = []
+    sell_reasons = []
+
+    buy_indicators = []
+    sell_indicators = []
+
     setup_names = []
 
-    def add(side, points, reason, setup=None):
-        nonlocal buy, sell
+    def add(
+        side,
+        points,
+        reason,
+        indicator=None
+    ):
+
+        nonlocal buy
+        nonlocal sell
+
+        weight = 1.0
+
+        if indicator:
+            weight = indicator_weight(
+                indicator
+            )
+
+        final_points = (
+            points * weight
+        )
 
         if side == "BUY":
-            buy += points
-            reasons_buy.append(reason)
+
+            buy += final_points
+
+            buy_reasons.append(
+                reason
+            )
+
+            if indicator:
+                buy_indicators.append(
+                    indicator
+                )
+
         else:
-            sell += points
-            reasons_sell.append(reason)
 
-        if setup:
-            setup_names.append(setup)
+            sell += final_points
+
+            sell_reasons.append(
+                reason
+            )
+
+            if indicator:
+                sell_indicators.append(
+                    indicator
+                )
 
     # --------------------------------------------------------
-    # 1D = SOFT MAJOR BIAS
+    # 1D
     # --------------------------------------------------------
+
     if d1["bull"]:
-        add("BUY", 12, "1D BULLISH", "1D BIAS")
-    elif d1["bear"]:
-        add("SELL", 12, "1D BEARISH", "1D BIAS")
+
+        add(
+            "BUY",
+            7,
+            "1D BULLISH",
+            "1D_BIAS"
+        )
+
+    if d1["bear"]:
+
+        add(
+            "SELL",
+            7,
+            "1D BEARISH",
+            "1D_BIAS"
+        )
 
     # --------------------------------------------------------
-    # 4H = STRUCTURE / LIQUIDITY
+    # 4H
     # --------------------------------------------------------
-    st4 = structure_info(h4["df"])
 
     if h4["bull"]:
-        add("BUY", 8, "4H BULLISH", "4H TREND")
+
+        add(
+            "BUY",
+            9,
+            "4H TREND",
+            "4H_TREND"
+        )
 
     if h4["bear"]:
-        add("SELL", 8, "4H BEARISH", "4H TREND")
 
-    if st4["HH"] and st4["HL"]:
-        add("BUY", 10, "4H HH/HL", "4H STRUCTURE")
-
-    if st4["LH"] and st4["LL"]:
-        add("SELL", 10, "4H LH/LL", "4H STRUCTURE")
-
-    if st4["bull_bos"]:
-        add("BUY", 10, "4H BULL BOS", "4H BOS")
-
-    if st4["bear_bos"]:
-        add("SELL", 10, "4H BEAR BOS", "4H BOS")
-
-    if st4["bull_choch"]:
-        add("BUY", 8, "4H BULL CHoCH", "4H CHoCH")
-
-    if st4["bear_choch"]:
-        add("SELL", 8, "4H BEAR CHoCH", "4H CHoCH")
-
-    smc4 = detect_smc(h4["df"], st4)
-
-    if smc4["bull_sweep"]:
-        add("BUY", 9, "4H LIQUIDITY SWEEP", "LIQUIDITY SWEEP")
-
-    if smc4["bear_sweep"]:
-        add("SELL", 9, "4H LIQUIDITY SWEEP", "LIQUIDITY SWEEP")
-
-    if smc4["bull_fvg"]:
-        add("BUY", 6, "4H BULL FVG", "FVG")
-
-    if smc4["bear_fvg"]:
-        add("SELL", 6, "4H BEAR FVG", "FVG")
-
-    if smc4["bull_ob"]:
-        add("BUY", 6, "4H BULL ORDER BLOCK", "ORDER BLOCK")
-
-    if smc4["bear_ob"]:
-        add("SELL", 6, "4H BEAR ORDER BLOCK", "ORDER BLOCK")
-
-    if smc4["discount"]:
-        add("BUY", 3, "4H DISCOUNT")
-
-    if smc4["premium"]:
-        add("SELL", 3, "4H PREMIUM")
+        add(
+            "SELL",
+            9,
+            "4H TREND",
+            "4H_TREND"
+        )
 
     # --------------------------------------------------------
-    # 1H = MAIN SETUP / ENTRY
+    # 1H
     # --------------------------------------------------------
-    st1 = structure_info(h1["df"])
-    smc1 = detect_smc(h1["df"], st1)
-    candles = candle_patterns(h1["df"])
-    patterns = detect_patterns(h1["df"], st1)
 
     if h1["bull"]:
-        add("BUY", 8, "1H BULLISH", "1H TREND")
+
+        add(
+            "BUY",
+            10,
+            "1H TREND",
+            "1H_TREND"
+        )
 
     if h1["bear"]:
-        add("SELL", 8, "1H BEARISH", "1H TREND")
 
-    if st1["HH"] and st1["HL"]:
-        add("BUY", 8, "1H HH/HL", "1H STRUCTURE")
+        add(
+            "SELL",
+            10,
+            "1H TREND",
+            "1H_TREND"
+        )
 
-    if st1["LH"] and st1["LL"]:
-        add("SELL", 8, "1H LH/LL", "1H STRUCTURE")
+    # --------------------------------------------------------
+    # Pressure
+    # --------------------------------------------------------
 
-    if st1["bull_bos"]:
-        add("BUY", 11, "1H BULL BOS", "BOS")
+    if h1["buyer_pressure"] >= 54:
 
-    if st1["bear_bos"]:
-        add("SELL", 11, "1H BEAR BOS", "BOS")
+        add(
+            "BUY",
+            8,
+            "BUYER PRESSURE",
+            "PRESSURE"
+        )
 
-    if st1["bull_choch"]:
-        add("BUY", 10, "1H BULL CHoCH", "CHoCH")
+        setup_names.append(
+            "PRESSURE"
+        )
 
-    if st1["bear_choch"]:
-        add("SELL", 10, "1H BEAR CHoCH", "CHoCH")
+    if h1["seller_pressure"] >= 54:
 
-    if smc1["bull_sweep"]:
-        add("BUY", 9, "1H BUY LIQUIDITY SWEEP", "LIQUIDITY SWEEP")
+        add(
+            "SELL",
+            8,
+            "SELLER PRESSURE",
+            "PRESSURE"
+        )
 
-    if smc1["bear_sweep"]:
-        add("SELL", 9, "1H SELL LIQUIDITY SWEEP", "LIQUIDITY SWEEP")
+        setup_names.append(
+            "PRESSURE"
+        )
 
-    if smc1["bull_fvg"]:
-        add("BUY", 6, "1H BULL FVG", "FVG")
+    # --------------------------------------------------------
+    # Volume
+    # --------------------------------------------------------
 
-    if smc1["bear_fvg"]:
-        add("SELL", 6, "1H BEAR FVG", "FVG")
-
-    if smc1["bull_ob"]:
-        add("BUY", 6, "1H BULL ORDER BLOCK", "ORDER BLOCK")
-
-    if smc1["bear_ob"]:
-        add("SELL", 6, "1H BEAR ORDER BLOCK", "ORDER BLOCK")
-
-    if smc1["bull_breaker"]:
-        add("BUY", 4, "1H BULL BREAKER", "BREAKER")
-
-    if smc1["bear_breaker"]:
-        add("SELL", 4, "1H BEAR BREAKER", "BREAKER")
-
-    # Price action
     if (
-        candles["bull_engulf"] or
-        candles["hammer"] or
+        h1["volume_ratio"] >= 1.05
+        and
+        h1["price"] > h1["ema20"]
+    ):
+
+        add(
+            "BUY",
+            6,
+            "BUY VOLUME",
+            "VOLUME"
+        )
+
+        setup_names.append(
+            "VOLUME"
+        )
+
+    if (
+        h1["volume_ratio"] >= 1.05
+        and
+        h1["price"] < h1["ema20"]
+    ):
+
+        add(
+            "SELL",
+            6,
+            "SELL VOLUME",
+            "VOLUME"
+        )
+
+        setup_names.append(
+            "VOLUME"
+        )
+
+    # --------------------------------------------------------
+    # Structure
+    # --------------------------------------------------------
+
+    st = structure_info(
+        h1["df"]
+    )
+
+    if st["HH"] and st["HL"]:
+
+        add(
+            "BUY",
+            8,
+            "HH / HL",
+            "HH_HL"
+        )
+
+        setup_names.append(
+            "HH_HL"
+        )
+
+    if st["LH"] and st["LL"]:
+
+        add(
+            "SELL",
+            8,
+            "LH / LL",
+            "LH_LL"
+        )
+
+        setup_names.append(
+            "LH_LL"
+        )
+
+    if st["bull_bos"]:
+
+        add(
+            "BUY",
+            12,
+            "BULL BOS",
+            "BOS"
+        )
+
+        setup_names.append(
+            "BOS"
+        )
+
+    if st["bear_bos"]:
+
+        add(
+            "SELL",
+            12,
+            "BEAR BOS",
+            "BOS"
+        )
+
+        setup_names.append(
+            "BOS"
+        )
+
+    if st["bull_choch"]:
+
+        add(
+            "BUY",
+            10,
+            "BULL CHoCH",
+            "CHOCH"
+        )
+
+        setup_names.append(
+            "CHOCH"
+        )
+
+    if st["bear_choch"]:
+
+        add(
+            "SELL",
+            10,
+            "BEAR CHoCH",
+            "CHOCH"
+        )
+
+        setup_names.append(
+            "CHOCH"
+        )
+
+    # --------------------------------------------------------
+    # SMC
+    # --------------------------------------------------------
+
+    smc = detect_smc(
+        h1["df"],
+        st
+    )
+
+    if smc["bull_sweep"]:
+
+        add(
+            "BUY",
+            10,
+            "LIQUIDITY SWEEP",
+            "LIQUIDITY_SWEEP"
+        )
+
+        setup_names.append(
+            "LIQUIDITY_SWEEP"
+        )
+
+    if smc["bear_sweep"]:
+
+        add(
+            "SELL",
+            10,
+            "LIQUIDITY SWEEP",
+            "LIQUIDITY_SWEEP"
+        )
+
+        setup_names.append(
+            "LIQUIDITY_SWEEP"
+        )
+
+    if smc["discount"]:
+
+        add(
+            "BUY",
+            4,
+            "DISCOUNT",
+            "DISCOUNT"
+        )
+
+    if smc["premium"]:
+
+        add(
+            "SELL",
+            4,
+            "PREMIUM"
+        )
+
+    if smc["bull_fvg"]:
+
+        add(
+            "BUY",
+            7,
+            "BULL FVG",
+            "FVG"
+        )
+
+        setup_names.append(
+            "FVG"
+        )
+
+    if smc["bear_fvg"]:
+
+        add(
+            "SELL",
+            7,
+            "BEAR FVG",
+            "FVG"
+        )
+
+        setup_names.append(
+            "FVG"
+        )
+
+    if smc["bull_ob"]:
+
+        add(
+            "BUY",
+            7,
+            "BULL ORDER BLOCK",
+            "ORDER_BLOCK"
+        )
+
+        setup_names.append(
+            "ORDER_BLOCK"
+        )
+
+    if smc["bear_ob"]:
+
+        add(
+            "SELL",
+            7,
+            "BEAR ORDER BLOCK",
+            "ORDER_BLOCK"
+        )
+
+        setup_names.append(
+            "ORDER_BLOCK"
+        )
+
+    if smc["bull_breaker"]:
+
+        add(
+            "BUY",
+            5,
+            "BULL BREAKER",
+            "BREAKER"
+        )
+
+        setup_names.append(
+            "BREAKER"
+        )
+
+    if smc["bear_breaker"]:
+
+        add(
+            "SELL",
+            5,
+            "BEAR BREAKER",
+            "BREAKER"
+        )
+
+        setup_names.append(
+            "BREAKER"
+        )
+
+    # --------------------------------------------------------
+    # Support / Resistance
+    # --------------------------------------------------------
+
+    support = float(
+        h1["df"]["low"]
+        .iloc[-51:-1]
+        .min()
+    )
+
+    resistance = float(
+        h1["df"]["high"]
+        .iloc[-51:-1]
+        .max()
+    )
+
+    price = h1["price"]
+
+    if (
+        abs(price - support) /
+        max(price, 1e-12)
+        <= 0.010
+    ):
+
+        add(
+            "BUY",
+            7,
+            "SUPPORT",
+            "SUPPORT"
+        )
+
+        setup_names.append(
+            "SUPPORT"
+        )
+
+    if (
+        abs(resistance - price) /
+        max(price, 1e-12)
+        <= 0.010
+    ):
+
+        add(
+            "SELL",
+            7,
+            "RESISTANCE",
+            "RESISTANCE"
+        )
+
+        setup_names.append(
+            "RESISTANCE"
+        )
+
+    # --------------------------------------------------------
+    # RSI
+    # --------------------------------------------------------
+
+    if (
+        44 <= h1["rsi"] <= 68
+        and
+        h1["bull"]
+    ):
+
+        add(
+            "BUY",
+            4,
+            "RSI",
+            "RSI"
+        )
+
+    if (
+        32 <= h1["rsi"] <= 56
+        and
+        h1["bear"]
+    ):
+
+        add(
+            "SELL",
+            4,
+            "RSI",
+            "RSI"
+        )
+
+    # --------------------------------------------------------
+    # Candles
+    # --------------------------------------------------------
+
+    candles = candle_patterns(
+        h1["df"]
+    )
+
+    if (
+        candles["bull_engulf"]
+        or
+        candles["hammer"]
+        or
         candles["bull_rejection"]
     ):
-        add("BUY", 5, "1H BULL PRICE ACTION", "PRICE ACTION")
+
+        add(
+            "BUY",
+            5,
+            "BULL PRICE ACTION",
+            "PRICE_ACTION"
+        )
+
+        setup_names.append(
+            "PRICE_ACTION"
+        )
 
     if (
-        candles["bear_engulf"] or
-        candles["shooting_star"] or
+        candles["bear_engulf"]
+        or
+        candles["shooting_star"]
+        or
         candles["bear_rejection"]
     ):
-        add("SELL", 5, "1H BEAR PRICE ACTION", "PRICE ACTION")
 
-    # Pressure
-    if h1["buyer_pressure"] >= 52:
-        add("BUY", 5, "1H BUYER PRESSURE", "PRESSURE")
+        add(
+            "SELL",
+            5,
+            "BEAR PRICE ACTION",
+            "PRICE_ACTION"
+        )
 
-    if h1["seller_pressure"] >= 52:
-        add("SELL", 5, "1H SELLER PRESSURE", "PRESSURE")
+        setup_names.append(
+            "PRICE_ACTION"
+        )
 
-    # Volume
-    if h1["volume_ratio"] >= 1.05 and h1["price"] > h1["ema20"]:
-        add("BUY", 5, "1H BUY VOLUME", "VOLUME")
-
-    if h1["volume_ratio"] >= 1.05 and h1["price"] < h1["ema20"]:
-        add("SELL", 5, "1H SELL VOLUME", "VOLUME")
-
-    # RSI is confirmation, not a primary trigger.
-    if 43 <= h1["rsi"] <= 70 and h1["bull"]:
-        add("BUY", 3, "1H RSI SUPPORT")
-
-    if 30 <= h1["rsi"] <= 57 and h1["bear"]:
-        add("SELL", 3, "1H RSI SUPPORT")
-
+    # --------------------------------------------------------
     # Classical patterns
+    # --------------------------------------------------------
+
+    patterns = detect_patterns(
+        h1["df"],
+        st
+    )
+
     pattern_scores = [
-        ("double_bottom", "BUY", 8, "DOUBLE BOTTOM", "DOUBLE BOTTOM"),
-        ("double_top", "SELL", 8, "DOUBLE TOP", "DOUBLE TOP"),
-        ("inverse_hs", "BUY", 7, "INVERSE H&S", "INVERSE H&S"),
-        ("head_shoulders", "SELL", 7, "HEAD & SHOULDERS", "HEAD & SHOULDERS"),
-        ("triple_bottom", "BUY", 6, "TRIPLE BOTTOM", "TRIPLE BOTTOM"),
-        ("triple_top", "SELL", 6, "TRIPLE TOP", "TRIPLE TOP"),
-        ("ascending_triangle", "BUY", 5, "ASCENDING TRIANGLE", "TRIANGLE"),
-        ("descending_triangle", "SELL", 5, "DESCENDING TRIANGLE", "TRIANGLE"),
-        ("falling_wedge", "BUY", 5, "FALLING WEDGE", "WEDGE"),
-        ("rising_wedge", "SELL", 5, "RISING WEDGE", "WEDGE"),
-        ("bull_flag", "BUY", 4, "BULL FLAG", "FLAG"),
-        ("bear_flag", "SELL", 4, "BEAR FLAG", "FLAG"),
-        ("range_break_bull", "BUY", 6, "RANGE BREAKOUT", "RANGE BREAK"),
-        ("range_break_bear", "SELL", 6, "RANGE BREAKDOWN", "RANGE BREAK"),
+
+        (
+            "double_bottom",
+            "BUY",
+            9,
+            "DOUBLE BOTTOM",
+            "DOUBLE_BOTTOM"
+        ),
+
+        (
+            "double_top",
+            "SELL",
+            9,
+            "DOUBLE TOP",
+            "DOUBLE_TOP"
+        ),
+
+        (
+            "inverse_hs",
+            "BUY",
+            8,
+            "INVERSE H&S",
+            "INVERSE_HS"
+        ),
+
+        (
+            "head_shoulders",
+            "SELL",
+            8,
+            "HEAD & SHOULDERS",
+            "HEAD_SHOULDERS"
+        ),
+
+        (
+            "triple_bottom",
+            "BUY",
+            7,
+            "TRIPLE BOTTOM",
+            "TRIPLE_BOTTOM"
+        ),
+
+        (
+            "triple_top",
+            "SELL",
+            7,
+            "TRIPLE TOP",
+            "TRIPLE_TOP"
+        ),
+
+        (
+            "ascending_triangle",
+            "BUY",
+            6,
+            "ASCENDING TRIANGLE",
+            "ASC_TRIANGLE"
+        ),
+
+        (
+            "descending_triangle",
+            "SELL",
+            6,
+            "DESCENDING TRIANGLE",
+            "DESC_TRIANGLE"
+        ),
+
+        (
+            "falling_wedge",
+            "BUY",
+            6,
+            "FALLING WEDGE",
+            "FALLING_WEDGE"
+        ),
+
+        (
+            "rising_wedge",
+            "SELL",
+            6,
+            "RISING WEDGE",
+            "RISING_WEDGE"
+        ),
+
+        (
+            "bull_flag",
+            "BUY",
+            5,
+            "BULL FLAG",
+            "BULL_FLAG"
+        ),
+
+        (
+            "bear_flag",
+            "SELL",
+            5,
+            "BEAR FLAG",
+            "BEAR_FLAG"
+        ),
+
+        (
+            "range_break_bull",
+            "BUY",
+            7,
+            "RANGE BREAKOUT",
+            "RANGE_BREAKOUT"
+        ),
+
+        (
+            "range_break_bear",
+            "SELL",
+            7,
+            "RANGE BREAKDOWN",
+            "RANGE_BREAKDOWN"
+        ),
     ]
 
-    for key, side, points, label, setup in pattern_scores:
+    for (
+        key,
+        side,
+        points,
+        label,
+        indicator
+    ) in pattern_scores:
+
         if patterns.get(key):
-            add(side, points, label, setup)
 
-    # Learning factor is intentionally mild.
-    factor_buy = current_learning_factor(
-        symbol, list(dict.fromkeys(setup_names)), "BUY"
+            add(
+                side,
+                points,
+                label,
+                indicator
+            )
+
+            setup_names.append(
+                indicator
+            )
+
+    # --------------------------------------------------------
+    # Combination learning
+    # --------------------------------------------------------
+
+    unique_setups = list(
+        dict.fromkeys(
+            setup_names
+        )
     )
-    factor_sell = current_learning_factor(
-        symbol, list(dict.fromkeys(setup_names)), "SELL"
+
+    combo_factor = (
+        combination_weight(
+            unique_setups
+        )
     )
 
-    buy *= factor_buy
-    sell *= factor_sell
+    buy *= combo_factor
+    sell *= combo_factor
 
-    buy = clamp(buy, 0, 100)
-    sell = clamp(sell, 0, 100)
+    # Symbol / direction learning
+    buy *= learning_factor(
+        symbol,
+        "BUY"
+    )
 
-    if buy >= MIN_SCORE and buy >= sell + DIRECTION_GAP:
+    sell *= learning_factor(
+        symbol,
+        "SELL"
+    )
+
+    buy = clamp(
+        buy,
+        0,
+        100
+    )
+
+    sell = clamp(
+        sell,
+        0,
+        100
+    )
+
+    if (
+        buy >= MIN_SCORE
+        and
+        buy >= sell + DIRECTION_GAP
+    ):
+
         direction = "BUY"
-    elif sell >= MIN_SCORE and sell >= buy + DIRECTION_GAP:
+
+    elif (
+        sell >= MIN_SCORE
+        and
+        sell >= buy + DIRECTION_GAP
+    ):
+
         direction = "SELL"
+
     else:
+
         direction = "NO TRADE"
 
     return {
-        "buy_score": round(buy, 2),
-        "sell_score": round(sell, 2),
-        "direction": direction,
-        "buy_reasons": reasons_buy,
-        "sell_reasons": reasons_sell,
-        "setups": list(dict.fromkeys(setup_names)),
-        "st4": st4,
-        "st1": st1,
-        "smc4": smc4,
-        "smc1": smc1,
-        "patterns": patterns,
-        "candles": candles,
-}
+
+        "buy_score":
+            round(buy, 2),
+
+        "sell_score":
+            round(sell, 2),
+
+        "direction":
+            direction,
+
+        "buy_reasons":
+            buy_reasons,
+
+        "sell_reasons":
+            sell_reasons,
+
+        "buy_indicators":
+            list(dict.fromkeys(
+                buy_indicators
+            )),
+
+        "sell_indicators":
+            list(dict.fromkeys(
+                sell_indicators
+            )),
+
+        "setups":
+            list(dict.fromkeys(
+                setup_names
+            )),
+
+        "support":
+            support,
+
+        "resistance":
+            resistance,
+
+        "structure":
+            st,
+
+        "smc":
+            smc,
+
+        "patterns":
+            patterns,
+
+        "candles":
+            candles,
+    }
+
+
 # ============================================================
-# LEVEL ENGINE
+# DYNAMIC LEVELS
 # ============================================================
 
-def nearest_levels(df, structure, price):
-    lows = [x[1] for x in structure["lows"][-12:]]
-    highs = [x[1] for x in structure["highs"][-12:]]
+def nearest_levels(
+    df,
+    structure
+):
 
-    supports = [x for x in lows if x < price]
-    resistances = [x for x in highs if x > price]
+    price = float(
+        df["close"].iloc[-1]
+    )
+
+    lows = [
+        x[1]
+        for x in structure[
+            "lows"
+        ][-10:]
+    ]
+
+    highs = [
+        x[1]
+        for x in structure[
+            "highs"
+        ][-10:]
+    ]
+
+    supports = [
+        x for x in lows
+        if x < price
+    ]
+
+    resistances = [
+        x for x in highs
+        if x > price
+    ]
 
     support = (
         max(supports)
         if supports
-        else float(df["low"].tail(30).min())
+        else float(
+            df["low"].tail(20).min()
+        )
     )
 
     resistance = (
         min(resistances)
         if resistances
-        else float(df["high"].tail(30).max())
+        else float(
+            df["high"].tail(20).max()
+        )
     )
 
-    return float(support), float(resistance)
+    return (
+        support,
+        resistance
+    )
 
 
-def build_levels(direction, h4, h1, score):
-    price = float(h1["price"])
+def dynamic_levels(
+    direction,
+    h1,
+    score
+):
 
-    atr1 = max(
+    price = float(
+        h1["price"]
+    )
+
+    atr_value = max(
         float(h1["atr"]),
         price * 0.001
     )
 
-    st4 = structure_info(h4["df"])
-    st1 = structure_info(h1["df"])
-
-    s4, r4 = nearest_levels(
-        h4["df"], st4, price
+    structure = structure_info(
+        h1["df"]
     )
 
-    s1, r1 = nearest_levels(
-        h1["df"], st1, price
+    support, resistance = (
+        nearest_levels(
+            h1["df"],
+            structure
+        )
     )
 
-    # Combine nearby structure zones.
     if direction == "BUY":
-        supports = [x for x in [s1, s4] if x < price]
-        resistances = [x for x in [r1, r4] if x > price]
 
-        support = max(supports) if supports else price - atr1
-        target_zone = min(resistances) if resistances else price + atr1 * 3
+        structural_sl = (
+            support -
+            atr_value * 0.20
+        )
 
-        # SL below the strongest nearby structural support.
-        stop = support - atr1 * ATR_SL_BUFFER
+        atr_sl = (
+            price -
+            atr_value * ATR_SL_MULT
+        )
 
-        # If structural stop is too tight, use ATR minimum.
-        min_structural_stop = price - atr1 * 0.75
-        stop = min(stop, min_structural_stop)
+        stop = min(
+            structural_sl,
+            atr_sl
+        )
 
-        # Keep stop within configured risk bounds.
-        max_stop = price * (1 - MIN_SL_PCT / 100)
-        far_stop = price * (1 - MAX_SL_PCT / 100)
-        stop = clamp(stop, far_stop, max_stop)
+        max_stop = (
+            price *
+            (1 - MAX_SL_PCT / 100)
+        )
+
+        min_stop = (
+            price *
+            (1 - MIN_SL_PCT / 100)
+        )
+
+        stop = clamp(
+            stop,
+            max_stop,
+            min_stop
+        )
 
         risk = price - stop
 
-        # Target must respect 4H/1H resistance but also guarantee 2R.
-        min_target = price + risk * MIN_RR
-        atr_target = price + atr1 * ATR_TARGET_MULT
+        structural_target = resistance
 
-        target = max(target_zone, atr_target, min_target)
+        atr_target = (
+            price +
+            atr_value *
+            ATR_TARGET_MULT
+        )
 
-        max_target = price * (1 + MAX_TARGET_PCT / 100)
-        target = min(target, max_target)
+        target = max(
+            structural_target,
+            atr_target
+        )
+
+        min_target = (
+            price +
+            risk * MIN_RR
+        )
+
+        target = max(
+            target,
+            min_target
+        )
+
+        max_target = (
+            price *
+            (1 + MAX_TARGET_PCT / 100)
+        )
+
+        target = min(
+            target,
+            max_target
+        )
 
     else:
-        supports = [x for x in [s1, s4] if x < price]
-        resistances = [x for x in [r1, r4] if x > price]
 
-        resistance = min(resistances) if resistances else price + atr1
-        target_zone = max(supports) if supports else price - atr1 * 3
+        structural_sl = (
+            resistance +
+            atr_value * 0.20
+        )
 
-        stop = resistance + atr1 * ATR_SL_BUFFER
+        atr_sl = (
+            price +
+            atr_value * ATR_SL_MULT
+        )
 
-        max_structural_stop = price + atr1 * 0.75
-        stop = max(stop, max_structural_stop)
+        stop = max(
+            structural_sl,
+            atr_sl
+        )
 
-        near_stop = price * (1 + MIN_SL_PCT / 100)
-        far_stop = price * (1 + MAX_SL_PCT / 100)
-        stop = clamp(stop, near_stop, far_stop)
+        max_stop = (
+            price *
+            (1 + MAX_SL_PCT / 100)
+        )
+
+        min_stop = (
+            price *
+            (1 + MIN_SL_PCT / 100)
+        )
+
+        stop = clamp(
+            stop,
+            min_stop,
+            max_stop
+        )
 
         risk = stop - price
 
-        min_target = price - risk * MIN_RR
-        atr_target = price - atr1 * ATR_TARGET_MULT
+        structural_target = support
 
-        target = min(target_zone, atr_target, min_target)
+        atr_target = (
+            price -
+            atr_value *
+            ATR_TARGET_MULT
+        )
 
-        max_target = price * (1 - MAX_TARGET_PCT / 100)
-        target = max(target, max_target)
+        target = min(
+            structural_target,
+            atr_target
+        )
 
-    risk_pct = abs(price - stop) / price * 100
-    reward_pct = abs(target - price) / price * 100
-    rr = safe_div(reward_pct, risk_pct)
+        min_target = (
+            price -
+            risk * MIN_RR
+        )
+
+        target = min(
+            target,
+            min_target
+        )
+
+        max_target = (
+            price *
+            (1 - MAX_TARGET_PCT / 100)
+        )
+
+        target = max(
+            target,
+            max_target
+        )
+
+    risk_pct = (
+        abs(price - stop) /
+        price *
+        100
+    )
+
+    reward_pct = (
+        abs(target - price) /
+        price *
+        100
+    )
+
+    rr = safe_div(
+        reward_pct,
+        risk_pct
+    )
 
     valid = (
-        risk_pct >= MIN_SL_PCT and
-        risk_pct <= MAX_SL_PCT and
-        rr >= MIN_RR and
+        rr >= MIN_RR
+        and
         rr <= MAX_RR
+        and
+        risk_pct >= MIN_SL_PCT
+        and
+        risk_pct <= MAX_SL_PCT
+        and
+        reward_pct >= MIN_TARGET_PCT
+        and
+        target != price
+        and
+        stop != price
     )
 
     return {
-        "entry": price,
-        "stop_loss": float(stop),
-        "target": float(target),
-        "risk_pct": float(risk_pct),
-        "reward_pct": float(reward_pct),
-        "rr": float(rr),
-        "valid": bool(valid),
-        "support_1h": s1,
-        "resistance_1h": r1,
-        "support_4h": s4,
-        "resistance_4h": r4,
-        "atr": atr1,
-        "score": score,
-    }
 
+        "entry":
+            price,
 
-# ============================================================
+        "stop_loss":
+            stop,
+
+        "target":
+            target,
+
+        "risk_pct":
+            risk_pct,
+
+        "reward_pct":
+            reward_pct,
+
+        "rr":
+            rr,
+
+        "valid":
+            valid,
+
+        "support":
+            support,
+
+        "resistance":
+            resistance,
+
+        "atr":
+            atr_value,
+
+        "score":
+            score,
+        }
+    # ============================================================
 # TRADE MEMORY
 # ============================================================
 
-TRADES = load_json(TRADE_MEMORY_FILE, [])
-OPEN_TRADES = {}
-LAST_ENTRY_BY_SYMBOL = {}
+TRADES = load_json(
+    TRADE_MEMORY_FILE,
+    []
+)
 
+OPEN_TRADES = {}
+
+EMAIL_SENT = load_json(
+    STATE_FILE,
+    {}
+)
+
+
+# ============================================================
+# TRADE ID
+# ============================================================
+
+def make_signal_id(
+    symbol,
+    direction,
+    signal_candle
+):
+
+    candle_key = str(
+        signal_candle
+    )
+
+    return (
+        f"{symbol}|"
+        f"{direction}|"
+        f"{candle_key}"
+    )
+
+
+def make_trade_id():
+
+    return (
+        datetime.now(
+            timezone.utc
+        ).strftime(
+            "%Y%m%d%H%M%S%f"
+        )
+        + "_"
+        + uuid.uuid4().hex[:8]
+    )
+
+
+# ============================================================
+# DUPLICATE PROTECTION
+# ============================================================
+
+def same_open_trade_exists(
+    symbol,
+    direction,
+    signal_id
+):
+
+    for trade in OPEN_TRADES.values():
+
+        if (
+            trade.get("symbol") ==
+            symbol
+            and
+            trade.get("direction") ==
+            direction
+            and
+            trade.get("signal_id") ==
+            signal_id
+        ):
+
+            return True
+
+    return False
+
+
+def symbol_has_open_trade(
+    symbol
+):
+
+    for trade in OPEN_TRADES.values():
+
+        if trade.get("symbol") == symbol:
+
+            return True
+
+    return False
+
+
+def trade_already_closed(
+    signal_id
+):
+
+    for trade in TRADES:
+
+        if (
+            trade.get("signal_id") ==
+            signal_id
+            and
+            trade.get("result")
+            in ("WIN", "LOSS")
+        ):
+
+            return True
+
+    return False
+
+
+# ============================================================
+# INDICATOR SNAPSHOT
+# ============================================================
+
+def build_indicator_snapshot(
+    score
+):
+
+    indicators = set()
+
+    if score["direction"] == "BUY":
+
+        indicators.update(
+            score["buy_indicators"]
+        )
+
+    elif score["direction"] == "SELL":
+
+        indicators.update(
+            score["sell_indicators"]
+        )
+
+    return sorted(
+        indicators
+    )
+
+
+# ============================================================
+# SAVE TRADE
+# ============================================================
 
 def save_trade(trade):
+
     global TRADES
 
-    TRADES.append(trade)
-    save_json(TRADE_MEMORY_FILE, TRADES)
+    signal_id = trade.get(
+        "signal_id"
+    )
 
-    row_keys = [
-        "id", "symbol", "direction",
-        "entry", "stop_loss", "target",
-        "entry_time", "exit_time",
-        "result", "exit_reason",
-        "exit_price", "pnl_pct",
-        "r_multiple", "planned_rr",
-        "mae_pct", "mfe_pct",
-        "mae_r", "mfe_r",
-        "buy_score", "sell_score",
-        "setups"
-    ]
+    # --------------------------------------------------------
+    # NEVER append duplicate closed trade
+    # --------------------------------------------------------
 
-    row = {k: trade.get(k) for k in row_keys}
+    for existing in TRADES:
 
-    pd.DataFrame([row]).to_csv(
+        if (
+            existing.get(
+                "signal_id"
+            ) == signal_id
+            and
+            existing.get(
+                "result"
+            ) == trade.get(
+                "result"
+            )
+            and
+            trade.get(
+                "result"
+            ) in ("WIN", "LOSS")
+        ):
+
+            logger.warning(
+                "Duplicate trade ignored: %s",
+                signal_id
+            )
+
+            return False
+
+    TRADES.append(
+        trade
+    )
+
+    save_json(
+        TRADE_MEMORY_FILE,
+        TRADES
+    )
+
+    row = {
+
+        "id":
+            trade.get("id"),
+
+        "signal_id":
+            trade.get("signal_id"),
+
+        "symbol":
+            trade.get("symbol"),
+
+        "direction":
+            trade.get("direction"),
+
+        "entry":
+            trade.get("entry"),
+
+        "stop_loss":
+            trade.get("stop_loss"),
+
+        "target":
+            trade.get("target"),
+
+        "entry_time":
+            trade.get("entry_time"),
+
+        "exit_time":
+            trade.get("exit_time"),
+
+        "result":
+            trade.get("result"),
+
+        "reason":
+            trade.get("reason"),
+
+        "exit_price":
+            trade.get("exit_price"),
+
+        "pnl_pct":
+            trade.get("pnl_pct"),
+
+        "r_multiple":
+            trade.get("r_multiple"),
+
+        "mae_pct":
+            trade.get("mae_pct"),
+
+        "mae_r":
+            trade.get("mae_r"),
+
+        "mfe_pct":
+            trade.get("mfe_pct"),
+
+        "mfe_r":
+            trade.get("mfe_r"),
+
+        "buy_score":
+            trade.get("buy_score"),
+
+        "sell_score":
+            trade.get("sell_score"),
+
+        "rr":
+            trade.get("rr"),
+
+        "setups":
+            ",".join(
+                trade.get(
+                    "setups",
+                    []
+                )
+            ),
+
+        "indicators":
+            ",".join(
+                trade.get(
+                    "indicators",
+                    []
+                )
+            ),
+    }
+
+    row_df = pd.DataFrame(
+        [row]
+    )
+
+    header = not (
+        TRADE_CSV_FILE.exists()
+    )
+
+    row_df.to_csv(
         TRADE_CSV_FILE,
         mode="a",
-        header=not TRADE_CSV_FILE.exists(),
+        header=header,
         index=False
     )
 
+    return True
 
-def make_trade_id(symbol):
-    return (
-        f"{symbol}_"
-        f"{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}"
-    )
 
+# ============================================================
+# PERSIST OPEN STATE
+# ============================================================
 
 def save_state():
+
+    data = {
+
+        "open_trades":
+            list(
+                OPEN_TRADES.values()
+            ),
+
+        "email_sent":
+            EMAIL_SENT,
+
+        "updated_at":
+            iso_pkt(),
+    }
+
     save_json(
         STATE_FILE,
-        {
-            "open_trades": list(OPEN_TRADES.values()),
-            "last_entry_by_symbol": LAST_ENTRY_BY_SYMBOL,
-            "updated_at": iso_pkt(),
-        }
+        data
+    )
+
+
+def restore_open_trades():
+
+    global OPEN_TRADES
+    global EMAIL_SENT
+
+    state = load_json(
+        STATE_FILE,
+        {}
+    )
+
+    EMAIL_SENT = state.get(
+        "email_sent",
+        {}
+    )
+
+    OPEN_TRADES = {}
+
+    for trade in state.get(
+        "open_trades",
+        []
+    ):
+
+        if (
+            trade.get(
+                "result"
+            ) == "OPEN"
+        ):
+
+            OPEN_TRADES[
+                trade["id"]
+            ] = trade
+
+    logger.info(
+        "Restored %d open trades",
+        len(OPEN_TRADES)
     )
 
 
 # ============================================================
-# ALERTS
+# LEARNING UPDATE
 # ============================================================
 
-def trade_alert(trade):
+def update_learning(
+    trade
+):
+
+    ensure_learning_structure()
+
+    result = trade.get(
+        "result"
+    )
+
+    if result not in (
+        "WIN",
+        "LOSS"
+    ):
+
+        return
+
+    symbol = trade[
+        "symbol"
+    ]
+
+    direction = trade[
+        "direction"
+    ]
+
+    r_multiple = safe_float(
+        trade.get(
+            "r_multiple",
+            0
+        )
+    )
+
+    ensure_symbol(
+        symbol
+    )
+
+    # --------------------------------------------------------
+    # Global
+    # --------------------------------------------------------
+
+    if result == "WIN":
+
+        LEARNING[
+            "global"
+        ]["wins"] += 1
+
+    else:
+
+        LEARNING[
+            "global"
+        ]["losses"] += 1
+
+    LEARNING[
+        "global"
+    ]["net_r"] += r_multiple
+
+    # --------------------------------------------------------
+    # Symbol
+    # --------------------------------------------------------
+
+    if result == "WIN":
+
+        LEARNING[
+            "symbols"
+        ][symbol]["wins"] += 1
+
+    else:
+
+        LEARNING[
+            "symbols"
+        ][symbol]["losses"] += 1
+
+    LEARNING[
+        "symbols"
+    ][symbol]["profit_r"] += r_multiple
+
+    # --------------------------------------------------------
+    # Direction
+    # --------------------------------------------------------
+
+    d = LEARNING[
+        "directions"
+    ][direction]
+
+    if result == "WIN":
+
+        d["wins"] += 1
+
+    else:
+
+        d["losses"] += 1
+
+    d["profit_r"] += r_multiple
+
+    # --------------------------------------------------------
+    # Indicator learning
+    # --------------------------------------------------------
+
+    indicators = trade.get(
+        "indicators",
+        []
+    )
+
+    for indicator in indicators:
+
+        ensure_indicator(
+            indicator
+        )
+
+        item = LEARNING[
+            "indicators"
+        ][indicator]
+
+        if result == "WIN":
+
+            item["wins"] += 1
+
+            item["weight"] = clamp(
+                item["weight"] *
+                (
+                    1 +
+                    LEARNING_WIN_REWARD
+                ),
+                MIN_INDICATOR_WEIGHT,
+                MAX_INDICATOR_WEIGHT
+            )
+
+        else:
+
+            item["losses"] += 1
+
+            item["weight"] = clamp(
+                item["weight"] *
+                (
+                    1 -
+                    LEARNING_LOSS_PENALTY
+                ),
+                MIN_INDICATOR_WEIGHT,
+                MAX_INDICATOR_WEIGHT
+            )
+
+        item["profit_r"] += (
+            r_multiple
+        )
+
+    # --------------------------------------------------------
+    # Combination learning
+    # --------------------------------------------------------
+
+    combination = sorted(
+        set(indicators)
+    )
+
+    if combination:
+
+        combo_key = "|".join(
+            combination
+        )
+
+        ensure_combination(
+            combo_key
+        )
+
+        combo = LEARNING[
+            "combinations"
+        ][combo_key]
+
+        if result == "WIN":
+
+            combo["wins"] += 1
+
+            combo["weight"] = clamp(
+                combo["weight"] *
+                (
+                    1 +
+                    LEARNING_WIN_REWARD
+                ),
+                MIN_INDICATOR_WEIGHT,
+                MAX_INDICATOR_WEIGHT
+            )
+
+        else:
+
+            combo["losses"] += 1
+
+            combo["weight"] = clamp(
+                combo["weight"] *
+                (
+                    1 -
+                    LEARNING_LOSS_PENALTY
+                ),
+                MIN_INDICATOR_WEIGHT,
+                MAX_INDICATOR_WEIGHT
+            )
+
+        combo["profit_r"] += (
+            r_multiple
+        )
+
+    # --------------------------------------------------------
+    # Global win rate
+    # --------------------------------------------------------
+
+    wins = LEARNING[
+        "global"
+    ]["wins"]
+
+    losses = LEARNING[
+        "global"
+    ]["losses"]
+
+    total = wins + losses
+
+    LEARNING[
+        "global"
+    ]["win_rate"] = (
+        wins / total * 100
+        if total
+        else 50.0
+    )
+
+    save_json(
+        LEARNING_FILE,
+        LEARNING
+    )
+
+
+# ============================================================
+# TRADE OPEN EMAIL
+# ============================================================
+
+def send_trade_open_alert(
+    trade
+):
+
+    signal_id = trade[
+        "signal_id"
+    ]
+
+    email_key = (
+        "OPEN|" +
+        signal_id
+    )
+
+    if EMAIL_SENT.get(
+        email_key
+    ):
+
+        return
+
     body = f"""
 🧠 MARKET BRAIN AI — NEW TRADE
+
+━━━━━━━━━━━━━━━━━━━━
+TRADE
+━━━━━━━━━━━━━━━━━━━━
 
 Symbol: {trade['symbol']}
 Direction: {trade['direction']}
 
-ENTRY: {trade['entry']:.8f}
-STOP LOSS: {trade['stop_loss']:.8f}
-TARGET: {trade['target']:.8f}
+ENTRY:
+{trade['entry']:.8f}
 
-Risk: {trade['risk_pct']:.2f}%
-Reward: {trade['reward_pct']:.2f}%
-R:R: 1:{trade['planned_rr']:.2f}
+STOP LOSS:
+{trade['stop_loss']:.8f}
+
+TARGET:
+{trade['target']:.8f}
+
+RISK:
+{trade['risk_pct']:.2f}%
+
+REWARD:
+{trade['reward_pct']:.2f}%
+
+R:R:
+1:{trade['rr']:.2f}
+
+━━━━━━━━━━━━━━━━━━━━
+SCORES
+━━━━━━━━━━━━━━━━━━━━
 
 BUY SCORE: {trade['buy_score']:.1f}
 SELL SCORE: {trade['sell_score']:.1f}
@@ -1403,430 +3521,1027 @@ SELL SCORE: {trade['sell_score']:.1f}
 4H: {trade['h4_bias']}
 1H: {trade['h1_bias']}
 
-Buyer Pressure: {trade['buyer_pressure']:.1f}%
-Seller Pressure: {trade['seller_pressure']:.1f}%
-Volume: {trade['volume_ratio']:.2f}x
-RSI: {trade['rsi']:.1f}
+━━━━━━━━━━━━━━━━━━━━
+MARKET
+━━━━━━━━━━━━━━━━━━━━
 
-FVG: {trade['fvg']}
-ORDER BLOCK: {trade['order_block']}
-LIQUIDITY: {trade['liquidity']}
-PATTERN: {trade['pattern']}
+Buyer Pressure:
+{trade['buyer_pressure']:.1f}%
 
-4H Support: {trade['support_4h']:.8f}
-4H Resistance: {trade['resistance_4h']:.8f}
+Seller Pressure:
+{trade['seller_pressure']:.1f}%
 
-1H Support: {trade['support_1h']:.8f}
-1H Resistance: {trade['resistance_1h']:.8f}
+Volume:
+{trade['volume_ratio']:.2f}x
 
-Setups:
-{', '.join(trade['setups']) if trade['setups'] else 'None'}
+RSI:
+{trade['rsi']:.1f}
 
-Time: {trade['entry_time']} PKT
+━━━━━━━━━━━━━━━━━━━━
+SETUPS
+━━━━━━━━━━━━━━━━━━━━
+
+{', '.join(trade['setups']) or 'None'}
+
+━━━━━━━━━━━━━━━━━━━━
+LEARNING INDICATORS
+━━━━━━━━━━━━━━━━━━━━
+
+{', '.join(trade['indicators']) or 'None'}
+
+Entry Candle:
+{trade['signal_candle']}
+
+Time:
+{trade['entry_time']} PKT
 """
 
-    send_email(
-        f"🧠 MARKET BRAIN NEW {trade['direction']} — {trade['symbol']}",
+    sent = send_email(
+        (
+            "🧠 MARKET BRAIN "
+            f"{trade['direction']} — "
+            f"{trade['symbol']}"
+        ),
         body.strip()
     )
 
+    if sent:
 
-def closed_trade_alert(trade):
-    if trade["result"] == "WIN":
-        title = "✅ WIN"
-        reason = "TARGET HIT"
+        EMAIL_SENT[
+            email_key
+        ] = iso_pkt()
+
+        save_state()
+
+
+# ============================================================
+# CLOSED TRADE EMAIL
+# ============================================================
+
+def send_trade_closed_alert(
+    trade
+):
+
+    signal_id = trade[
+        "signal_id"
+    ]
+
+    email_key = (
+        "CLOSED|" +
+        signal_id
+    )
+
+    if EMAIL_SENT.get(
+        email_key
+    ):
+
+        return
+
+    result = trade[
+        "result"
+    ]
+
+    if result == "WIN":
+
+        emoji = "✅"
+
     else:
-        title = "❌ LOSS"
-        reason = trade.get("exit_reason", "STOP LOSS HIT")
+
+        emoji = "❌"
 
     body = f"""
 🧠 MARKET BRAIN AI — TRADE CLOSED
 
-{title}
+{emoji} {result}
 
-Symbol: {trade['symbol']}
-Direction: {trade['direction']}
+━━━━━━━━━━━━━━━━━━━━
+TRADE
+━━━━━━━━━━━━━━━━━━━━
 
-ENTRY: {trade['entry']:.8f}
-EXIT: {trade['exit_price']:.8f}
+Symbol:
+{trade['symbol']}
 
-STOP LOSS: {trade['stop_loss']:.8f}
-TARGET: {trade['target']:.8f}
+Direction:
+{trade['direction']}
 
-RESULT: {trade['result']}
-REASON: {reason}
+━━━━━━━━━━━━━━━━━━━━
+PRICES
+━━━━━━━━━━━━━━━━━━━━
 
-P/L: {trade['pnl_pct']:+.2f}%
-RESULT: {trade['r_multiple']:+.2f}R
-PLANNED R:R: 1:{trade['planned_rr']:.2f}
+Entry:
+{trade['entry']:.8f}
 
-MAE: {trade['mae_pct']:.2f}% ({trade['mae_r']:.2f}R)
-MFE: {trade['mfe_pct']:.2f}% ({trade['mfe_r']:.2f}R)
+Exit:
+{trade['exit_price']:.8f}
 
-ENTRY TIME:
+Stop Loss:
+{trade['stop_loss']:.8f}
+
+Target:
+{trade['target']:.8f}
+
+━━━━━━━━━━━━━━━━━━━━
+RESULT
+━━━━━━━━━━━━━━━━━━━━
+
+RESULT:
+{result}
+
+REASON:
+{trade['reason']}
+
+P/L:
+{trade['pnl_pct']:+.2f}%
+
+RESULT:
+{trade['r_multiple']:+.2f}R
+
+PLANNED R:R:
+1:{trade['rr']:.2f}
+
+━━━━━━━━━━━━━━━━━━━━
+TRADE BEHAVIOUR
+━━━━━━━━━━━━━━━━━━━━
+
+MAE:
+{trade['mae_pct']:.2f}% ({trade['mae_r']:.2f}R)
+
+MFE:
+{trade['mfe_pct']:.2f}% ({trade['mfe_r']:.2f}R)
+
+━━━━━━━━━━━━━━━━━━━━
+TIME
+━━━━━━━━━━━━━━━━━━━━
+
+Entry:
 {trade['entry_time']} PKT
 
-EXIT TIME:
+Exit:
 {trade['exit_time']} PKT
 
-BUY SCORE: {trade['buy_score']:.1f}
-SELL SCORE: {trade['sell_score']:.1f}
+━━━━━━━━━━━━━━━━━━━━
+SCORE
+━━━━━━━━━━━━━━━━━━━━
 
-SETUPS:
-{', '.join(trade.get('setups', [])) or 'None'}
+BUY:
+{trade['buy_score']:.1f}
 
-The trade has been saved to Trade Memory
-and the adaptive learning engine.
+SELL:
+{trade['sell_score']:.1f}
+
+━━━━━━━━━━━━━━━━━━━━
+SETUPS
+━━━━━━━━━━━━━━━━━━━━
+
+{', '.join(trade['setups']) or 'None'}
+
+━━━━━━━━━━━━━━━━━━━━
+LEARNING
+━━━━━━━━━━━━━━━━━━━━
+
+Indicators used:
+
+{', '.join(trade['indicators']) or 'None'}
+
+The result has been recorded.
+
+Successful indicators receive
+positive learning weight.
+
+Failed indicators receive
+negative learning weight.
+
+The learning engine will use
+this result on future trades.
 """
 
-    send_email(
-        f"{title} MARKET BRAIN — {trade['symbol']}",
+    sent = send_email(
+        (
+            f"{emoji} MARKET BRAIN "
+            f"{result} — "
+            f"{trade['symbol']}"
+        ),
         body.strip()
     )
 
+    if sent:
+
+        EMAIL_SENT[
+            email_key
+        ] = iso_pkt()
+
+        save_state()
+
 
 # ============================================================
-# TRADE CREATION
+# OPEN TRADE CREATION
 # ============================================================
 
-def build_trade(result):
-    symbol = result["symbol"]
-    score = result["score"]
-    levels = result["levels"]
+def open_trade(
+    result
+):
 
-    direction = score["direction"]
+    global OPEN_TRADES
 
-    if direction not in ("BUY", "SELL"):
-        return None
+    symbol = result[
+        "symbol"
+    ]
 
-    if not levels["valid"]:
-        return None
+    score = result[
+        "score"
+    ]
 
-    if len(OPEN_TRADES) >= MAX_OPEN_TRADES:
-        return None
+    levels = result[
+        "levels"
+    ]
 
-    # One open position per symbol.
-    if any(
-        t["symbol"] == symbol
-        for t in OPEN_TRADES.values()
+    direction = score[
+        "direction"
+    ]
+
+    if direction not in (
+        "BUY",
+        "SELL"
     ):
-        return None
 
-    # Cooldown prevents duplicate entries on repeated scans.
-    last_entry = LAST_ENTRY_BY_SYMBOL.get(symbol)
-    if last_entry:
-        dt = parse_dt(last_entry)
-        if dt and now_pkt() - dt < timedelta(
-            minutes=COOLDOWN_MINUTES
-        ):
-            return None
+        return False
 
-    p = score["patterns"]
+    if not levels[
+        "valid"
+    ]:
+
+        return False
+
+    # --------------------------------------------------------
+    # Maximum open trades
+    # --------------------------------------------------------
+
+    if len(
+        OPEN_TRADES
+    ) >= MAX_OPEN_TRADES:
+
+        return False
+
+    # --------------------------------------------------------
+    # One symbol = one open trade
+    # --------------------------------------------------------
+
+    if symbol_has_open_trade(
+        symbol
+    ):
+
+        return False
+
+    signal_candle = result[
+        "signal_candle"
+    ]
+
+    signal_id = make_signal_id(
+        symbol,
+        direction,
+        signal_candle
+    )
+
+    # --------------------------------------------------------
+    # Duplicate protection
+    # --------------------------------------------------------
+
+    if same_open_trade_exists(
+        symbol,
+        direction,
+        signal_id
+    ):
+
+        return False
+
+    if trade_already_closed(
+        signal_id
+    ):
+
+        logger.info(
+            "Signal already closed: %s",
+            signal_id
+        )
+
+        return False
+
+    smc = score[
+        "smc"
+    ]
+
+    patterns = score[
+        "patterns"
+    ]
 
     pattern = "NONE"
 
-    for key, name in [
-        ("double_bottom", "DOUBLE BOTTOM"),
-        ("double_top", "DOUBLE TOP"),
-        ("inverse_hs", "INVERSE H&S"),
-        ("head_shoulders", "HEAD & SHOULDERS"),
-        ("ascending_triangle", "ASCENDING TRIANGLE"),
-        ("descending_triangle", "DESCENDING TRIANGLE"),
-        ("falling_wedge", "FALLING WEDGE"),
-        ("rising_wedge", "RISING WEDGE"),
-        ("bull_flag", "BULL FLAG"),
-        ("bear_flag", "BEAR FLAG"),
-    ]:
-        if p.get(key):
-            pattern = name
+    pattern_map = [
+
+        (
+            "double_bottom",
+            "DOUBLE BOTTOM"
+        ),
+
+        (
+            "double_top",
+            "DOUBLE TOP"
+        ),
+
+        (
+            "inverse_hs",
+            "INVERSE H&S"
+        ),
+
+        (
+            "head_shoulders",
+            "HEAD & SHOULDERS"
+        ),
+
+        (
+            "ascending_triangle",
+            "ASC TRIANGLE"
+        ),
+
+        (
+            "descending_triangle",
+            "DESC TRIANGLE"
+        ),
+
+        (
+            "falling_wedge",
+            "FALLING WEDGE"
+        ),
+
+        (
+            "rising_wedge",
+            "RISING WEDGE"
+        ),
+
+        (
+            "bull_flag",
+            "BULL FLAG"
+        ),
+
+        (
+            "bear_flag",
+            "BEAR FLAG"
+        ),
+    ]
+
+    for key, label in pattern_map:
+
+        if patterns.get(key):
+
+            pattern = label
             break
 
-    smc1 = score["smc1"]
+    indicators = build_indicator_snapshot(
+        score
+    )
 
     trade = {
-        "id": make_trade_id(symbol),
-        "symbol": symbol,
-        "direction": direction,
 
-        "entry": levels["entry"],
-        "stop_loss": levels["stop_loss"],
-        "target": levels["target"],
+        "id":
+            make_trade_id(),
 
-        "risk_pct": levels["risk_pct"],
-        "reward_pct": levels["reward_pct"],
-        "planned_rr": levels["rr"],
+        "signal_id":
+            signal_id,
 
-        "entry_time": iso_pkt(),
+        "signal_candle":
+            signal_candle,
 
-        "buy_score": score["buy_score"],
-        "sell_score": score["sell_score"],
+        "symbol":
+            symbol,
 
-        "d1_bias": (
-            "BULLISH"
-            if result["d1"]["bull"]
-            else "BEARISH"
-            if result["d1"]["bear"]
-            else "NEUTRAL"
-        ),
+        "direction":
+            direction,
 
-        "h4_bias": (
-            "BULLISH"
-            if result["h4"]["bull"]
-            else "BEARISH"
-            if result["h4"]["bear"]
-            else "NEUTRAL"
-        ),
+        "entry":
+            levels["entry"],
 
-        "h1_bias": (
-            "BULLISH"
-            if result["h1"]["bull"]
-            else "BEARISH"
-            if result["h1"]["bear"]
-            else "NEUTRAL"
-        ),
+        "stop_loss":
+            levels["stop_loss"],
 
-        "buyer_pressure": result["h1"]["buyer_pressure"],
-        "seller_pressure": result["h1"]["seller_pressure"],
-        "volume_ratio": result["h1"]["volume_ratio"],
-        "rsi": result["h1"]["rsi"],
+        "target":
+            levels["target"],
 
-        "fvg": (
-            "BULLISH"
-            if smc1["bull_fvg"]
-            else "BEARISH"
-            if smc1["bear_fvg"]
-            else "NONE"
-        ),
+        "risk_pct":
+            levels["risk_pct"],
 
-        "order_block": (
-            "BULLISH"
-            if smc1["bull_ob"]
-            else "BEARISH"
-            if smc1["bear_ob"]
-            else "NONE"
-        ),
+        "reward_pct":
+            levels["reward_pct"],
 
-        "liquidity": (
-            "BUY SWEEP"
-            if smc1["bull_sweep"]
-            else "SELL SWEEP"
-            if smc1["bear_sweep"]
-            else "NONE"
-        ),
+        "rr":
+            levels["rr"],
 
-        "pattern": pattern,
+        "entry_time":
+            iso_pkt(),
 
-        "support_1h": levels["support_1h"],
-        "resistance_1h": levels["resistance_1h"],
-        "support_4h": levels["support_4h"],
-        "resistance_4h": levels["resistance_4h"],
+        "exit_time":
+            None,
 
-        "atr": levels["atr"],
-        "setups": score["setups"],
+        "result":
+            "OPEN",
 
-        # Live performance memory
-        "highest_price": levels["entry"],
-        "lowest_price": levels["entry"],
-        "mae_pct": 0.0,
-        "mfe_pct": 0.0,
+        "reason":
+            None,
 
-        "result": "OPEN",
+        "exit_price":
+            None,
+
+        "pnl_pct":
+            None,
+
+        "r_multiple":
+            None,
+
+        "mae_pct":
+            0.0,
+
+        "mae_r":
+            0.0,
+
+        "mfe_pct":
+            0.0,
+
+        "mfe_r":
+            0.0,
+
+        "buy_score":
+            score["buy_score"],
+
+        "sell_score":
+            score["sell_score"],
+
+        "d1_bias":
+            (
+                "BULLISH"
+                if result["d1"]["bull"]
+                else
+                "BEARISH"
+                if result["d1"]["bear"]
+                else
+                "NEUTRAL"
+            ),
+
+        "h4_bias":
+            (
+                "BULLISH"
+                if result["h4"]["bull"]
+                else
+                "BEARISH"
+                if result["h4"]["bear"]
+                else
+                "NEUTRAL"
+            ),
+
+        "h1_bias":
+            (
+                "BULLISH"
+                if result["h1"]["bull"]
+                else
+                "BEARISH"
+                if result["h1"]["bear"]
+                else
+                "NEUTRAL"
+            ),
+
+        "buyer_pressure":
+            result["h1"][
+                "buyer_pressure"
+            ],
+
+        "seller_pressure":
+            result["h1"][
+                "seller_pressure"
+            ],
+
+        "volume_ratio":
+            result["h1"][
+                "volume_ratio"
+            ],
+
+        "rsi":
+            result["h1"]["rsi"],
+
+        "fvg":
+            (
+                "BULLISH"
+                if smc["bull_fvg"]
+                else
+                "BEARISH"
+                if smc["bear_fvg"]
+                else
+                "NONE"
+            ),
+
+        "order_block":
+            (
+                "BULLISH"
+                if smc["bull_ob"]
+                else
+                "BEARISH"
+                if smc["bear_ob"]
+                else
+                "NONE"
+            ),
+
+        "liquidity":
+            (
+                "BUY SWEEP"
+                if smc["bull_sweep"]
+                else
+                "SELL SWEEP"
+                if smc["bear_sweep"]
+                else
+                "NONE"
+            ),
+
+        "pattern":
+            pattern,
+
+        "support":
+            levels["support"],
+
+        "resistance":
+            levels["resistance"],
+
+        "atr":
+            levels["atr"],
+
+        "setups":
+            score["setups"],
+
+        "indicators":
+            indicators,
+
+        # Track highest/lowest excursion
+        "best_price":
+            levels["entry"],
+
+        "worst_price":
+            levels["entry"],
+
+        "last_checked_candle":
+            signal_candle,
     }
 
-    return trade
-
-
-def open_trade(result):
-    trade = build_trade(result)
-
-    if not trade:
-        return False
-
-    OPEN_TRADES[trade["id"]] = trade
-    LAST_ENTRY_BY_SYMBOL[trade["symbol"]] = trade["entry_time"]
+    OPEN_TRADES[
+        trade["id"]
+    ] = trade
 
     save_state()
-    trade_alert(trade)
+
+    # --------------------------------------------------------
+    # NEW TRADE EMAIL ONLY ONCE
+    # --------------------------------------------------------
+
+    send_trade_open_alert(
+        trade
+    )
 
     logger.info(
-        "OPEN %s %s | BUY %.1f | SELL %.1f | "
-        "ENTRY %.8f | SL %.8f | TP %.8f | RR %.2f",
-        trade["symbol"],
-        trade["direction"],
-        trade["buy_score"],
-        trade["sell_score"],
-        trade["entry"],
-        trade["stop_loss"],
-        trade["target"],
-        trade["planned_rr"],
+        "OPEN %s %s | "
+        "score %.1f/%.1f | "
+        "Entry %.8f | "
+        "SL %.8f | "
+        "TP %.8f | "
+        "RR %.2f",
+        symbol,
+        direction,
+        score["buy_score"],
+        score["sell_score"],
+        levels["entry"],
+        levels["stop_loss"],
+        levels["target"],
+        levels["rr"]
     )
 
     return True
 
 
 # ============================================================
-# OPEN TRADE MONITOR
+# TRADE MONITORING
 # ============================================================
 
-def update_trade_extremes(trade, current_price):
-    entry = float(trade["entry"])
-    price = float(current_price)
+def update_trade_excursion(
+    trade,
+    high,
+    low
+):
 
-    if trade["direction"] == "BUY":
-        favorable = (price - entry) / entry * 100
-        adverse = (entry - price) / entry * 100
-    else:
-        favorable = (entry - price) / entry * 100
-        adverse = (price - entry) / entry * 100
-
-    trade["mfe_pct"] = max(
-        float(trade.get("mfe_pct", 0)),
-        favorable
+    entry = float(
+        trade["entry"]
     )
 
-    trade["mae_pct"] = max(
-        float(trade.get("mae_pct", 0)),
-        adverse
+    direction = trade[
+        "direction"
+    ]
+
+    if direction == "BUY":
+
+        favorable_pct = (
+            high - entry
+        ) / entry * 100
+
+        adverse_pct = (
+            entry - low
+        ) / entry * 100
+
+    else:
+
+        favorable_pct = (
+            entry - low
+        ) / entry * 100
+
+        adverse_pct = (
+            high - entry
+        ) / entry * 100
+
+    favorable_pct = max(
+        0.0,
+        favorable_pct
     )
 
-    if price > float(trade.get("highest_price", entry)):
-        trade["highest_price"] = price
+    adverse_pct = max(
+        0.0,
+        adverse_pct
+    )
 
-    if price < float(trade.get("lowest_price", entry)):
-        trade["lowest_price"] = price
+    trade[
+        "mfe_pct"
+    ] = max(
+        safe_float(
+            trade.get(
+                "mfe_pct",
+                0
+            )
+        ),
+        favorable_pct
+    )
 
+    trade[
+        "mae_pct"
+    ] = max(
+        safe_float(
+            trade.get(
+                "mae_pct",
+                0
+            )
+        ),
+        adverse_pct
+    )
 
-def close_trade(trade_id, trade, result, exit_price, reason):
-    entry = float(trade["entry"])
-    exit_price = float(exit_price)
+    risk_pct = max(
+        safe_float(
+            trade["risk_pct"]
+        ),
+        1e-12
+    )
 
-    if trade["direction"] == "BUY":
-        pnl_pct = (exit_price - entry) / entry * 100
-    else:
-        pnl_pct = (entry - exit_price) / entry * 100
-
-    risk_pct = float(trade["risk_pct"])
-    r_multiple = safe_div(pnl_pct, risk_pct)
-
-    trade["exit_price"] = exit_price
-    trade["exit_time"] = iso_pkt()
-    trade["result"] = result
-    trade["exit_reason"] = reason
-    trade["pnl_pct"] = pnl_pct
-    trade["r_multiple"] = r_multiple
-
-    trade["mae_r"] = safe_div(
-        trade.get("mae_pct", 0),
+    trade[
+        "mfe_r"
+    ] = (
+        trade["mfe_pct"] /
         risk_pct
     )
 
-    trade["mfe_r"] = safe_div(
-        trade.get("mfe_pct", 0),
+    trade[
+        "mae_r"
+    ] = (
+        trade["mae_pct"] /
         risk_pct
     )
 
-    save_trade(trade)
-    update_learning(trade)
-    closed_trade_alert(trade)
 
-    del OPEN_TRADES[trade_id]
+def close_trade(
+    trade,
+    result,
+    reason,
+    exit_price
+):
+
+    direction = trade[
+        "direction"
+    ]
+
+    entry = float(
+        trade["entry"]
+    )
+
+    exit_price = float(
+        exit_price
+    )
+
+    if direction == "BUY":
+
+        pnl_pct = (
+            exit_price -
+            entry
+        ) / entry * 100
+
+    else:
+
+        pnl_pct = (
+            entry -
+            exit_price
+        ) / entry * 100
+
+    risk_pct = max(
+        safe_float(
+            trade["risk_pct"]
+        ),
+        1e-12
+    )
+
+    r_multiple = (
+        pnl_pct /
+        risk_pct
+    )
+
+    trade[
+        "exit_price"
+    ] = exit_price
+
+    trade[
+        "exit_time"
+    ] = iso_pkt()
+
+    trade[
+        "result"
+    ] = result
+
+    trade[
+        "reason"
+    ] = reason
+
+    trade[
+        "pnl_pct"
+    ] = pnl_pct
+
+    trade[
+        "r_multiple"
+    ] = r_multiple
+
+    # --------------------------------------------------------
+    # Remove from open first
+    # --------------------------------------------------------
+
+    trade_id = trade[
+        "id"
+    ]
+
+    if trade_id in OPEN_TRADES:
+
+        del OPEN_TRADES[
+            trade_id
+        ]
+
+    # --------------------------------------------------------
+    # Save closed trade
+    # --------------------------------------------------------
+
+    saved = save_trade(
+        trade
+    )
+
+    if not saved:
+
+        logger.warning(
+            "Closed trade already saved: %s",
+            trade.get(
+                "signal_id"
+            )
+        )
+
+        save_state()
+
+        return
+
+    # --------------------------------------------------------
+    # Learn
+    # --------------------------------------------------------
+
+    update_learning(
+        trade
+    )
+
+    # --------------------------------------------------------
+    # ONE close email
+    # --------------------------------------------------------
+
+    send_trade_closed_alert(
+        trade
+    )
+
     save_state()
 
     logger.info(
-        "CLOSED %s %s %s | P/L %.2f%% | %.2fR | %s",
+        "CLOSED %s %s | %s | "
+        "P/L %.2f%% | %.2fR",
         trade["symbol"],
         trade["direction"],
         result,
         pnl_pct,
-        r_multiple,
-        reason,
+        r_multiple
     )
 
 
 def check_open_trades():
-    for trade_id, trade in list(OPEN_TRADES.items()):
-        current_price = fetch_price(trade["symbol"])
 
-        if current_price is None:
-            continue
+    if not OPEN_TRADES:
 
-        update_trade_extremes(
-            trade,
-            current_price
+        return
+
+    for trade_id, trade in list(
+        OPEN_TRADES.items()
+    ):
+
+        symbol = trade[
+            "symbol"
+        ]
+
+        df = fetch_klines(
+            symbol,
+            "1h",
+            5
         )
 
-        if trade["direction"] == "BUY":
-            if current_price <= trade["stop_loss"]:
-                close_trade(
-                    trade_id,
-                    trade,
-                    "LOSS",
-                    trade["stop_loss"],
-                    "STOP LOSS HIT"
-                )
-                continue
+        if df.empty:
 
-            if current_price >= trade["target"]:
-                close_trade(
-                    trade_id,
-                    trade,
-                    "WIN",
-                    trade["target"],
-                    "TARGET HIT"
+            continue
+
+        # ----------------------------------------------------
+        # Use latest CLOSED 1H candle.
+        # ----------------------------------------------------
+
+        candle = df.iloc[-1]
+
+        high = float(
+            candle["high"]
+        )
+
+        low = float(
+            candle["low"]
+        )
+
+        candle_time = str(
+            candle["open_time"]
+        )
+
+        update_trade_excursion(
+            trade,
+            high,
+            low
+        )
+
+        direction = trade[
+            "direction"
+        ]
+
+        result = None
+        reason = None
+        exit_price = None
+
+        if direction == "BUY":
+
+            sl_hit = (
+                low <=
+                trade["stop_loss"]
+            )
+
+            tp_hit = (
+                high >=
+                trade["target"]
+            )
+
+            # Conservative rule:
+            # if both are touched inside
+            # same candle, SL first.
+            if sl_hit:
+
+                result = "LOSS"
+                reason = "STOP LOSS HIT"
+
+                exit_price = (
+                    trade["stop_loss"]
                 )
-                continue
+
+            elif tp_hit:
+
+                result = "WIN"
+                reason = "TARGET HIT"
+
+                exit_price = (
+                    trade["target"]
+                )
 
         else:
-            if current_price >= trade["stop_loss"]:
-                close_trade(
-                    trade_id,
-                    trade,
-                    "LOSS",
-                    trade["stop_loss"],
-                    "STOP LOSS HIT"
-                )
-                continue
 
-            if current_price <= trade["target"]:
-                close_trade(
-                    trade_id,
-                    trade,
-                    "WIN",
-                    trade["target"],
-                    "TARGET HIT"
-                )
-                continue
+            sl_hit = (
+                high >=
+                trade["stop_loss"]
+            )
 
-    save_state()
+            tp_hit = (
+                low <=
+                trade["target"]
+            )
+
+            if sl_hit:
+
+                result = "LOSS"
+                reason = "STOP LOSS HIT"
+
+                exit_price = (
+                    trade["stop_loss"]
+                )
+
+            elif tp_hit:
+
+                result = "WIN"
+                reason = "TARGET HIT"
+
+                exit_price = (
+                    trade["target"]
+                )
+
+        trade[
+            "last_checked_candle"
+        ] = candle_time
+
+        if result:
+
+            close_trade(
+                trade,
+                result,
+                reason,
+                exit_price
+            )
+
+        else:
+
+            # Save latest MAE/MFE
+            save_state()
 
 
 # ============================================================
-# ANALYZE ONE SYMBOL
+# ANALYZE SYMBOL
 # ============================================================
 
-def analyze_symbol(symbol):
+def analyze_symbol(
+    symbol
+):
+
     frames = {}
 
-    for key, interval in TIMEFRAMES.items():
-        df = fetch_klines(symbol, interval)
+    for key, interval in (
+        TIMEFRAMES.items()
+    ):
 
-        if df.empty or len(df) < 220:
+        df = fetch_klines(
+            symbol,
+            interval
+        )
+
+        if df.empty:
+
+            logger.warning(
+                "%s %s returned no data",
+                symbol,
+                interval
+            )
+
             return None
 
-        # Use completed candles for analysis where possible.
-        # Drop the currently forming candle when it is still open.
-        if len(df) > 5:
-            last_close_time = df["close_time"].iloc[-1]
-            now_utc = datetime.now(timezone.utc)
+        if len(df) < 210:
 
-            if last_close_time.to_pydatetime() > now_utc:
-                df = df.iloc[:-1].copy()
+            logger.warning(
+                "%s %s insufficient candles: %d",
+                symbol,
+                interval,
+                len(df)
+            )
 
-        frames[key] = timeframe_context(df)
+            return None
 
-    d1 = frames["1d"]
-    h4 = frames["4h"]
-    h1 = frames["1h"]
+        frames[
+            key
+        ] = timeframe_context(
+            df
+        )
+
+    d1 = frames[
+        "1d"
+    ]
+
+    h4 = frames[
+        "4h"
+    ]
+
+    h1 = frames[
+        "1h"
+    ]
 
     score = score_market(
         symbol,
@@ -1835,38 +4550,69 @@ def analyze_symbol(symbol):
         h1
     )
 
-    if score["direction"] not in ("BUY", "SELL"):
+    # --------------------------------------------------------
+    # Must have at least some HTF agreement.
+    # But do not require all three to agree.
+    # --------------------------------------------------------
+
+    direction = score[
+        "direction"
+    ]
+
+    if direction == "BUY":
+
+        bullish_context = sum(
+            [
+                int(d1["bull"]),
+                int(h4["bull"]),
+                int(h1["bull"]),
+            ]
+        )
+
+        if bullish_context == 0:
+
+            return None
+
+    elif direction == "SELL":
+
+        bearish_context = sum(
+            [
+                int(d1["bear"]),
+                int(h4["bear"]),
+                int(h1["bear"]),
+            ]
+        )
+
+        if bearish_context == 0:
+
+            return None
+
+    else:
+
         return {
-            "symbol": symbol,
-            "score": score,
-            "d1": d1,
-            "h4": h4,
-            "h1": h1,
+            "symbol":
+                symbol,
+
+            "score":
+                score,
+
+            "d1":
+                d1,
+
+            "h4":
+                h4,
+
+            "h1":
+                h1,
         }
 
-    # Entry quality: 1H must have enough activity,
-    # but volume is not required to be 1.10x every time.
-    if h1["volume_ratio"] < MIN_1H_VOLUME_RATIO:
-        return {
-            "symbol": symbol,
-            "score": score,
-            "d1": d1,
-            "h4": h4,
-            "h1": h1,
-        }
+    # --------------------------------------------------------
+    # Entry is 1H.
+    # No 5M confirmation.
+    # --------------------------------------------------------
 
-    if h1["body_ratio"] < MIN_1H_BODY_RATIO:
-        return {
-            "symbol": symbol,
-            "score": score,
-            "d1": d1,
-            "h4": h4,
-            "h1": h1,
-        }
-
-    levels = build_levels(
-        score["direction"],
-        h4,
+    levels = dynamic_levels(
+        direction,
         h1,
         max(
             score["buy_score"],
@@ -1874,47 +4620,93 @@ def analyze_symbol(symbol):
         )
     )
 
+    if not levels[
+        "valid"
+    ]:
+
+        return {
+            "symbol":
+                symbol,
+
+            "score":
+                score,
+
+            "d1":
+                d1,
+
+            "h4":
+                h4,
+
+            "h1":
+                h1,
+
+            "levels":
+                levels,
+        }
+
+    # --------------------------------------------------------
+    # The signal candle is the latest closed 1H candle.
+    # --------------------------------------------------------
+
+    signal_candle = str(
+        h1["df"][
+            "open_time"
+        ].iloc[-1]
+    )
+
     return {
-        "symbol": symbol,
-        "score": score,
-        "d1": d1,
-        "h4": h4,
-        "h1": h1,
-        "levels": levels,
+
+        "symbol":
+            symbol,
+
+        "score":
+            score,
+
+        "d1":
+            d1,
+
+        "h4":
+            h4,
+
+        "h1":
+            h1,
+
+        "levels":
+            levels,
+
+        "signal_candle":
+            signal_candle,
     }
 
 
 # ============================================================
-# SCAN
+# SCAN ALL
 # ============================================================
 
-def result_rank(result):
-    score = result["score"]
-
-    strength = (
-        max(score["buy_score"], score["sell_score"])
-        + result["levels"]["rr"] * 2
-    )
-
-    return strength
-
-
 def scan_all():
+
     candidates = []
 
     logger.info(
-        "Scanning %d coins | 1D / 4H / 1H",
+        "Scanning %d symbols...",
         len(SYMBOLS)
     )
 
     for symbol in SYMBOLS:
+
         try:
-            result = analyze_symbol(symbol)
+
+            result = analyze_symbol(
+                symbol
+            )
 
             if result is None:
+
                 continue
 
-            score = result["score"]
+            score = result[
+                "score"
+            ]
 
             logger.info(
                 "%s | BUY %.1f | SELL %.1f | %s",
@@ -1925,13 +4717,22 @@ def scan_all():
             )
 
             if (
-                score["direction"] in ("BUY", "SELL")
-                and "levels" in result
-                and result["levels"]["valid"]
+                score["direction"]
+                in ("BUY", "SELL")
+                and
+                "levels" in result
+                and
+                result["levels"][
+                    "valid"
+                ]
             ):
-                candidates.append(result)
+
+                candidates.append(
+                    result
+                )
 
         except Exception as e:
+
             logger.exception(
                 "Analysis failed for %s: %s",
                 symbol,
@@ -1939,27 +4740,35 @@ def scan_all():
             )
 
     candidates.sort(
-        key=result_rank,
+        key=lambda x:
+        max(
+            x["score"]["buy_score"],
+            x["score"]["sell_score"]
+        ),
         reverse=True
     )
-
-    if not candidates:
-        logger.info("No valid trade candidates this scan. This is normal when setup/levels do not qualify.")
 
     opened = 0
 
     for result in candidates:
-        if opened >= MAX_NEW_TRADES_PER_SCAN:
+
+        if opened >= (
+            MAX_NEW_TRADES_PER_SCAN
+        ):
+
             break
 
-        if len(OPEN_TRADES) >= MAX_OPEN_TRADES:
-            break
+        if open_trade(
+            result
+        ):
 
-        if open_trade(result):
             opened += 1
 
     logger.info(
-        "Scan complete | candidates=%d | opened=%d | open=%d",
+        "Scan complete | "
+        "Candidates=%d | "
+        "Opened=%d | "
+        "Open=%d",
         len(candidates),
         opened,
         len(OPEN_TRADES)
@@ -1967,81 +4776,87 @@ def scan_all():
 
 
 # ============================================================
-# RESTORE
-# ============================================================
-
-def restore_state():
-    global OPEN_TRADES, LAST_ENTRY_BY_SYMBOL
-
-    state = load_json(
-        STATE_FILE,
-        {}
-    )
-
-    for trade in state.get("open_trades", []):
-        if trade.get("result") == "OPEN":
-            OPEN_TRADES[trade["id"]] = trade
-
-    LAST_ENTRY_BY_SYMBOL = state.get(
-        "last_entry_by_symbol",
-        {}
-    )
-
-    logger.info(
-        "Restored %d open trades.",
-        len(OPEN_TRADES)
-    )
-
-
-# ============================================================
-# STARTUP
+# MAIN
 # ============================================================
 
 def main():
-    restore_state()
 
-    logger.info("==============================================")
-    logger.info("🧠 MARKET BRAIN AI v2 STARTED")
-    logger.info("20 COINS | 1D / 4H / 1H")
-    logger.info("NO 5M")
-    logger.info("Dynamic Entry / Structural SL / Dynamic TP")
-    logger.info("Minimum RR: %.2f", MIN_RR)
-    logger.info("Minimum Score: %.2f", MIN_SCORE)
-    logger.info("Max Open Trades: %d", MAX_OPEN_TRADES)
-    logger.info("New Trades / Scan: %d", MAX_NEW_TRADES_PER_SCAN)
-    logger.info("Binance endpoints: %d official fallbacks configured", len(BINANCE_ENDPOINTS))
+    restore_open_trades()
+
+    logger.info(
+        "============================================"
+    )
+
+    logger.info(
+        "🧠 MARKET BRAIN AI 2.0 STARTED"
+    )
+
+    logger.info(
+        "20 COINS | 1D / 4H / 1H"
+    )
+
+    logger.info(
+        "NO 5M | NO 12H REPORT"
+    )
+
+    logger.info(
+        "Adaptive Learning ACTIVE"
+    )
+
+    logger.info(
+        "Duplicate Protection ACTIVE"
+    )
+
+    logger.info(
+        "Persistent Memory: %s",
+        DATA_DIR
+    )
+
     logger.info(
         "Pakistan Time: %s",
-        now_pkt().strftime("%Y-%m-%d %H:%M:%S")
+        now_pkt().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
     )
-    logger.info("==============================================")
 
-    # Verify market-data access once at startup. If GitHub blocks one Binance
-    # route (e.g. HTTP 451), the failover layer will select another official
-    # public-data endpoint before the first scan.
-    if not check_binance_data_feed():
-        logger.error("NO TRADE: Binance market data is unreachable from this runner.")
+    logger.info(
+        "============================================"
+    )
 
     while True:
+
         try:
-            # First manage existing positions.
+
+            # First check existing trades.
             check_open_trades()
 
-            # Then search for new opportunities.
+            # Then search for new trades.
             scan_all()
 
         except KeyboardInterrupt:
-            logger.info("Stopped by user.")
+
+            logger.info(
+                "Stopped by user."
+            )
+
             break
 
         except Exception as e:
+
             logger.exception(
                 "Main loop error: %s",
                 e
             )
 
-        time.sleep(SCAN_SECONDS)
+        time.sleep(
+            SCAN_SECONDS
+        )
 
+
+# ============================================================
+# START
+# ============================================================
 
 if __name__ == "__main__":
+
     main()
