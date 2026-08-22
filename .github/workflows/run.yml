@@ -17,7 +17,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -38,23 +37,20 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           GMAIL_RECEIVER: ${{ secrets.GMAIL_RECEIVER }}
-          BINANCE_BASE_URL: https://data-api.binance.vision
+          BINANCE_BASE_URL: https://data-api.binance.vi
           SCAN_SECONDS: 60
           MIN_SCORE: 58
           DIRECTION_GAP: 5
           MAX_OPEN_TRADES: 8
           MAX_NEW_TRADES_PER_SCAN: 3
         run: |
-          
-             timeout 240 python market_brain.py || true
-   
-                - name: Save trade memory
-          run: |
+          timeout 240s python market_brain.py || true
+
+      - name: Save trade memory
+        run: |
           git config user.name "market-brain-bot"
           git config user.email "market-brain-bot@users.noreply.github.com"
-
           git add -A
-
-          git diff --cached --quiet || git commit -m "Update Market Brain trade memory"
-
+          git diff --cached --quiet || git commit -m "Update trade memory"
           git push
+          
