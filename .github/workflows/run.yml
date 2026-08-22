@@ -37,7 +37,7 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
           GMAIL_RECEIVER: ${{ secrets.GMAIL_RECEIVER }}
-          BINANCE_BASE_URL: https://data-api.binance.vi
+          BINANCE_BASE_URL: https://data-api.binance.vision
           SCAN_SECONDS: 60
           MIN_SCORE: 58
           DIRECTION_GAP: 5
