@@ -1,32 +1,59 @@
-name: Run Trading Bot
+name: MARKET BRAIN AI
 
 on:
-  schedule:
-    - cron: '*/10 * * * *' #
   workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+concurrency:
+  group: market-brain-ai
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Set up Python
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install packages
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install requests pandas numpy
 
-      - name: Run script
+      - name: Run Market Brain
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_PASS: ${{ secrets.GMAIL_PASS }}
+          GMAIL_RECEIVER: ${{ secrets.GMAIL_RECEIVER }}
+          BINANCE_BASE_URL: https://data-api.binance.vision
+          SCAN_SECONDS: 60
+          MIN_SCORE: 58
+          DIRECTION_GAP: 5
+          MAX_OPEN_TRADES: 8
+          MAX_NEW_TRADES_PER_SCAN: 3
         run: |
-          python main.py
-          
-          
+          timeout 240s python market_brain.py || true
+
+      - name: Save trade memory
+        run: |
+          git config user.name "market-brain-bot"
+          git config user.email "market-brain-bot@users.noreply.github.com"
+
+          git add market_brain_data
+
+          git diff --cached --quiet || git commit -m "Update Market Brain trade memory"
+
+          git push
