@@ -45,7 +45,9 @@ jobs:
           MAX_OPEN_TRADES: 8
           MAX_NEW_TRADES_PER_SCAN: 3
         run: |
-          timeout 240s python market_brain.py || true
+          
+             timeout 240 python market_brain.py || true
+   
                 - name: Save trade memory
           run: |
           git config user.name "market-brain-bot"
