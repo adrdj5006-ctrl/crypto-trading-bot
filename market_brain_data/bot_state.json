@@ -64,7 +64,7 @@
       ],
       "best_price": 77288.01,
       "worst_price": 77288.01,
-      "last_checked_candle": "2026-08-22 23:00:00+00:00"
+      "last_checked_candle": "2026-08-23 00:00:00+00:00"
     },
     {
       "id": "20260822174127519696_ed0192f6",
@@ -87,8 +87,8 @@
       "r_multiple": null,
       "mae_pct": 1.1587668538115727,
       "mae_r": 0.5702960826771615,
-      "mfe_pct": 0.5643065347558353,
-      "mfe_r": 0.2777278320844236,
+      "mfe_pct": 0.7696394468934443,
+      "mfe_r": 0.3787840152601757,
       "buy_score": 62.0,
       "sell_score": 12.0,
       "d1_bias": "BULLISH",
@@ -126,7 +126,7 @@
       ],
       "best_price": 696.43,
       "worst_price": 696.43,
-      "last_checked_candle": "2026-08-22 23:00:00+00:00"
+      "last_checked_candle": "2026-08-23 00:00:00+00:00"
     },
     {
       "id": "20260822174127520286_e797c968",
@@ -149,8 +149,8 @@
       "r_multiple": null,
       "mae_pct": 1.8135539293668554,
       "mae_r": 0.604517976455619,
-      "mfe_pct": 0.5408845052497516,
-      "mfe_r": 0.1802948350832507,
+      "mfe_pct": 3.0968289320182283,
+      "mfe_r": 1.0322763106727437,
       "buy_score": 59.0,
       "sell_score": 8.0,
       "d1_bias": "BULLISH",
@@ -187,7 +187,7 @@
       ],
       "best_price": 94.29,
       "worst_price": 94.29,
-      "last_checked_candle": "2026-08-22 23:00:00+00:00"
+      "last_checked_candle": "2026-08-23 00:00:00+00:00"
     },
     {
       "id": "20260822192023525571_44b982f0",
@@ -246,9 +246,72 @@
       ],
       "best_price": 52.96,
       "worst_price": 52.96,
-      "last_checked_candle": "2026-08-22 23:00:00+00:00"
+      "last_checked_candle": "2026-08-23 00:00:00+00:00"
+    },
+    {
+      "id": "20260823011042275598_22fb2dbd",
+      "signal_id": "TRXUSDT|BUY|2026-08-23 00:00:00+00:00",
+      "signal_candle": "2026-08-23 00:00:00+00:00",
+      "symbol": "TRXUSDT",
+      "direction": "BUY",
+      "entry": 0.3454,
+      "stop_loss": 0.3417895430744065,
+      "target": 0.35189882246606824,
+      "risk_pct": 1.0452973148794078,
+      "reward_pct": 1.881535166782934,
+      "rr": 1.8,
+      "entry_time": "2026-08-23T06:10:42.275669+05:00",
+      "exit_time": null,
+      "result": "OPEN",
+      "reason": null,
+      "exit_price": null,
+      "pnl_pct": null,
+      "r_multiple": null,
+      "mae_pct": 0.34742327735957695,
+      "mae_r": 0.3323679037668416,
+      "mfe_pct": 0.028951939779962067,
+      "mfe_r": 0.027697325313900904,
+      "buy_score": 67.0,
+      "sell_score": 4.0,
+      "d1_bias": "BULLISH",
+      "h4_bias": "BULLISH",
+      "h1_bias": "BULLISH",
+      "buyer_pressure": 77.969590022146,
+      "seller_pressure": 22.030409977854003,
+      "volume_ratio": 0.5643868027048742,
+      "rsi": 59.549372303183006,
+      "fvg": "NONE",
+      "order_block": "BULLISH",
+      "liquidity": "NONE",
+      "pattern": "BULL FLAG",
+      "support": 0.342,
+      "resistance": 0.3455,
+      "atr": 0.0010522846279674843,
+      "setups": [
+        "PRESSURE",
+        "ORDER_BLOCK",
+        "BREAKER",
+        "PRICE_ACTION",
+        "BULL_FLAG",
+        "RANGE_BREAKOUT"
+      ],
+      "indicators": [
+        "1D_BIAS",
+        "1H_TREND",
+        "4H_TREND",
+        "BREAKER",
+        "BULL_FLAG",
+        "ORDER_BLOCK",
+        "PRESSURE",
+        "PRICE_ACTION",
+        "RANGE_BREAKOUT",
+        "RSI"
+      ],
+      "best_price": 0.3454,
+      "worst_price": 0.3454,
+      "last_checked_candle": "2026-08-23 00:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-08-23T05:54:59.170443+05:00"
+  "updated_at": "2026-08-23T06:14:05.444527+05:00"
 }
