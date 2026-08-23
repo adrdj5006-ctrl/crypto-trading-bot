@@ -64,7 +64,7 @@
       ],
       "best_price": 77288.01,
       "worst_price": 77288.01,
-      "last_checked_candle": "2026-08-23 02:00:00+00:00"
+      "last_checked_candle": "2026-08-23 03:00:00+00:00"
     },
     {
       "id": "20260822174127519696_ed0192f6",
@@ -85,8 +85,8 @@
       "exit_price": null,
       "pnl_pct": null,
       "r_multiple": null,
-      "mae_pct": 1.1587668538115727,
-      "mae_r": 0.5702960826771615,
+      "mae_pct": 1.1817411656591337,
+      "mae_r": 0.5816030682073137,
       "mfe_pct": 0.7696394468934443,
       "mfe_r": 0.3787840152601757,
       "buy_score": 62.0,
@@ -126,7 +126,7 @@
       ],
       "best_price": 696.43,
       "worst_price": 696.43,
-      "last_checked_candle": "2026-08-23 02:00:00+00:00"
+      "last_checked_candle": "2026-08-23 03:00:00+00:00"
     },
     {
       "id": "20260822174127520286_e797c968",
@@ -187,66 +187,7 @@
       ],
       "best_price": 94.29,
       "worst_price": 94.29,
-      "last_checked_candle": "2026-08-23 02:00:00+00:00"
-    },
-    {
-      "id": "20260822192023525571_44b982f0",
-      "signal_id": "LTCUSDT|BUY|2026-08-22 18:00:00+00:00",
-      "signal_candle": "2026-08-22 18:00:00+00:00",
-      "symbol": "LTCUSDT",
-      "direction": "BUY",
-      "entry": 52.96,
-      "stop_loss": 51.3712,
-      "target": 55.81984,
-      "risk_pct": 2.9999999999999982,
-      "reward_pct": 5.399999999999997,
-      "rr": 1.8,
-      "entry_time": "2026-08-23T00:20:23.525622+05:00",
-      "exit_time": null,
-      "result": "OPEN",
-      "reason": null,
-      "exit_price": null,
-      "pnl_pct": null,
-      "r_multiple": null,
-      "mae_pct": 2.983383685800601,
-      "mae_r": 0.9944612286002009,
-      "mfe_pct": 1.4539274924471224,
-      "mfe_r": 0.4846424974823744,
-      "buy_score": 58.0,
-      "sell_score": 4.0,
-      "d1_bias": "BULLISH",
-      "h4_bias": "BULLISH",
-      "h1_bias": "BULLISH",
-      "buyer_pressure": 59.06516284304375,
-      "seller_pressure": 40.93483715695625,
-      "volume_ratio": 0.3698795482319279,
-      "rsi": 58.75998557885667,
-      "fvg": "BULLISH",
-      "order_block": "NONE",
-      "liquidity": "NONE",
-      "pattern": "BULL FLAG",
-      "support": 50.49,
-      "resistance": 54.19,
-      "atr": 0.943800753201761,
-      "setups": [
-        "PRESSURE",
-        "HH_HL",
-        "FVG",
-        "BULL_FLAG"
-      ],
-      "indicators": [
-        "1D_BIAS",
-        "1H_TREND",
-        "4H_TREND",
-        "BULL_FLAG",
-        "FVG",
-        "HH_HL",
-        "PRESSURE",
-        "RSI"
-      ],
-      "best_price": 52.96,
-      "worst_price": 52.96,
-      "last_checked_candle": "2026-08-23 02:00:00+00:00"
+      "last_checked_candle": "2026-08-23 03:00:00+00:00"
     },
     {
       "id": "20260823011042275598_22fb2dbd",
@@ -267,8 +208,8 @@
       "exit_price": null,
       "pnl_pct": null,
       "r_multiple": null,
-      "mae_pct": 0.4921829762594034,
-      "mae_r": 0.47085453033636154,
+      "mae_pct": 0.6948465547191539,
+      "mae_r": 0.6647358075336832,
       "mfe_pct": 0.028951939779962067,
       "mfe_r": 0.027697325313900904,
       "buy_score": 67.0,
@@ -309,9 +250,9 @@
       ],
       "best_price": 0.3454,
       "worst_price": 0.3454,
-      "last_checked_candle": "2026-08-23 02:00:00+00:00"
+      "last_checked_candle": "2026-08-23 03:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-08-23T08:36:50.738013+05:00"
+  "updated_at": "2026-08-23T09:22:39.264468+05:00"
 }

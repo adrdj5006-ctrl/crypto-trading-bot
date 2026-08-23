@@ -1,0 +1,86 @@
+{
+  "global": {
+    "wins": 0,
+    "losses": 1,
+    "win_rate": 0.0,
+    "net_r": -1.0
+  },
+  "symbols": {
+    "LTCUSDT": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0
+    }
+  },
+  "directions": {
+    "BUY": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0
+    },
+    "SELL": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0
+    }
+  },
+  "indicators": {
+    "1D_BIAS": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "1H_TREND": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "4H_TREND": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "BULL_FLAG": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "FVG": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "HH_HL": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "PRESSURE": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    },
+    "RSI": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    }
+  },
+  "combinations": {
+    "1D_BIAS|1H_TREND|4H_TREND|BULL_FLAG|FVG|HH_HL|PRESSURE|RSI": {
+      "wins": 0,
+      "losses": 1,
+      "profit_r": -1.0,
+      "weight": 0.975
+    }
+  },
+  "regimes": {}
+}
