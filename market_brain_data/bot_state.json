@@ -59,7 +59,7 @@
       ],
       "best_price": 94.29,
       "worst_price": 94.29,
-      "last_checked_candle": "2026-08-23 17:00:00+00:00"
+      "last_checked_candle": "2026-08-24 06:00:00+00:00"
     },
     {
       "id": "20260823011042275598_22fb2dbd",
@@ -122,73 +122,9 @@
       ],
       "best_price": 0.3454,
       "worst_price": 0.3454,
-      "last_checked_candle": "2026-08-23 17:00:00+00:00"
-    },
-    {
-      "id": "20260823140038752642_6c651932",
-      "signal_id": "BTCUSDT|BUY|2026-08-23 13:00:00+00:00",
-      "signal_candle": "2026-08-23 13:00:00+00:00",
-      "symbol": "BTCUSDT",
-      "direction": "BUY",
-      "entry": 77487.62,
-      "stop_loss": 76782.49088357709,
-      "target": 78852.7476299207,
-      "risk_pct": 0.909989384656419,
-      "reward_pct": 1.761736429536369,
-      "rr": 1.9359966822047499,
-      "entry_time": "2026-08-23T19:00:38.752675+05:00",
-      "exit_time": null,
-      "result": "OPEN",
-      "reason": null,
-      "exit_price": null,
-      "pnl_pct": null,
-      "r_multiple": null,
-      "mae_pct": 0.8848123093727687,
-      "mae_r": 0.9723325615571259,
-      "mfe_pct": 0.35899928272414044,
-      "mfe_r": 0.39450930832526837,
-      "buy_score": 70.22,
-      "sell_score": 12.0,
-      "d1_bias": "BULLISH",
-      "h4_bias": "BULLISH",
-      "h1_bias": "BULLISH",
-      "buyer_pressure": 48.91230829425386,
-      "seller_pressure": 51.08769170574613,
-      "volume_ratio": 1.5230740828355052,
-      "rsi": 59.341091740384215,
-      "fvg": "NONE",
-      "order_block": "BULLISH",
-      "liquidity": "NONE",
-      "pattern": "BULL FLAG",
-      "support": 76880.0,
-      "resistance": 77547.96,
-      "atr": 487.545582114537,
-      "setups": [
-        "VOLUME",
-        "LH_LL",
-        "BOS",
-        "ORDER_BLOCK",
-        "BREAKER",
-        "BULL_FLAG",
-        "RANGE_BREAKOUT"
-      ],
-      "indicators": [
-        "1D_BIAS",
-        "1H_TREND",
-        "4H_TREND",
-        "BOS",
-        "BREAKER",
-        "BULL_FLAG",
-        "ORDER_BLOCK",
-        "RANGE_BREAKOUT",
-        "RSI",
-        "VOLUME"
-      ],
-      "best_price": 77487.62,
-      "worst_price": 77487.62,
-      "last_checked_candle": "2026-08-23 17:00:00+00:00"
+      "last_checked_candle": "2026-08-24 06:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-08-23T23:35:29.344988+05:00"
+  "updated_at": "2026-08-24T12:10:26.707552+05:00"
 }
