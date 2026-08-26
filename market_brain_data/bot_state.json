@@ -1,70 +1,6 @@
 {
   "open_trades": [
     {
-      "id": "20260825131300235548_2c5ae652",
-      "signal_id": "DOTUSDT|SELL|2026-08-25 12:00:00+00:00",
-      "signal_candle": "2026-08-25 12:00:00+00:00",
-      "symbol": "DOTUSDT",
-      "direction": "SELL",
-      "entry": 0.887,
-      "stop_loss": 0.9074498400392201,
-      "target": 0.8501902879294038,
-      "risk_pct": 2.3055062050980974,
-      "reward_pct": 4.149911169176577,
-      "rr": 1.8000000000000007,
-      "entry_time": "2026-08-25T18:13:00.235602+05:00",
-      "exit_time": null,
-      "result": "OPEN",
-      "reason": null,
-      "exit_price": null,
-      "pnl_pct": null,
-      "r_multiple": null,
-      "mae_pct": 0.6764374295377683,
-      "mae_r": 0.2934008280012356,
-      "mfe_pct": 2.5930101465614452,
-      "mfe_r": 1.1247031740047364,
-      "buy_score": 10.25,
-      "sell_score": 62.14,
-      "d1_bias": "NEUTRAL",
-      "h4_bias": "NEUTRAL",
-      "h1_bias": "BEARISH",
-      "buyer_pressure": 47.70490106593358,
-      "seller_pressure": 52.29509893406641,
-      "volume_ratio": 1.8602400977157993,
-      "rsi": 36.942517138095944,
-      "fvg": "NONE",
-      "order_block": "NONE",
-      "liquidity": "NONE",
-      "pattern": "DOUBLE TOP",
-      "support": 0.876,
-      "resistance": 0.905,
-      "atr": 0.012249200196100478,
-      "setups": [
-        "VOLUME",
-        "LH_LL",
-        "BOS",
-        "SUPPORT",
-        "DOUBLE_TOP",
-        "TRIPLE_TOP",
-        "BEAR_FLAG",
-        "RANGE_BREAKDOWN"
-      ],
-      "indicators": [
-        "1H_TREND",
-        "BEAR_FLAG",
-        "BOS",
-        "DOUBLE_TOP",
-        "LH_LL",
-        "RANGE_BREAKDOWN",
-        "RSI",
-        "TRIPLE_TOP",
-        "VOLUME"
-      ],
-      "best_price": 0.887,
-      "worst_price": 0.887,
-      "last_checked_candle": "2026-08-25 18:00:00+00:00"
-    },
-    {
       "id": "20260825140028498853_672ecc7a",
       "signal_id": "LTCUSDT|SELL|2026-08-25 13:00:00+00:00",
       "signal_candle": "2026-08-25 13:00:00+00:00",
@@ -85,8 +21,8 @@
       "r_multiple": null,
       "mae_pct": 1.1621036044908337,
       "mae_r": 0.6610147103607182,
-      "mfe_pct": 0.9060468780776065,
-      "mfe_r": 0.5153674012981913,
+      "mfe_pct": 2.028757140043335,
+      "mfe_r": 1.1539748333416013,
       "buy_score": 15.05,
       "sell_score": 60.97,
       "d1_bias": "BULLISH",
@@ -128,9 +64,9 @@
       ],
       "best_price": 50.77,
       "worst_price": 50.77,
-      "last_checked_candle": "2026-08-25 18:00:00+00:00"
+      "last_checked_candle": "2026-08-26 06:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-08-26T00:11:57.849684+05:00"
+  "updated_at": "2026-08-26T12:12:45.455274+05:00"
 }
