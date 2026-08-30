@@ -64,7 +64,7 @@
       ],
       "best_price": 0.0882,
       "worst_price": 0.0882,
-      "last_checked_candle": "2026-08-30 01:00:00+00:00"
+      "last_checked_candle": "2026-08-30 08:00:00+00:00"
     },
     {
       "id": "20260829220026474974_cba119eb",
@@ -87,8 +87,8 @@
       "r_multiple": null,
       "mae_pct": 0.2350176263219646,
       "mae_r": 0.4107156684503006,
-      "mfe_pct": 0.20564042303173735,
-      "mfe_r": 0.35937620989404506,
+      "mfe_pct": 0.2350176263219809,
+      "mfe_r": 0.4107156684503291,
       "buy_score": 69.56,
       "sell_score": 10.56,
       "d1_bias": "BULLISH",
@@ -134,7 +134,7 @@
       ],
       "best_price": 0.3404,
       "worst_price": 0.3404,
-      "last_checked_candle": "2026-08-30 01:00:00+00:00"
+      "last_checked_candle": "2026-08-30 08:00:00+00:00"
     },
     {
       "id": "20260830010000246920_8214d505",
@@ -157,8 +157,8 @@
       "r_multiple": null,
       "mae_pct": 0.6028131279303347,
       "mae_r": 0.4943535456909611,
-      "mfe_pct": 0.6028131279303495,
-      "mfe_r": 0.49435354569097323,
+      "mfe_pct": 1.2726054922973964,
+      "mfe_r": 1.0436352631253814,
       "buy_score": 8.66,
       "sell_score": 61.73,
       "d1_bias": "NEUTRAL",
@@ -201,9 +201,76 @@
       ],
       "best_price": 1.493,
       "worst_price": 1.493,
-      "last_checked_candle": "2026-08-30 01:00:00+00:00"
+      "last_checked_candle": "2026-08-30 08:00:00+00:00"
+    },
+    {
+      "id": "20260830080038639901_3c2e2d0e",
+      "signal_id": "SUIUSDT|SELL|2026-08-30 07:00:00+00:00",
+      "signal_candle": "2026-08-30 07:00:00+00:00",
+      "symbol": "SUIUSDT",
+      "direction": "SELL",
+      "entry": 0.7401,
+      "stop_loss": 0.74712969589656,
+      "target": 0.7236973762413601,
+      "risk_pct": 0.949830549460883,
+      "reward_pct": 2.216271282075379,
+      "rr": 2.333333333333318,
+      "entry_time": "2026-08-30T13:00:38.639956+05:00",
+      "exit_time": null,
+      "result": "OPEN",
+      "reason": null,
+      "exit_price": null,
+      "pnl_pct": null,
+      "r_multiple": null,
+      "mae_pct": 0.9323064450749923,
+      "mae_r": 0.9815502834733656,
+      "mfe_pct": 0.4323740035130362,
+      "mfe_r": 0.4552117256688033,
+      "buy_score": 13.36,
+      "sell_score": 58.59,
+      "d1_bias": "BULLISH",
+      "h4_bias": "BEARISH",
+      "h1_bias": "BEARISH",
+      "buyer_pressure": 34.098786337259526,
+      "seller_pressure": 65.90121366274046,
+      "volume_ratio": 1.0162578765037669,
+      "rsi": 45.987301207517675,
+      "fvg": "NONE",
+      "order_block": "BEARISH",
+      "liquidity": "NONE",
+      "pattern": "ASC TRIANGLE",
+      "support": 0.7362,
+      "resistance": 0.745,
+      "atr": 0.0058580799137999745,
+      "setups": [
+        "PRESSURE",
+        "ORDER_BLOCK",
+        "BREAKER",
+        "PRICE_ACTION",
+        "TRIPLE_TOP",
+        "ASC_TRIANGLE",
+        "DESC_TRIANGLE",
+        "BEAR_FLAG",
+        "RANGE_BREAKDOWN"
+      ],
+      "indicators": [
+        "1H_TREND",
+        "4H_TREND",
+        "BEAR_FLAG",
+        "BREAKER",
+        "DESC_TRIANGLE",
+        "ORDER_BLOCK",
+        "PRESSURE",
+        "PRICE_ACTION",
+        "RANGE_BREAKDOWN",
+        "RSI",
+        "TRIPLE_TOP"
+      ],
+      "best_price": 0.7401,
+      "worst_price": 0.7401,
+      "last_checked_candle": "2026-08-30 08:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-08-30T07:25:08.133019+05:00"
+  "updated_at": "2026-08-30T14:44:01.830338+05:00"
 }
