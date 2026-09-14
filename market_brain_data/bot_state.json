@@ -19,10 +19,10 @@
       "exit_price": null,
       "pnl_pct": null,
       "r_multiple": null,
-      "mae_pct": 0.4459459459459388,
-      "mae_r": 0.37882176223499525,
-      "mfe_pct": 1.4729729729729726,
-      "mfe_r": 1.2512597601095496,
+      "mae_pct": 0.5540540540540471,
+      "mae_r": 0.4706573409586321,
+      "mfe_pct": 1.9324324324324416,
+      "mfe_r": 1.6415609696850135,
       "buy_score": 12.19,
       "sell_score": 74.57,
       "d1_bias": "BULLISH",
@@ -71,9 +71,9 @@
       ],
       "best_price": 7.4,
       "worst_price": 7.4,
-      "last_checked_candle": "2026-09-13 16:00:00+00:00"
+      "last_checked_candle": "2026-09-14 04:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-09-13T22:46:12.095936+05:00"
+  "updated_at": "2026-09-14T10:46:51.858147+05:00"
 }
