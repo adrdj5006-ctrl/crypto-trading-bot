@@ -1,9 +1,9 @@
 {
   "global": {
-    "wins": 15,
-    "losses": 54,
-    "win_rate": 21.73913043478261,
-    "net_r": -23.322084162249926
+    "wins": 16,
+    "losses": 55,
+    "win_rate": 22.535211267605636,
+    "net_r": -21.988750828916594
   },
   "symbols": {
     "LTCUSDT": {
@@ -37,14 +37,14 @@
       "profit_r": -2.0
     },
     "ADAUSDT": {
-      "wins": 0,
+      "wins": 1,
       "losses": 3,
-      "profit_r": -3.0
+      "profit_r": -0.6666666666666692
     },
     "DOGEUSDT": {
       "wins": 2,
-      "losses": 1,
-      "profit_r": 3.1333333333333506
+      "losses": 2,
+      "profit_r": 2.1333333333333506
     },
     "AVAXUSDT": {
       "wins": 1,
@@ -109,9 +109,9 @@
   },
   "directions": {
     "BUY": {
-      "wins": 10,
-      "losses": 41,
-      "profit_r": -20.668078764106312
+      "wins": 11,
+      "losses": 42,
+      "profit_r": -19.33474543077298
     },
     "SELL": {
       "wins": 5,
@@ -121,28 +121,28 @@
   },
   "indicators": {
     "1D_BIAS": {
-      "wins": 10,
-      "losses": 43,
-      "profit_r": -22.668078764106312,
-      "weight": 0.7
+      "wins": 11,
+      "losses": 44,
+      "profit_r": -21.33474543077298,
+      "weight": 0.7063875
     },
     "1H_TREND": {
-      "wins": 15,
-      "losses": 51,
-      "profit_r": -20.322084162249926,
-      "weight": 0.7
+      "wins": 16,
+      "losses": 52,
+      "profit_r": -18.988750828916594,
+      "weight": 0.7063875
     },
     "4H_TREND": {
-      "wins": 11,
-      "losses": 47,
-      "profit_r": -24.334745430772962,
-      "weight": 0.7
+      "wins": 12,
+      "losses": 48,
+      "profit_r": -23.00141209743963,
+      "weight": 0.7063875
     },
     "BULL_FLAG": {
-      "wins": 9,
-      "losses": 37,
-      "profit_r": -19.00141209743964,
-      "weight": 0.7
+      "wins": 10,
+      "losses": 38,
+      "profit_r": -17.66807876410631,
+      "weight": 0.7063875
     },
     "FVG": {
       "wins": 3,
@@ -151,22 +151,22 @@
       "weight": 0.8392122643471173
     },
     "HH_HL": {
-      "wins": 5,
-      "losses": 22,
-      "profit_r": -11.279428712836294,
-      "weight": 0.7
+      "wins": 6,
+      "losses": 23,
+      "profit_r": -9.946095379502964,
+      "weight": 0.7063875
     },
     "PRESSURE": {
-      "wins": 11,
-      "losses": 48,
-      "profit_r": -26.320672064810285,
-      "weight": 0.7
+      "wins": 12,
+      "losses": 49,
+      "profit_r": -24.987338731476953,
+      "weight": 0.7063875
     },
     "RSI": {
-      "wins": 14,
-      "losses": 41,
-      "profit_r": -12.122084162249926,
-      "weight": 0.7142125597202282
+      "wins": 15,
+      "losses": 42,
+      "profit_r": -10.788750828916596,
+      "weight": 0.7207297493276753
     },
     "ASC_TRIANGLE": {
       "wins": 1,
@@ -175,33 +175,33 @@
       "weight": 0.7
     },
     "BREAKER": {
-      "wins": 10,
-      "losses": 35,
-      "profit_r": -13.85541749558325,
-      "weight": 0.7
+      "wins": 11,
+      "losses": 36,
+      "profit_r": -12.52208416224992,
+      "weight": 0.7063875
     },
     "ORDER_BLOCK": {
-      "wins": 10,
-      "losses": 35,
-      "profit_r": -13.85541749558325,
-      "weight": 0.7
+      "wins": 11,
+      "losses": 36,
+      "profit_r": -12.52208416224992,
+      "weight": 0.7063875
     },
     "PRICE_ACTION": {
-      "wins": 8,
-      "losses": 27,
-      "profit_r": -10.921983384603315,
-      "weight": 0.7013544424298875
+      "wins": 9,
+      "losses": 28,
+      "profit_r": -9.588650051269985,
+      "weight": 0.7077543017170601
     },
     "TRIPLE_BOTTOM": {
-      "wins": 5,
+      "wins": 6,
       "losses": 19,
-      "profit_r": -9.388650051270027,
-      "weight": 0.7636048367283982
+      "profit_r": -7.055316717936696,
+      "weight": 0.7903310060138921
     },
     "VOLUME": {
       "wins": 10,
-      "losses": 40,
-      "profit_r": -21.10932211608032,
+      "losses": 41,
+      "profit_r": -22.10932211608032,
       "weight": 0.7
     },
     "LH_LL": {
@@ -217,10 +217,10 @@
       "weight": 0.7705727308635447
     },
     "LIQUIDITY_SWEEP": {
-      "wins": 0,
+      "wins": 1,
       "losses": 5,
-      "profit_r": -5.0,
-      "weight": 0.8810956933593749
+      "profit_r": -2.666666666666669,
+      "weight": 0.9119340426269529
     },
     "DISCOUNT": {
       "wins": 4,
@@ -242,8 +242,8 @@
     },
     "BOS": {
       "wins": 11,
-      "losses": 32,
-      "profit_r": -11.309322116080304,
+      "losses": 33,
+      "profit_r": -12.309322116080304,
       "weight": 0.7
     },
     "SUPPORT": {
@@ -4246,9 +4246,9 @@
     },
     "1D_BIAS|1H_TREND|4H_TREND|BOS|BREAKER|BULL_FLAG|HH_HL|ORDER_BLOCK|PRESSURE|PRICE_ACTION|RSI|VOLUME": {
       "wins": 1,
-      "losses": 1,
-      "profit_r": 0.8,
-      "weight": 1.0091249999999998
+      "losses": 2,
+      "profit_r": -0.19999999999999996,
+      "weight": 0.9838968749999998
     },
     "1D_BIAS|1H_TREND|4H_TREND|BREAKER|BULL_FLAG|DISCOUNT|HH_HL|ORDER_BLOCK|PRESSURE|PRICE_ACTION|RANGE_BREAKOUT|RSI|TRIPLE_BOTTOM": {
       "wins": 0,
@@ -6343,6 +6343,54 @@
       "losses": 1,
       "profit_r": -1.0,
       "weight": 0.975
+    },
+    "1D_BIAS|1H_TREND|4H_TREND|BREAKER|BULL_FLAG|HH_HL|LIQUIDITY_SWEEP|ORDER_BLOCK|PRESSURE|PRICE_ACTION|RSI|TRIPLE_BOTTOM": {
+      "wins": 1,
+      "losses": 0,
+      "profit_r": 2.333333333333331,
+      "weight": 1.035
+    },
+    "BREAKER|DESC_TRIANGLE|ORDER_BLOCK|PRESSURE|PRICE_ACTION|RANGE_BREAKOUT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
+    },
+    "ASC_TRIANGLE|BREAKER|BULL_FLAG|LIQUIDITY_SWEEP|ORDER_BLOCK|PRESSURE|PRICE_ACTION|RESISTANCE|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
+    },
+    "BULL_FLAG|FVG|HH_HL|LIQUIDITY_SWEEP|PRESSURE": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
+    },
+    "BOS|BREAKER|BULL_FLAG|HH_HL|ORDER_BLOCK|PRESSURE|PRICE_ACTION|RESISTANCE": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
+    },
+    "FVG|HH_HL": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
+    },
+    "BULL_FLAG|DESC_TRIANGLE|LH_LL|PRESSURE": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
+    },
+    "BREAKER|ORDER_BLOCK": {
+      "wins": 0,
+      "losses": 0,
+      "profit_r": 0.0,
+      "weight": 1.0
     }
   },
   "regimes": {}
