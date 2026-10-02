@@ -3738,12 +3738,12 @@ def check_open_trades():
         # ----------------------------------------------------
 
         stop_val = trade.get("stop")
-if stop_val is not None:
-  stop = float(stop_val)
+     if stop_val is not None:
+     stop = float(stop_val)
 
-target_val = trade.get("target")
-if target_val is not None:
-  target = float(target_val)
+     target_val = trade.get("target")
+     if target_val is not None:
+      target = float(target_val)
 
 
         hit_stop = False
