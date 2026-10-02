@@ -3736,6 +3736,7 @@ def check_open_trades():
         # ----------------------------------------------------
         # EXIT
         # ----------------------------------------------------
+    
     stop_val = trade.get("stop")
     if stop_val is not None:
       stop = float(stop_val)
