@@ -2785,6 +2785,8 @@ def update_learning_from_trade(
     elif result == "LOSS":
         direction_record["losses"] += 1
 
+    if "net_r" not in direction_record:
+        direction_record["net_r"] = 0.0
     direction_record["net_r"] += r_value
 
     # --------------------------------------------------------
