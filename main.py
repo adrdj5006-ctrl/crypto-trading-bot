@@ -2767,7 +2767,10 @@ def update_learning_from_trade(
     elif result == "LOSS":
         symbol_record["losses"] += 1
 
+    if "net_r" not in symbol_record:
+    symbol_record["net_r"] = 0.0
     symbol_record["net_r"] += r_value
+
 
     # --------------------------------------------------------
     # DIRECTION
