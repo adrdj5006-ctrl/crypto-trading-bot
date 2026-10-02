@@ -3733,14 +3733,16 @@ def check_open_trades():
             "last_checked_candle"
         ] = candle_time
 
-                # ----------------------------------------------------
+         # ----------------------------------------------------
         # EXIT
         # ----------------------------------------------------
 
+        stop = 0.0
         stop_val = trade.get("stop")
         if stop_val is not None:
             stop = float(stop_val)
 
+        target = 0.0
         target_val = trade.get("target")
         if target_val is not None:
             target = float(target_val)
@@ -3785,6 +3787,7 @@ def check_open_trades():
         # ----------------------------------------------------
         # HEALTH WARNING
         # ----------------------------------------------------
+
 
         if health["status"] in (
             "HIGH LOSS RISK",
