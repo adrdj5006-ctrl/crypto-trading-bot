@@ -3736,43 +3736,62 @@ def check_open_trades():
         # ----------------------------------------------------
         # EXIT
         # ----------------------------------------------------
-    
-    target_val = trade.get("target")
-    if target_val is not None:
-        target = float(target_val)
 
-    hit_stop = False
-    hit_target = False
+        stop = float(
+            trade["stop"]
+        )
 
-    if trade["direction"] == "BUY":
-        hit_stop = low <= stop
-        hit_target = high >= target
-    else:
-        hit_stop = high >= stop
-        hit_target = low <= target
+        target = float(
+            trade["target"]
+        )
+
+        hit_stop = False
+        hit_target = False
+
+        if trade["direction"] == "BUY":
+
+            hit_stop = low <= stop
+            hit_target = high >= target
+
+        else:
+
+            hit_stop = high >= stop
+            hit_target = low <= target
 
         if hit_stop and hit_target:
-        close_trade(
-            trade,
-            stop,
-            "SL_AND_TP_SAME_CANDLE_SL_FIRST",
-            candle_time
-        )
-    elif hit_stop:
-        close_trade(
-            trade,
-            stop,
-            "STOP_LOSS",
-            candle_time
-        )
-    elif hit_target:
-        close_trade(
-            trade,
-            target,
-            "TAKE_PROFIT",
-            candle_time
-        )
 
+            close_trade(
+                trade,
+                stop,
+                "SL_AND_TP_SAME_CANDLE_SL_FIRST",
+                candle_time
+            )
+
+            continue
+
+        if hit_stop:
+
+            close_trade(
+                trade,
+                stop,
+                "STOP_LOSS",
+                candle_time
+            )
+
+            continue
+
+        if hit_target:
+
+            close_trade(
+                trade,
+                target,
+                "TAKE_PROFIT",
+                candle_time
+            )
+
+            continue
+
+        #
         # ----------------------------------------------------
         # HEALTH WARNING
         # ----------------------------------------------------
