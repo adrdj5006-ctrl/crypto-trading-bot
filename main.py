@@ -3736,17 +3736,17 @@ def check_open_trades():
         # ----------------------------------------------------
         # EXIT
         # ----------------------------------------------------
+    stop_val = trade.get("stop")
+    if stop_val is not None:
+      stop = float(stop_val)
 
-        stop_val = trade.get("stop")
-     if stop_val is not None:
-     stop = float(stop_val)
-
-     target_val = trade.get("target")
-     if target_val is not None:
+    target_val = trade.get("target")
+    if target_val is not None:
       target = float(target_val)
-         
+
     hit_stop = False
-     hit_target = False
+    hit_target = False
+    
 
         if trade["direction"] == "BUY":
 
