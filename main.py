@@ -3751,33 +3751,27 @@ def check_open_trades():
         hit_stop = high >= stop
         hit_target = low <= target
 
-    if hit_stop and hit_target:
+        if hit_stop and hit_target:
         close_trade(
             trade,
             stop,
             "SL_AND_TP_SAME_CANDLE_SL_FIRST",
             candle_time
         )
-        continue
-
-    if hit_stop:
+    elif hit_stop:
         close_trade(
             trade,
             stop,
             "STOP_LOSS",
             candle_time
         )
-        continue
-
-    if hit_target:
+    elif hit_target:
         close_trade(
             trade,
             target,
             "TAKE_PROFIT",
             candle_time
         )
-        continue
-        
 
         # ----------------------------------------------------
         # HEALTH WARNING
