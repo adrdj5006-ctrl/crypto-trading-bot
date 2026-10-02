@@ -3744,10 +3744,9 @@ def check_open_trades():
      target_val = trade.get("target")
      if target_val is not None:
       target = float(target_val)
-
-
-        hit_stop = False
-        hit_target = False
+         
+    hit_stop = False
+     hit_target = False
 
         if trade["direction"] == "BUY":
 
