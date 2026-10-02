@@ -3745,46 +3745,39 @@ def check_open_trades():
     hit_target = False
 
     if trade["direction"] == "BUY":
-        
-            hit_stop = low <= stop
-            hit_target = high >= target
+        hit_stop = low <= stop
+        hit_target = high >= target
     else:
+        hit_stop = high >= stop
+        hit_target = low <= target
 
-            hit_stop = high >= stop
-            hit_target = low <= target
+    if hit_stop and hit_target:
+        close_trade(
+            trade,
+            stop,
+            "SL_AND_TP_SAME_CANDLE_SL_FIRST",
+            candle_time
+        )
+        continue
 
-        if hit_stop and hit_target:
+    if hit_stop:
+        close_trade(
+            trade,
+            stop,
+            "STOP_LOSS",
+            candle_time
+        )
+        continue
 
-            close_trade(
-                trade,
-                stop,
-                "SL_AND_TP_SAME_CANDLE_SL_FIRST",
-                candle_time
-            )
-
-            continue
-
-        if hit_stop:
-
-            close_trade(
-                trade,
-                stop,
-                "STOP_LOSS",
-                candle_time
-            )
-
-            continue
-
-        if hit_target:
-
-            close_trade(
-                trade,
-                target,
-                "TAKE_PROFIT",
-                candle_time
-            )
-
-            continue
+    if hit_target:
+        close_trade(
+            trade,
+            target,
+            "TAKE_PROFIT",
+            candle_time
+        )
+        continue
+        
 
         # ----------------------------------------------------
         # HEALTH WARNING
