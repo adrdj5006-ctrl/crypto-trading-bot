@@ -68,7 +68,114 @@
       ],
       "best_price": 1.71,
       "worst_price": 1.71,
-      "last_checked_candle": "2026-10-02 03:00:00+00:00"
+      "last_checked_candle": "2026-10-02 13:00:00+00:00",
+      "mfe": 0.0,
+      "mae": 3.157894736842108,
+      "last_health": {
+        "health_score": 50.0,
+        "status": "WEAKENING",
+        "warnings": [
+          "1H BEAR TREND LOST",
+          "BUYER PRESSURE DOMINANT",
+          "PRICE ABOVE EMA20",
+          "PRICE ABOVE EMA50"
+        ],
+        "critical": [],
+        "structure": {
+          "last_high": 1.757,
+          "previous_high": 1.79,
+          "last_low": 1.698,
+          "previous_low": 1.69,
+          "HH": false,
+          "HL": true,
+          "LH": true,
+          "LL": false,
+          "bull_bos": false,
+          "bear_bos": false,
+          "bull_choch": false,
+          "bear_choch": false,
+          "highs": [
+            [
+              10,
+              1.76
+            ],
+            [
+              24,
+              1.793
+            ],
+            [
+              38,
+              1.744
+            ],
+            [
+              49,
+              1.765
+            ],
+            [
+              54,
+              1.768
+            ],
+            [
+              64,
+              1.79
+            ],
+            [
+              90,
+              1.757
+            ]
+          ],
+          "lows": [
+            [
+              15,
+              1.68
+            ],
+            [
+              30,
+              1.703
+            ],
+            [
+              42,
+              1.7
+            ],
+            [
+              43,
+              1.7
+            ],
+            [
+              44,
+              1.7
+            ],
+            [
+              59,
+              1.717
+            ],
+            [
+              77,
+              1.69
+            ],
+            [
+              86,
+              1.698
+            ]
+          ]
+        },
+        "smc": {
+          "bull_fvg": false,
+          "bear_fvg": false,
+          "bull_ob": false,
+          "bear_ob": false,
+          "bull_breaker": false,
+          "bear_breaker": false,
+          "bull_sweep": false,
+          "bear_sweep": true,
+          "range_high": 1.79,
+          "range_low": 1.69,
+          "equilibrium": 1.74,
+          "discount": false,
+          "premium": true
+        },
+        "checked_at": "2026-10-02T19:01:48.795157+05:00"
+      }
     },
     {
       "id": "20261001180123926102_8fa17af0",
@@ -209,5 +316,5 @@
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-10-02T09:20:57.231422+05:00"
+  "updated_at": "2026-10-02T19:01:48.795497+05:00"
 }
