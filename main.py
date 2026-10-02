@@ -3749,7 +3749,7 @@ def check_open_trades():
             hit_stop = low <= stop
             hit_target = high >= target
 
-        else:
+            else:
 
             hit_stop = high >= stop
             hit_target = low <= target
