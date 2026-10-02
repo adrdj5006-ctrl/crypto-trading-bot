@@ -13,8 +13,8 @@
       "reward_pct": 4.070158372768722,
       "rr": 1.8000000000000016,
       "entry_time": "2026-10-01T20:00:56.057540+05:00",
-      "exit_time": null,
-      "result": "OPEN",
+      "exit_time": "2026-10-02T21:50:44.922351+05:00",
+      "result": "WIN",
       "reason": null,
       "exit_price": null,
       "pnl_pct": null,
@@ -169,7 +169,111 @@
           "discount": true,
           "premium": false
         },
-        "checked_at": "2026-10-02T21:18:53.018334+05:00"
+        "checked_at": "2026-10-02T21:50:44.922334+05:00"
+      },
+      "exit": 0.0,
+      "exit_reason": "STOP_LOSS",
+      "pnl": 1.71,
+      "r": 1710000000000.0,
+      "close_health": {
+        "health_score": 100,
+        "status": "HEALTHY",
+        "warnings": [],
+        "critical": [],
+        "structure": {
+          "last_high": 1.757,
+          "previous_high": 1.79,
+          "last_low": 1.698,
+          "previous_low": 1.69,
+          "HH": false,
+          "HL": true,
+          "LH": true,
+          "LL": false,
+          "bull_bos": false,
+          "bear_bos": false,
+          "bull_choch": false,
+          "bear_choch": false,
+          "highs": [
+            [
+              8,
+              1.76
+            ],
+            [
+              22,
+              1.793
+            ],
+            [
+              36,
+              1.744
+            ],
+            [
+              47,
+              1.765
+            ],
+            [
+              52,
+              1.768
+            ],
+            [
+              62,
+              1.79
+            ],
+            [
+              88,
+              1.757
+            ]
+          ],
+          "lows": [
+            [
+              13,
+              1.68
+            ],
+            [
+              28,
+              1.703
+            ],
+            [
+              40,
+              1.7
+            ],
+            [
+              41,
+              1.7
+            ],
+            [
+              42,
+              1.7
+            ],
+            [
+              57,
+              1.717
+            ],
+            [
+              75,
+              1.69
+            ],
+            [
+              84,
+              1.698
+            ]
+          ]
+        },
+        "smc": {
+          "bull_fvg": false,
+          "bear_fvg": true,
+          "bull_ob": false,
+          "bear_ob": false,
+          "bull_breaker": false,
+          "bear_breaker": false,
+          "bull_sweep": false,
+          "bear_sweep": false,
+          "range_high": 1.79,
+          "range_low": 1.69,
+          "equilibrium": 1.74,
+          "discount": true,
+          "premium": false
+        },
+        "checked_at": "2026-10-02T21:50:44.922334+05:00"
       }
     },
     {
@@ -311,5 +415,5 @@
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-10-02T21:18:53.018713+05:00"
+  "updated_at": "2026-10-02T21:50:44.922744+05:00"
 }
