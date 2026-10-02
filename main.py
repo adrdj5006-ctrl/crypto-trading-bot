@@ -3460,9 +3460,9 @@ def close_trade(
         trade["entry"]
     )
 
-        risk = max(
-        safe_float(
-            trade.get("risk", 1e-12)
+    risk = max(
+    safe_float(
+     trade.get("risk", 1e-12)
         ),
         1e-12
         )
