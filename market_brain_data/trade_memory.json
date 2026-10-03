@@ -5361,5 +5361,274 @@
     "best_price": 83754.01,
     "worst_price": 83754.01,
     "last_checked_candle": "2026-10-01 17:00:00+00:00"
+  },
+  {
+    "trade_id": "e0a1a9fb-309c-4a27-9340-f44bb5d2e7f3",
+    "signal_id": "LTCUSDT|BUY|2026-10-03 00:00:00+00:00",
+    "symbol": "LTCUSDT",
+    "direction": "BUY",
+    "result": "LOSS",
+    "entry": 71.16,
+    "stop": 69.95612511424412,
+    "target": 73.96904140009704,
+    "risk": 1.20387488575588,
+    "reward": 2.809041400097044,
+    "rr": 2.3333333333333255,
+    "risk_pct": 1.6917859552499719,
+    "reward_pct": 3.947500562249921,
+    "open_time": "2026-10-03T06:00:09.511031+05:00",
+    "signal_candle": "2026-10-03 00:00:00+00:00",
+    "buy_score": 58.19138959631499,
+    "sell_score": 20.202554407659235,
+    "d1_bias": "BULL",
+    "h4_bias": "BULL",
+    "h1_bias": "BULL",
+    "pressure_buy": 60.47689155804067,
+    "pressure_sell": 39.52310844195933,
+    "volume_ratio": 1.1484270869695288,
+    "rsi": 61.91838400569988,
+    "setups": [
+      "ascending_triangle",
+      "bear_flag",
+      "bull_flag",
+      "descending_triangle",
+      "double_bottom",
+      "double_top",
+      "equal_high",
+      "equal_low",
+      "falling_wedge",
+      "head_shoulders",
+      "inverse_hs",
+      "range_breakdown",
+      "range_breakout",
+      "range_market",
+      "rising_wedge",
+      "symmetrical_triangle",
+      "triple_bottom",
+      "triple_top"
+    ],
+    "learning_indicators": [
+      "1D_TREND",
+      "1H_TREND",
+      "4H_TREND",
+      "BULL_FLAG",
+      "FVG",
+      "PRESSURE",
+      "RSI",
+      "STRUCTURE",
+      "SUPPORT",
+      "VOLUME"
+    ],
+    "learning_combination": "1D_TREND|1H_TREND|4H_TREND|BULL_FLAG|FVG|PRESSURE|RSI|STRUCTURE",
+    "failure_features": [
+      "BEARISH_SWEEP_AGAINST_BUY",
+      "BUY_IN_PREMIUM"
+    ],
+    "best_price": 71.16,
+    "worst_price": 71.16,
+    "mae": 1.8409218662169793,
+    "mfe": 0.2810567734682446,
+    "last_health": {
+      "health_score": 88.0,
+      "status": "HEALTHY",
+      "warnings": [
+        "BEARISH LIQUIDITY SWEEP"
+      ],
+      "critical": [],
+      "structure": {
+        "last_high": 71.31,
+        "previous_high": 70.69,
+        "last_low": 67.51,
+        "previous_low": 66.55,
+        "HH": true,
+        "HL": true,
+        "LH": false,
+        "LL": false,
+        "bull_bos": false,
+        "bear_bos": false,
+        "bull_choch": false,
+        "bear_choch": false,
+        "highs": [
+          [
+            14,
+            69.31
+          ],
+          [
+            27,
+            67.55
+          ],
+          [
+            39,
+            68.28
+          ],
+          [
+            54,
+            67.74
+          ],
+          [
+            60,
+            67.58
+          ],
+          [
+            82,
+            70.69
+          ],
+          [
+            88,
+            71.31
+          ]
+        ],
+        "lows": [
+          [
+            4,
+            67.01
+          ],
+          [
+            19,
+            66.59
+          ],
+          [
+            26,
+            66.51
+          ],
+          [
+            33,
+            66.37
+          ],
+          [
+            44,
+            65.63
+          ],
+          [
+            63,
+            66.55
+          ],
+          [
+            92,
+            67.51
+          ]
+        ]
+      },
+      "smc": {
+        "bull_fvg": true,
+        "bear_fvg": false,
+        "bull_ob": false,
+        "bear_ob": false,
+        "bull_breaker": false,
+        "bear_breaker": false,
+        "bull_sweep": false,
+        "bear_sweep": true,
+        "range_high": 71.36,
+        "range_low": 66.55,
+        "equilibrium": 68.955,
+        "discount": false,
+        "premium": true
+      },
+      "checked_at": "2026-10-03T06:00:52.918018+05:00"
+    },
+    "last_checked_candle": "2026-10-03 00:00:00+00:00",
+    "exit": 69.95612511424412,
+    "exit_time": "2026-10-03T06:00:52.918033+05:00",
+    "exit_reason": "STOP_LOSS",
+    "pnl": -1.20387488575588,
+    "r": -1.0,
+    "close_health": {
+      "health_score": 88.0,
+      "status": "HEALTHY",
+      "warnings": [
+        "BEARISH LIQUIDITY SWEEP"
+      ],
+      "critical": [],
+      "structure": {
+        "last_high": 71.31,
+        "previous_high": 70.69,
+        "last_low": 67.51,
+        "previous_low": 66.55,
+        "HH": true,
+        "HL": true,
+        "LH": false,
+        "LL": false,
+        "bull_bos": false,
+        "bear_bos": false,
+        "bull_choch": false,
+        "bear_choch": false,
+        "highs": [
+          [
+            14,
+            69.31
+          ],
+          [
+            27,
+            67.55
+          ],
+          [
+            39,
+            68.28
+          ],
+          [
+            54,
+            67.74
+          ],
+          [
+            60,
+            67.58
+          ],
+          [
+            82,
+            70.69
+          ],
+          [
+            88,
+            71.31
+          ]
+        ],
+        "lows": [
+          [
+            4,
+            67.01
+          ],
+          [
+            19,
+            66.59
+          ],
+          [
+            26,
+            66.51
+          ],
+          [
+            33,
+            66.37
+          ],
+          [
+            44,
+            65.63
+          ],
+          [
+            63,
+            66.55
+          ],
+          [
+            92,
+            67.51
+          ]
+        ]
+      },
+      "smc": {
+        "bull_fvg": true,
+        "bear_fvg": false,
+        "bull_ob": false,
+        "bear_ob": false,
+        "bull_breaker": false,
+        "bear_breaker": false,
+        "bull_sweep": false,
+        "bear_sweep": true,
+        "range_high": 71.36,
+        "range_low": 66.55,
+        "equilibrium": 68.955,
+        "discount": false,
+        "premium": true
+      },
+      "checked_at": "2026-10-03T06:00:52.918018+05:00"
+    }
   }
 ]
