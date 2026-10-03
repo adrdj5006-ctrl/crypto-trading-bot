@@ -1,48 +1,36 @@
-# ============================================================
-# MARKET BRAIN AI — ADAPTIVE MULTI-TIMEFRAME + ANTI-LOSS ENGINE
-# ============================================================
-#
-# 1D = Major Bias
-# 4H = Structure / Liquidity / SMC / Pressure
-# 1H = Setup / Entry / SL / TP
-#
-# CORE:
-# - HH / HL / LH / LL
-# - BOS / CHoCH
-# - Liquidity Sweeps
-# - Equal High / Equal Low
-# - FVG
-# - Order Block
-# - Breaker
-# - Premium / Discount
-# - Buyer / Seller Pressure
-# - Volume
-# - EMA 20 / 50 / 200
-# - RSI
-# - ATR
-# - Support / Resistance
-# - Candlestick confirmation
-# - Classical patterns
-#
-# ADAPTIVE LEARNING:
-# - Indicator learning
-# - Symbol learning
-# - BUY / SELL learning
-# - Combination learning
-# - WIN learning
-# - LOSS learning
-# - Failure-pattern learning
-# - Anti-loss filters
-# - Sample-size protection
-# - MAE / MFE
-#
-# IMPORTANT:
-# This is a statistical adaptive engine.
-# It does NOT guarantee profit or a specific win rate.
-# It does NOT place real Binance orders.
-# Trades are paper/signal trades.
-# ============================================================
-
+def update_web_dashboard(trade_info, market_status="Running"):
+    html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="30">
+    <title>Trading Bot Dashboard</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; background-color: #0d1117; color: #c9d1d9; padding: 20px; }}
+        h1 {{ color: #58a6ff; }}
+        .card {{ background: #161b22; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #30363d; }}
+        .profit {{ color: #3fb950; font-weight: bold; }}
+        .loss {{ color: #f85149; font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <h1>Trading Bot Live Dashboard</h1>
+    <div class="card">
+        <h3>System Status: {market_status}</h3>
+        <p><b>Last Symbol:</b> {trade_info.get('symbol', 'N/A')}</p>
+        <p><b>Direction:</b> {trade_info.get('direction', 'N/A')}</p>
+        <p><b>Result / PnL:</b> <span class="{"profit" if trade_info.get('pnl', 0) >= 0 else "loss"}">{trade_info.get('pnl', 'N/A')}</span></p>
+        <p><b>Reason / Note:</b> {trade_info.get('reason', 'Monitoring market structures...')}</p>
+    </div>
+</body>
+</html>
+"""
+    try:
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(html_content)
+    except Exception as e:
+        print(f"Web Dashboard update error: {e}")
+                                              
 import os
 import time
 import json
@@ -3620,6 +3608,7 @@ Learning Indicators:
         result,
         r_value
     )
+update_web_dashboard(trade)
 
 
 # ============================================================
