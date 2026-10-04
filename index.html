@@ -106,37 +106,36 @@
     <div class="container">
         <header>
             <h1>Trading Bot Terminal</h1>
-            <div class="status-badge">System Status: {market_status}</div>
+            <div class="status-badge">System Status: Running</div>
         </header>
 
-        <!-- خلاصہ یا اہم مارکیٹ کی حالت -->
         <div class="grid">
             <div class="card">
                 <div class="card-title">Last Active Symbol</div>
-                <div class="card-value">{trade_info.get('symbol', 'N/A')}</div>
+                <div class="card-value">SUIUSDT</div>
             </div>
             <div class="card">
                 <div class="card-title">Trade Direction</div>
-                <div class="card-value <span class="{"buy" if trade_info.get('direction') == 'BUY' else "sell"}">{trade_info.get('direction', 'N/A')}</div>
+                <div class="card-value buy">BUY</div>
             </div>
             <div class="card">
                 <div class="card-title">Entry Price</div>
-                <div class="card-value">{trade_info.get('entry', 'N/A')}</div>
+                <div class="card-value">1.2553</div>
             </div>
             <div class="card">
                 <div class="card-title">Result / PnL</div>
-                <div class="card-value <span class="{"profit" if trade_info.get('pnl', 0) >= 0 else "loss"}">{trade_info.get('pnl', 'N/A')}</div>
+                <div class="card-value loss">-0.033716472558632526</div>
             </div>
         </div>
 
         <div class="section-title">Structure Analysis & Execution Logs</div>
         <div class="log-box">
             <div class="log-header">
-                <span>Risk / Stop Loss (SL): {trade_info.get('risk', 'N/A')}</span>
-                <span>TP: {trade_info.get('tp', 'N/A')}</span>
+                <span>Risk / Stop Loss (SL): 0.033716472558632526</span>
+                <span>TP: N/A</span>
             </div>
             <div class="reason-text">
-                <b>Structure / Reason / Failure Note:</b> {trade_info.get('reason', 'Monitoring market structures, liquidity, and volume patterns...')}
+                <b>Structure / Reason / Failure Note:</b> Market Structure Active & Monitoring
             </div>
         </div>
     </div>
