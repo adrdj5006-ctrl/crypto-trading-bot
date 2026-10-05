@@ -65,17 +65,17 @@
       "best_price": 120.77,
       "worst_price": 120.77,
       "mae": 0.4802517181419213,
-      "mfe": 1.0929866688747267,
+      "mfe": 1.258590709613323,
       "last_health": {
         "health_score": 100,
         "status": "HEALTHY",
         "warnings": [],
         "critical": [],
         "structure": {
-          "last_high": 120.09,
-          "previous_high": 119.84,
-          "last_low": 119.49,
-          "previous_low": 119.16,
+          "last_high": 122.09,
+          "previous_high": 120.09,
+          "last_low": 120.64,
+          "previous_low": 119.49,
           "HH": true,
           "HL": true,
           "LH": false,
@@ -86,54 +86,58 @@
           "bear_choch": false,
           "highs": [
             [
-              16,
+              8,
               119.63
             ],
             [
-              27,
+              19,
               119.16
             ],
             [
-              39,
+              31,
               123.76
             ],
             [
-              47,
+              39,
               123.37
             ],
             [
-              59,
+              51,
               119.71
             ],
             [
-              64,
+              56,
               119.84
             ],
             [
-              75,
+              67,
               120.09
+            ],
+            [
+              89,
+              122.09
             ]
           ],
           "lows": [
             [
-              5,
-              117.06
-            ],
-            [
-              23,
+              15,
               116.73
             ],
             [
-              52,
+              44,
               117.11
             ],
             [
-              72,
+              64,
               119.16
             ],
             [
-              80,
+              72,
               119.49
+            ],
+            [
+              94,
+              120.64
             ]
           ]
         },
@@ -146,15 +150,15 @@
           "bear_breaker": false,
           "bull_sweep": false,
           "bear_sweep": false,
-          "range_high": 122.09,
-          "range_low": 117.11,
-          "equilibrium": 119.6,
+          "range_high": 122.29,
+          "range_low": 118.31,
+          "equilibrium": 120.30000000000001,
           "discount": false,
           "premium": true
         },
-        "checked_at": "2026-10-04T22:48:33.440307+05:00"
+        "checked_at": "2026-10-05T06:17:09.039508+05:00"
       },
-      "last_checked_candle": "2026-10-04 16:00:00+00:00"
+      "last_checked_candle": "2026-10-05 00:00:00+00:00"
     },
     {
       "trade_id": "61230e97-ef89-423f-ac68-ef87280cfc32",
@@ -233,8 +237,8 @@
         ],
         "critical": [],
         "structure": {
-          "last_high": 70.88,
-          "previous_high": 69.99,
+          "last_high": 72.3,
+          "previous_high": 70.88,
           "last_low": 68.73,
           "previous_low": 68.55,
           "HH": true,
@@ -247,61 +251,61 @@
           "bear_choch": false,
           "highs": [
             [
-              14,
+              6,
               67.74
             ],
             [
-              20,
+              12,
               67.58
             ],
             [
-              42,
+              34,
               70.69
             ],
             [
-              48,
+              40,
               71.31
             ],
             [
-              58,
+              50,
               71.36
             ],
             [
-              73,
+              65,
               69.99
             ],
             [
-              83,
+              75,
               70.88
+            ],
+            [
+              88,
+              72.3
             ]
           ],
           "lows": [
             [
-              4,
-              65.63
-            ],
-            [
-              23,
+              15,
               66.55
             ],
             [
-              52,
+              44,
               67.51
             ],
             [
-              62,
+              54,
               68.45
             ],
             [
+              59,
+              68.55
+            ],
+            [
+              60,
+              68.55
+            ],
+            [
               67,
-              68.55
-            ],
-            [
-              68,
-              68.55
-            ],
-            [
-              75,
               68.73
             ]
           ]
@@ -316,183 +320,16 @@
           "bull_sweep": false,
           "bear_sweep": false,
           "range_high": 72.3,
-          "range_low": 67.51,
-          "equilibrium": 69.905,
+          "range_low": 68.45,
+          "equilibrium": 70.375,
           "discount": false,
           "premium": true
         },
-        "checked_at": "2026-10-04T22:48:33.647892+05:00"
+        "checked_at": "2026-10-05T06:17:09.199273+05:00"
       },
-      "last_checked_candle": "2026-10-04 16:00:00+00:00"
-    },
-    {
-      "trade_id": "b228f78f-fd1d-41eb-b0f9-796a1c102562",
-      "signal_id": "ETHUSDT|BUY|2026-10-04 08:00:00+00:00",
-      "symbol": "ETHUSDT",
-      "direction": "BUY",
-      "result": "OPEN",
-      "entry": 2700.38,
-      "stop": 2680.525581002152,
-      "target": 2736.1179541961264,
-      "risk": 19.854418997847915,
-      "reward": 35.73795419612634,
-      "rr": 1.8000000000000045,
-      "risk_pct": 0.7352453727937518,
-      "reward_pct": 1.3234416710287566,
-      "open_time": "2026-10-04T14:00:46.080095+05:00",
-      "signal_candle": "2026-10-04 08:00:00+00:00",
-      "buy_score": 67.03753806603306,
-      "sell_score": 21.124808656992897,
-      "d1_bias": "BULL",
-      "h4_bias": "BULL",
-      "h1_bias": "BULL",
-      "pressure_buy": 67.76334254874067,
-      "pressure_sell": 32.236657451259326,
-      "volume_ratio": 1.5396764177792122,
-      "rsi": 60.165910364492476,
-      "setups": [
-        "ascending_triangle",
-        "bear_flag",
-        "bull_flag",
-        "descending_triangle",
-        "double_bottom",
-        "double_top",
-        "equal_high",
-        "equal_low",
-        "falling_wedge",
-        "head_shoulders",
-        "inverse_hs",
-        "range_breakdown",
-        "range_breakout",
-        "range_market",
-        "rising_wedge",
-        "symmetrical_triangle",
-        "triple_bottom",
-        "triple_top"
-      ],
-      "learning_indicators": [
-        "1D_TREND",
-        "1H_TREND",
-        "4H_TREND",
-        "ASCENDING_TRIANGLE",
-        "BULL_FLAG",
-        "DISCOUNT",
-        "FVG",
-        "PRESSURE",
-        "RSI",
-        "STRUCTURE",
-        "SUPPORT",
-        "VOLUME"
-      ],
-      "learning_combination": "1D_TREND|1H_TREND|4H_TREND|ASCENDING_TRIANGLE|BULL_FLAG|DISCOUNT|FVG|PRESSURE",
-      "failure_features": [],
-      "best_price": 2700.38,
-      "worst_price": 2700.38,
-      "mae": 0.310326694761482,
-      "mfe": 0.2818121893955544,
-      "last_health": {
-        "health_score": 100,
-        "status": "HEALTHY",
-        "warnings": [],
-        "critical": [],
-        "structure": {
-          "last_high": 2707.99,
-          "previous_high": 2690.0,
-          "last_low": 2691.23,
-          "previous_low": 2677.41,
-          "HH": true,
-          "HL": true,
-          "LH": false,
-          "LL": false,
-          "bull_bos": false,
-          "bear_bos": false,
-          "bull_choch": false,
-          "bear_choch": false,
-          "highs": [
-            [
-              16,
-              2722.0
-            ],
-            [
-              22,
-              2711.6
-            ],
-            [
-              28,
-              2714.76
-            ],
-            [
-              42,
-              2777.33
-            ],
-            [
-              47,
-              2769.68
-            ],
-            [
-              59,
-              2684.61
-            ],
-            [
-              70,
-              2687.5
-            ],
-            [
-              76,
-              2690.0
-            ],
-            [
-              90,
-              2707.99
-            ]
-          ],
-          "lows": [
-            [
-              5,
-              2667.94
-            ],
-            [
-              18,
-              2673.13
-            ],
-            [
-              25,
-              2673.42
-            ],
-            [
-              52,
-              2650.88
-            ],
-            [
-              71,
-              2677.41
-            ],
-            [
-              88,
-              2691.23
-            ]
-          ]
-        },
-        "smc": {
-          "bull_fvg": false,
-          "bear_fvg": false,
-          "bull_ob": false,
-          "bear_ob": false,
-          "bull_breaker": false,
-          "bear_breaker": false,
-          "bull_sweep": false,
-          "bear_sweep": false,
-          "range_high": 2712.43,
-          "range_low": 2650.88,
-          "equilibrium": 2681.6549999999997,
-          "discount": false,
-          "premium": true
-        },
-        "checked_at": "2026-10-04T22:48:33.856114+05:00"
-      },
-      "last_checked_candle": "2026-10-04 16:00:00+00:00"
+      "last_checked_candle": "2026-10-05 00:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-10-04T22:48:33.856132+05:00"
+  "updated_at": "2026-10-05T06:17:09.199286+05:00"
 }
