@@ -1,175 +1,1071 @@
 def update_web_dashboard(trade_info, market_status="Running"):
-    try:
-        # اگر ٹریڈ ڈکشنری خالی یا غیر محفوظ ہو تو ڈیفالٹ ویلیوز استعمال ہوں گی
-        if not isinstance(trade_info, dict):
-            trade_info = {}
+# ============================================================
+# MARKET BRAIN AI — ADVANCED TRADING DASHBOARD
+# 1D → 4H → 1H → 30M
+# ============================================================
 
-        symbol = trade_info.get('symbol', 'N/A')
-        direction = trade_info.get('direction', 'N/A')
-        entry = trade_info.get('entry', 'N/A')
-        risk = trade_info.get('risk', 'N/A')
-        tp = trade_info.get('tp', 'N/A')
-        pnl = trade_info.get('pnl', 0)
-        reason = trade_info.get('reason', 'Market Structure Active & Monitoring')
+from flask import Flask, render_template_string, jsonify
+from datetime import datetime
+import os
 
-        # کلرز اور کلاسز کی سیٹنگ
-        pnl_val = 0
-        try:
-            pnl_val = float(pnl)
-        except (ValueError, TypeError):
-            pnl_val = 0
+app = Flask(__name__)
 
-        pnl_class = "profit" if pnl_val >= 0 else "loss"
-        dir_class = "buy" if direction == "BUY" else "sell"
+# ============================================================
+# DASHBOARD HTML
+# ============================================================
 
-        html_content = f"""<!DOCTYPE html>
-<html lang="en">
+DASHBOARD_HTML = r"""
+<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="15">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Trading Bot Dashboard</title>
-    <style>
-        :root {{
-            --bg-color: #0d1117;
-            --card-bg: #161b22;
-            --border-color: #30363d;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --accent-blue: #58a6ff;
-            --profit-green: #3fb950;
-            --loss-red: #f85149;
-            --warning-orange: #ffa657;
-        }}
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 15px;
-        }}
-        .container {{
-            max-width: 800px;
-            margin: 0 auto;
-        }}
-        header {{
-            text-align: center;
-            margin-bottom: 20px;
-        }}
-        h1 {{
-            color: var(--accent-blue);
-            font-size: 24px;
-            margin: 0 0 5px 0;
-        }}
-        .status-badge {{
-            display: inline-block;
-            background: #238636;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }}
-        .grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-        }}
-        .card {{
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 15px;
-        }}
-        .card-title {{
-            color: var(--text-secondary);
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }}
-        .card-value {{
-            font-size: 18px;
-            font-weight: bold;
-        }}
-        .profit {{ color: var(--profit-green); }}
-        .loss {{ color: var(--loss-red); }}
-        .buy {{ color: var(--profit-green); }}
-        .sell {{ color: var(--loss-red); }}
-        
-        .section-title {{
-            font-size: 16px;
-            color: var(--accent-blue);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 5px;
-            margin: 25px 0 12px 0;
-        }}
-        .log-box {{
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }}
-        .log-header {{
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }}
-        .reason-text {{
-            color: var(--warning-orange);
-            font-size: 13px;
-            margin-top: 5px;
-        }}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>MARKET BRAIN AI</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    background:#070d1d;
+    color:#ffffff;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+.header{
+    background:#111a31;
+    padding:28px 22px;
+    border-bottom:1px solid #202b48;
+}
+
+.logo{
+    font-size:30px;
+    font-weight:bold;
+}
+
+.subtitle{
+    margin-top:12px;
+    color:#8995b4;
+    font-size:18px;
+}
+
+.scan{
+    margin-top:10px;
+    color:#9ca8c4;
+    font-size:15px;
+}
+
+.container{
+    padding:20px;
+    max-width:1100px;
+    margin:auto;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:15px;
+}
+
+.card{
+    background:#131d36;
+    border-radius:20px;
+    padding:20px;
+    border:1px solid #1e2946;
+}
+
+.label{
+    color:#8d98b2;
+    font-size:14px;
+}
+
+.value{
+    margin-top:8px;
+    font-size:27px;
+    font-weight:bold;
+}
+
+.green{
+    color:#39e6a1;
+}
+
+.red{
+    color:#ff5f72;
+}
+
+.yellow{
+    color:#ffd34e;
+}
+
+.blue{
+    color:#61a8ff;
+}
+
+.white{
+    color:#ffffff;
+}
+
+.section-title{
+    margin-top:32px;
+    margin-bottom:15px;
+    font-size:25px;
+    font-weight:bold;
+}
+
+.trade{
+    background:#131d36;
+    border-radius:22px;
+    padding:20px;
+    margin-bottom:18px;
+    border-left:7px solid #38e6a0;
+}
+
+.trade.sell{
+    border-left-color:#ff5e71;
+}
+
+.trade-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    flex-wrap:wrap;
+}
+
+.coin{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.signal{
+    font-size:20px;
+    font-weight:bold;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-top:15px;
+}
+
+.box{
+    background:#091126;
+    border-radius:14px;
+    padding:14px;
+}
+
+.box .title{
+    color:#8490aa;
+    font-size:13px;
+}
+
+.box .data{
+    margin-top:7px;
+    font-size:18px;
+    font-weight:bold;
+}
+
+.strength{
+    margin-top:18px;
+    background:#091126;
+    padding:18px;
+    border-radius:16px;
+}
+
+.bar{
+    height:12px;
+    background:#202b46;
+    border-radius:20px;
+    overflow:hidden;
+    margin-top:10px;
+}
+
+.bar-fill{
+    height:100%;
+    background:#38e6a0;
+}
+
+.patterns{
+    margin-top:15px;
+}
+
+.pattern{
+    display:flex;
+    justify-content:space-between;
+    padding:10px 0;
+    border-bottom:1px solid #202b46;
+}
+
+.pattern:last-child{
+    border-bottom:0;
+}
+
+.warning{
+    margin-top:18px;
+    padding:16px;
+    border-radius:15px;
+    font-weight:bold;
+    font-size:17px;
+}
+
+.warning.safe{
+    background:#0c382b;
+    color:#45e9a7;
+}
+
+.warning.watch{
+    background:#3b3210;
+    color:#ffd34e;
+}
+
+.warning.danger{
+    background:#431722;
+    color:#ff6679;
+}
+
+.reason{
+    margin-top:18px;
+    background:#091126;
+    padding:18px;
+    border-radius:16px;
+}
+
+.reason div{
+    padding:7px 0;
+    color:#d9deea;
+}
+
+.table-wrap{
+    overflow-x:auto;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:850px;
+}
+
+th,td{
+    padding:14px;
+    text-align:left;
+    border-bottom:1px solid #27314d;
+}
+
+th{
+    color:#8995b4;
+}
+
+.win{
+    color:#39e6a1;
+    font-weight:bold;
+}
+
+.loss{
+    color:#ff5f72;
+    font-weight:bold;
+}
+
+.no-trade{
+    color:#ffd34e;
+    font-weight:bold;
+}
+
+.footer{
+    text-align:center;
+    color:#68738f;
+    padding:30px;
+}
+
+@media(max-width:700px){
+
+    .stats{
+        grid-template-columns:repeat(2,1fr);
+    }
+
+    .grid{
+        grid-template-columns:1fr 1fr;
+    }
+
+    .logo{
+        font-size:26px;
+    }
+
+}
+
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <h1>Trading Bot Terminal</h1>
-            <div class="status-badge">System Status: {market_status}</div>
-        </header>
 
-        <div class="grid">
-            <div class="card">
-                <div class="card-title">Last Active Symbol</div>
-                <div class="card-value">{symbol}</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Trade Direction</div>
-                <div class="card-value {dir_class}">{direction}</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Entry Price</div>
-                <div class="card-value">{entry}</div>
-            </div>
-            <div class="card">
-                <div class="card-title">Result / PnL</div>
-                <div class="card-value {pnl_class}">{pnl}</div>
-            </div>
-        </div>
+<div class="header">
 
-        <div class="section-title">Structure Analysis & Execution Logs</div>
-        <div class="log-box">
-            <div class="log-header">
-                <span>Risk / Stop Loss (SL): {risk}</span>
-                <span>TP: {tp}</span>
-            </div>
-            <div class="reason-text">
-                <b>Structure / Reason / Failure Note:</b> {reason}
-            </div>
+    <div class="logo">
+        🧠 MARKET BRAIN AI
+    </div>
+
+    <div class="subtitle">
+        1D Bias → 4H Structure → 1H Setup → 30M Entry
+    </div>
+
+    <div class="scan">
+        Last scan:
+        <span id="lastScan">Loading...</span>
+        |
+        Dashboard auto refresh 10 sec
+    </div>
+
+</div>
+
+
+<div class="container">
+
+<!-- ======================================================
+     TOP STATISTICS
+====================================================== -->
+
+<div class="stats">
+
+    <div class="card">
+        <div class="label">SCANNER</div>
+        <div class="value blue" id="scanner">
+            Scanning...
         </div>
     </div>
+
+    <div class="card">
+        <div class="label">WIN</div>
+        <div class="value green" id="wins">0</div>
+    </div>
+
+    <div class="card">
+        <div class="label">LOSS</div>
+        <div class="value red" id="losses">0</div>
+    </div>
+
+    <div class="card">
+        <div class="label">WIN RATE</div>
+        <div class="value yellow" id="winrate">0%</div>
+    </div>
+
+    <div class="card">
+        <div class="label">ACTIVE TRADES</div>
+        <div class="value white" id="active">0</div>
+    </div>
+
+    <div class="card">
+        <div class="label">TOTAL SIGNALS</div>
+        <div class="value white" id="signals">0</div>
+    </div>
+
+</div>
+
+
+<!-- ======================================================
+     CURRENT SIGNALS
+====================================================== -->
+
+<div class="section-title">
+🔥 Current Signals
+</div>
+
+<div id="currentSignals">
+    Loading...
+</div>
+
+
+<!-- ======================================================
+     ACTIVE TRADES
+====================================================== -->
+
+<div class="section-title">
+📈 Active Paper Trades
+</div>
+
+<div id="activeTrades">
+    Loading...
+</div>
+
+
+<!-- ======================================================
+     CLOSED TRADES
+====================================================== -->
+
+<div class="section-title">
+🏆 Closed Trades
+</div>
+
+<div id="closedTrades">
+    Loading...
+</div>
+
+
+<!-- ======================================================
+     20 COIN SCANNER
+====================================================== -->
+
+<div class="section-title">
+📊 20 Coin Scanner
+</div>
+
+<div class="card table-wrap">
+
+<table>
+
+<thead>
+
+<tr>
+<th>Coin</th>
+<th>Signal</th>
+<th>Score</th>
+<th>Price</th>
+<th>1D</th>
+<th>4H</th>
+<th>1H</th>
+<th>30M</th>
+<th>RSI</th>
+<th>Volume</th>
+<th>FVG</th>
+<th>R:R</th>
+</tr>
+
+</thead>
+
+<tbody id="scannerTable">
+
+</tbody>
+
+</table>
+
+</div>
+
+
+</div>
+
+
+<div class="footer">
+MARKET BRAIN AI • Adaptive Multi-Timeframe Scanner
+</div>
+
+
+<script>
+
+/* =========================================================
+   API DATA
+========================================================= */
+
+async function loadDashboard(){
+
+    try{
+
+        const response = await fetch("/api/dashboard");
+
+        const data = await response.json();
+
+        /* TOP STATS */
+
+        document.getElementById("scanner").innerText =
+            data.scanning ? "Scanning..." : "Ready";
+
+        document.getElementById("wins").innerText =
+            data.stats.wins;
+
+        document.getElementById("losses").innerText =
+            data.stats.losses;
+
+        document.getElementById("winrate").innerText =
+            data.stats.win_rate + "%";
+
+        document.getElementById("active").innerText =
+            data.stats.active_trades;
+
+        document.getElementById("signals").innerText =
+            data.stats.total_signals;
+
+        document.getElementById("lastScan").innerText =
+            data.last_scan;
+
+
+        /* CURRENT SIGNALS */
+
+        let currentHTML = "";
+
+        data.current_signals.forEach(t => {
+
+            currentHTML += createTradeCard(t);
+
+        });
+
+        document.getElementById("currentSignals").innerHTML =
+            currentHTML || "<div class='card'>No current signal</div>";
+
+
+        /* ACTIVE TRADES */
+
+        let activeHTML = "";
+
+        data.active_trades.forEach(t => {
+
+            activeHTML += createTradeCard(t);
+
+        });
+
+        document.getElementById("activeTrades").innerHTML =
+            activeHTML || "<div class='card'>No active trades</div>";
+
+
+        /* CLOSED */
+
+        let closedHTML = "";
+
+        data.closed_trades.forEach(t => {
+
+            closedHTML += `
+
+            <div class="trade">
+
+                <div class="trade-header">
+
+                    <div class="coin">
+                        ${t.coin}
+                    </div>
+
+                    <div class="${t.result === 'WIN'
+                        ? 'win'
+                        : 'loss'}">
+
+                        ${t.result}
+
+                    </div>
+
+                </div>
+
+                <div class="grid">
+
+                    <div class="box">
+                        <div class="title">DIRECTION</div>
+                        <div class="data">${t.direction}</div>
+                    </div>
+
+                    <div class="box">
+                        <div class="title">SCORE</div>
+                        <div class="data">${t.score}</div>
+                    </div>
+
+                    <div class="box">
+                        <div class="title">ENTRY</div>
+                        <div class="data">${t.entry}</div>
+                    </div>
+
+                    <div class="box">
+                        <div class="title">EXIT</div>
+                        <div class="data">${t.exit}</div>
+                    </div>
+
+                    <div class="box">
+                        <div class="title">P/L</div>
+                        <div class="data ${t.result === 'WIN'
+                            ? 'green'
+                            : 'red'}">
+
+                            ${t.pnl || "--"}
+
+                        </div>
+                    </div>
+
+                    <div class="box">
+                        <div class="title">CREATED</div>
+                        <div class="data">${t.created}</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+            `;
+
+        });
+
+        document.getElementById("closedTrades").innerHTML =
+            closedHTML || "<div class='card'>No closed trades</div>";
+
+
+        /* 20 COIN SCANNER */
+
+        let tableHTML = "";
+
+        data.scanner.forEach(t => {
+
+            tableHTML += `
+
+            <tr>
+
+                <td><b>${t.coin}</b></td>
+
+                <td class="${
+                    t.signal.includes("SELL")
+                    ? "loss"
+                    : t.signal.includes("BUY")
+                    ? "win"
+                    : "no-trade"
+                }">
+
+                    ${t.signal}
+
+                </td>
+
+                <td>${t.score}</td>
+
+                <td>${t.price}</td>
+
+                <td>${t.bias_1d}</td>
+
+                <td>${t.structure_4h}</td>
+
+                <td>${t.structure_1h}</td>
+
+                <td>${t.structure_30m}</td>
+
+                <td>${t.rsi}</td>
+
+                <td>${t.volume}x</td>
+
+                <td>${t.fvg}</td>
+
+                <td>${t.rr}</td>
+
+            </tr>
+
+            `;
+
+        });
+
+        document.getElementById("scannerTable").innerHTML =
+            tableHTML;
+
+    }
+
+    catch(error){
+
+        console.log(error);
+
+    }
+
+}
+
+
+/* =========================================================
+   TRADE CARD
+========================================================= */
+
+function createTradeCard(t){
+
+    let warningClass = "safe";
+
+    if(t.warning_level === "DANGER")
+        warningClass = "danger";
+
+    else if(t.warning_level === "WATCH")
+        warningClass = "watch";
+
+
+    let patterns = "";
+
+    if(t.patterns){
+
+        t.patterns.forEach(p => {
+
+            patterns += `
+
+            <div class="pattern">
+
+                <span>${p.name}</span>
+
+                <span class="${
+                    p.strength >= 70
+                    ? 'green'
+                    : p.strength >= 50
+                    ? 'yellow'
+                    : 'red'
+                }">
+
+                    ${p.strength}/100
+
+                </span>
+
+            </div>
+
+            `;
+
+        });
+
+    }
+
+
+    return `
+
+    <div class="trade ${
+        t.direction === 'SELL'
+        ? 'sell'
+        : ''
+    }">
+
+        <div class="trade-header">
+
+            <div>
+
+                <div class="coin">
+                    ${t.coin}
+                </div>
+
+                <div class="${
+                    t.direction === 'SELL'
+                    ? 'red'
+                    : 'green'
+                } signal">
+
+                    ${t.signal}
+
+                </div>
+
+            </div>
+
+            <div class="yellow"
+                 style="font-size:28px;font-weight:bold">
+
+                ${t.score}/100
+
+            </div>
+
+        </div>
+
+
+        <div class="grid">
+
+            <div class="box">
+                <div class="title">ENTRY</div>
+                <div class="data">${t.entry}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">STOP LOSS</div>
+                <div class="data red">${t.sl}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">TAKE PROFIT</div>
+                <div class="data green">${t.tp}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">R:R</div>
+                <div class="data">${t.rr}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">1D BIAS</div>
+                <div class="data">${t.bias_1d}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">4H STRUCTURE</div>
+                <div class="data">${t.structure_4h}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">1H STRUCTURE</div>
+                <div class="data">${t.structure_1h}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">30M STRUCTURE</div>
+                <div class="data">${t.structure_30m}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">RSI</div>
+                <div class="data">${t.rsi}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">RSI POWER</div>
+                <div class="data">${t.rsi_strength}/100</div>
+            </div>
+
+            <div class="box">
+                <div class="title">VOLUME</div>
+                <div class="data">${t.volume}x</div>
+            </div>
+
+            <div class="box">
+                <div class="title">VOLUME POWER</div>
+                <div class="data">${t.volume_strength}/100</div>
+            </div>
+
+            <div class="box">
+                <div class="title">FVG</div>
+                <div class="data">${t.fvg}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">FVG POWER</div>
+                <div class="data">${t.fvg_strength}/100</div>
+            </div>
+
+            <div class="box">
+                <div class="title">ORDER BLOCK</div>
+                <div class="data">${t.order_block}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">OB POWER</div>
+                <div class="data">${t.ob_strength}/100</div>
+            </div>
+
+            <div class="box">
+                <div class="title">SUPPORT</div>
+                <div class="data">${t.support}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">RESISTANCE</div>
+                <div class="data">${t.resistance}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">S/R BREAK</div>
+                <div class="data">${t.sr_break}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">BOS / CHoCH</div>
+                <div class="data">${t.bos_choch}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">LIQUIDITY SWEEP</div>
+                <div class="data">${t.liquidity}</div>
+            </div>
+
+            <div class="box">
+                <div class="title">CANDLE PATTERN</div>
+                <div class="data">${t.candle_pattern}</div>
+            </div>
+
+        </div>
+
+
+        <!-- OVERALL STRENGTH -->
+
+        <div class="strength">
+
+            <div>
+                <b>🔥 OVERALL TRADE STRENGTH</b>
+            </div>
+
+            <div class="value">
+                ${t.trade_strength}/100
+            </div>
+
+            <div class="bar">
+
+                <div class="bar-fill"
+                     style="width:${t.trade_strength}%">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- HOW MANY THINGS CONFIRMING -->
+
+        <div class="strength">
+
+            <b>
+                🧠 CONFIRMATIONS
+            </b>
+
+            <div class="value green">
+
+                ${t.confirmations_count}
+                / ${t.total_checks}
+
+            </div>
+
+            <div style="margin-top:8px;color:#9ba6bf">
+
+                ${t.confirmations_count}
+                strong conditions are currently confirming
+                this trade.
+
+            </div>
+
+        </div>
+
+
+        <!-- PATTERNS -->
+
+        <div class="patterns">
+
+            <b>📐 PATTERNS / INDICATORS</b>
+
+            ${patterns}
+
+        </div>
+
+
+        <!-- EXIT WARNING -->
+
+        <div class="warning ${warningClass}">
+
+            ${t.warning_message}
+
+        </div>
+
+
+        <!-- REASONS -->
+
+        <div class="reason">
+
+            <b>💡 WHY THIS TRADE?</b>
+
+            ${t.reasons.map(x =>
+
+                `<div>✓ ${x}</div>`
+
+            ).join("")}
+
+        </div>
+
+    </div>
+
+    `;
+
+}
+
+
+/* =========================================================
+   AUTO REFRESH
+========================================================= */
+
+loadDashboard();
+
+setInterval(loadDashboard,10000);
+
+</script>
+
 </body>
 </html>
 """
-        with open("index.html", "w", encoding="utf-8") as f:
-            f.write(html_content)
-    except Exception as e:
-        print(f"Web Dashboard update error: {e}")
+
+
+# ============================================================
+# DASHBOARD ROUTE
+# ============================================================
+
+@app.route("/")
+def dashboard():
+
+    return render_template_string(DASHBOARD_HTML)
+
+
+# ============================================================
+# API
+# ============================================================
+
+@app.route("/api/dashboard")
+def dashboard_api():
+
+    # --------------------------------------------------------
+    # IMPORTANT:
+    # یہاں اپنے موجودہ BOT کا DATA لگانا ہے
+    # --------------------------------------------------------
+
+    data = {
+
+        "scanning": True,
+
+        "last_scan":
+            datetime.now().strftime(
+                "%Y-%m-%d %I:%M:%S %p PKT"
+            ),
+
+        "stats": {
+
+            "wins": 4,
+
+            "losses": 38,
+
+            "win_rate": 9.5,
+
+            "active_trades": 8,
+
+            "total_signals": 67
+
+        },
+
+
+        "current_signals": [
+
+            {
+
+                "coin": "BTCUSDT",
+
+                "direction": "BUY",
+
+                "signal": "STRONG BUY",
+
+                "score": 92,
+
+                "entry": "86624.01",
+
+                "sl": "85094.00",
+
+                "tp": "89684.03",
+
+                "rr": "1:2.00",
+
+                "bias_1d": "BULLISH",
+
+                "structure_4h": "BULLISH",
+
+                "structure_1h": "BULLISH",
+
+                "structure_30m": "BULLISH",
+
+                "rsi": 68.4,
+
+                "rsi_strength": 86,
+
+                "volume": 2.36,
+
+                "volume_strength": 91,
+
+                "fvg": "BULLISH",
+
+                "fvg_strength": 88,
+
+                "order_block": "BULLISH OB",
+
+                "ob_strength": 84,
+
+                "support": "86120",
+
+                "resistance": "87180",
+
+                "sr_break": "RESISTANCE BROKEN",
+
+                "bos_choch": "BULLISH BOS",
+
+                "liquidity": "SELL-SIDE SWEPT",
+
+                "candle_pattern": "
                                               
 import os
 import time
