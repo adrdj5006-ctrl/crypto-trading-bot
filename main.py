@@ -1,47 +1,176 @@
-# ============================================================
-# MARKET BRAIN AI — ADAPTIVE MULTI-TIMEFRAME + ANTI-LOSS ENGINE
-# ============================================================
-#
-# 1D = Major Bias
-# 4H = Structure / Liquidity / SMC / Pressure
-# 1H = Setup / Entry / SL / TP
-#
-# CORE:
-# - HH / HL / LH / LL
-# - BOS / CHoCH
-# - Liquidity Sweeps
-# - Equal High / Equal Low
-# - FVG
-# - Order Block
-# - Breaker
-# - Premium / Discount
-# - Buyer / Seller Pressure
-# - Volume
-# - EMA 20 / 50 / 200
-# - RSI
-# - ATR
-# - Support / Resistance
-# - Candlestick confirmation
-# - Classical patterns
-#
-# ADAPTIVE LEARNING:
-# - Indicator learning
-# - Symbol learning
-# - BUY / SELL learning
-# - Combination learning
-# - WIN learning
-# - LOSS learning
-# - Failure-pattern learning
-# - Anti-loss filters
-# - Sample-size protection
-# - MAE / MFE
-#
-# IMPORTANT:
-# This is a statistical adaptive engine.
-# It does NOT guarantee profit or a specific win rate.
-# It does NOT place real Binance orders.
-# Trades are paper/signal trades.
-# ============================================================
+def update_web_dashboard(trade_info, market_status="Running"):
+    try:
+        # اگر ٹریڈ ڈکشنری خالی یا غیر محفوظ ہو تو ڈیفالٹ ویلیوز استعمال ہوں گی
+        if not isinstance(trade_info, dict):
+            trade_info = {}
+
+        symbol = trade_info.get('symbol', 'N/A')
+        direction = trade_info.get('direction', 'N/A')
+        entry = trade_info.get('entry', 'N/A')
+        risk = trade_info.get('risk', 'N/A')
+        tp = trade_info.get('tp', 'N/A')
+        pnl = trade_info.get('pnl', 0)
+        reason = trade_info.get('reason', 'Market Structure Active & Monitoring')
+
+        # کلرز اور کلاسز کی سیٹنگ
+        pnl_val = 0
+        try:
+            pnl_val = float(pnl)
+        except (ValueError, TypeError):
+            pnl_val = 0
+
+        pnl_class = "profit" if pnl_val >= 0 else "loss"
+        dir_class = "buy" if direction == "BUY" else "sell"
+
+        html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="15">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Trading Bot Dashboard</title>
+    <style>
+        :root {{
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --text-primary: #c9d1d9;
+            --text-secondary: #8b949e;
+            --accent-blue: #58a6ff;
+            --profit-green: #3fb950;
+            --loss-red: #f85149;
+            --warning-orange: #ffa657;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 15px;
+        }}
+        .container {{
+            max-width: 800px;
+            margin: 0 auto;
+        }}
+        header {{
+            text-align: center;
+            margin-bottom: 20px;
+        }}
+        h1 {{
+            color: var(--accent-blue);
+            font-size: 24px;
+            margin: 0 0 5px 0;
+        }}
+        .status-badge {{
+            display: inline-block;
+            background: #238636;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }}
+        .grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }}
+        .card {{
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+        }}
+        .card-title {{
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }}
+        .card-value {{
+            font-size: 18px;
+            font-weight: bold;
+        }}
+        .profit {{ color: var(--profit-green); }}
+        .loss {{ color: var(--loss-red); }}
+        .buy {{ color: var(--profit-green); }}
+        .sell {{ color: var(--loss-red); }}
+        
+        .section-title {{
+            font-size: 16px;
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 5px;
+            margin: 25px 0 12px 0;
+        }}
+        .log-box {{
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }}
+        .log-header {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }}
+        .reason-text {{
+            color: var(--warning-orange);
+            font-size: 13px;
+            margin-top: 5px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Trading Bot Terminal</h1>
+            <div class="status-badge">System Status: {market_status}</div>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <div class="card-title">Last Active Symbol</div>
+                <div class="card-value">{symbol}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Trade Direction</div>
+                <div class="card-value {dir_class}">{direction}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Entry Price</div>
+                <div class="card-value">{entry}</div>
+            </div>
+            <div class="card">
+                <div class="card-title">Result / PnL</div>
+                <div class="card-value {pnl_class}">{pnl}</div>
+            </div>
+        </div>
+
+        <div class="section-title">Structure Analysis & Execution Logs</div>
+        <div class="log-box">
+            <div class="log-header">
+                <span>Risk / Stop Loss (SL): {risk}</span>
+                <span>TP: {tp}</span>
+            </div>
+            <div class="reason-text">
+                <b>Structure / Reason / Failure Note:</b> {reason}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        with open("index.html", "w", encoding="utf-8") as f:
+            f.write(html_content)
+    except Exception as e:
+        print(f"Web Dashboard update error: {e}")
+        
 
 import os
 import time
@@ -3617,7 +3746,8 @@ Learning Indicators:
         r_value
     )
 
-
+update_web_dashboard(trade)
+        
 # ============================================================
 # OPEN TRADE MONITOR
 # ============================================================
