@@ -3729,9 +3729,7 @@ Learning Indicators:
             ),
             body
         )
-
-            if sent:
-
+        if sent:
         EMAIL_SENT[
             email_key
         ] = iso_pkt()
