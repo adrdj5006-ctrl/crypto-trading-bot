@@ -3745,8 +3745,7 @@ Learning Indicators:
         result,
         r_value
     )
-
-update_web_dashboard(trade)
+   update_web_dashboard(trade)
         
 # ============================================================
 # OPEN TRADE MONITOR
