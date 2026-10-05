@@ -3730,21 +3730,21 @@ Learning Indicators:
             body
         )
 
-        if sent:
+            if sent:
 
-            EMAIL_SENT[
-                email_key
-            ] = iso_pkt()
+        EMAIL_SENT[
+            email_key
+        ] = iso_pkt()
 
-            save_state()
+        save_state()
 
-    logger.info(
-        "CLOSED %s %s -> %s | R %.2f",
-        trade["symbol"],
-        direction,
-        result,
-        r_value
-    )
+        logger.info(
+            "CLOSED %s %s -> %s | R %.2f",
+            trade["symbol"],
+            direction,
+            result,
+            r_value
+        )
         update_web_dashboard(trade)
         
 # ============================================================
