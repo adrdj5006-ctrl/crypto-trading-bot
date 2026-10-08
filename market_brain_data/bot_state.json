@@ -1,5 +1,164 @@
 {
-  "open_trades": [],
+  "open_trades": [
+    {
+      "trade_id": "a2c9739a-e22b-4dcd-8900-4ceb21b020e3",
+      "signal_id": "BTCUSDT|SELL|2026-10-08 03:00:00+00:00",
+      "symbol": "BTCUSDT",
+      "direction": "SELL",
+      "result": "OPEN",
+      "entry": 82757.0,
+      "stop": 83923.63241057104,
+      "target": 80657.06166097213,
+      "risk": 1166.6324105710373,
+      "reward": 2099.938339027867,
+      "rr": 1.8,
+      "risk_pct": 1.4097084362302128,
+      "reward_pct": 2.537475185214383,
+      "open_time": "2026-10-08T09:00:29.240765+05:00",
+      "signal_candle": "2026-10-08 03:00:00+00:00",
+      "buy_score": 10.560004367294898,
+      "sell_score": 63.495720329373455,
+      "d1_bias": "NEUTRAL",
+      "h4_bias": "BEAR",
+      "h1_bias": "BEAR",
+      "pressure_buy": 35.364777716614235,
+      "pressure_sell": 64.63522228338576,
+      "volume_ratio": 1.0106710528807907,
+      "rsi": 29.98957363399643,
+      "setups": [
+        "ascending_triangle",
+        "bear_flag",
+        "bull_flag",
+        "descending_triangle",
+        "double_bottom",
+        "double_top",
+        "equal_high",
+        "equal_low",
+        "falling_wedge",
+        "head_shoulders",
+        "inverse_hs",
+        "range_breakdown",
+        "range_breakout",
+        "range_market",
+        "rising_wedge",
+        "symmetrical_triangle",
+        "triple_bottom",
+        "triple_top"
+      ],
+      "learning_indicators": [
+        "1H_TREND",
+        "4H_TREND",
+        "BEAR_FLAG",
+        "BOS",
+        "BREAKER",
+        "CANDLE",
+        "FVG",
+        "ORDER_BLOCK",
+        "PRESSURE",
+        "RANGE_BREAKDOWN",
+        "RESISTANCE"
+      ],
+      "learning_combination": "1H_TREND|4H_TREND|BEAR_FLAG|BOS|BREAKER|CANDLE|FVG|ORDER_BLOCK",
+      "failure_features": [
+        "HTF_1D_AGAINST_SELL",
+        "SELL_IN_DISCOUNT",
+        "SELL_OVEREXTENDED_RSI"
+      ],
+      "best_price": 82757.0,
+      "worst_price": 82757.0,
+      "mae": 0.5353021496670977,
+      "mfe": 0.12929419867805744,
+      "last_health": {
+        "health_score": 100,
+        "status": "HEALTHY",
+        "warnings": [],
+        "critical": [],
+        "structure": {
+          "last_high": 86698.99,
+          "previous_high": 86130.45,
+          "last_low": 82787.25,
+          "previous_low": 83577.0,
+          "HH": true,
+          "HL": false,
+          "LH": false,
+          "LL": true,
+          "bull_bos": false,
+          "bear_bos": true,
+          "bull_choch": false,
+          "bear_choch": false,
+          "highs": [
+            [
+              9,
+              85428.01
+            ],
+            [
+              24,
+              86999.11
+            ],
+            [
+              31,
+              86498.5
+            ],
+            [
+              37,
+              86725.12
+            ],
+            [
+              48,
+              86130.45
+            ],
+            [
+              62,
+              86698.99
+            ]
+          ],
+          "lows": [
+            [
+              13,
+              85094.0
+            ],
+            [
+              28,
+              85412.0
+            ],
+            [
+              39,
+              84972.01
+            ],
+            [
+              53,
+              85136.11
+            ],
+            [
+              73,
+              83577.0
+            ],
+            [
+              84,
+              82787.25
+            ]
+          ]
+        },
+        "smc": {
+          "bull_fvg": false,
+          "bear_fvg": true,
+          "bull_ob": false,
+          "bear_ob": true,
+          "bull_breaker": false,
+          "bear_breaker": true,
+          "bull_sweep": false,
+          "bear_sweep": false,
+          "range_high": 86698.99,
+          "range_low": 82650.0,
+          "equilibrium": 84674.495,
+          "discount": true,
+          "premium": false
+        },
+        "checked_at": "2026-10-08T09:44:17.115989+05:00"
+      },
+      "last_checked_candle": "2026-10-08 03:00:00+00:00"
+    }
+  ],
   "email_sent": {},
-  "updated_at": "2026-10-06T06:00:28.209008+05:00"
+  "updated_at": "2026-10-08T09:44:17.116004+05:00"
 }
