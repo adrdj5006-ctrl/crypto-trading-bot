@@ -1,30 +1,30 @@
 {
   "open_trades": [
     {
-      "trade_id": "32a0405a-921e-4933-9758-99a7139bc542",
-      "signal_id": "TRXUSDT|SELL|2026-10-09 02:00:00+00:00",
+      "trade_id": "ef22988d-2b2f-4e58-a0bc-e5dfae2a80c7",
+      "signal_id": "TRXUSDT|SELL|2026-10-13 12:00:00+00:00",
       "symbol": "TRXUSDT",
       "direction": "SELL",
-      "result": "WIN",
-      "entry": 0.3323,
-      "stop": 0.3346274906875496,
-      "target": 0.32811051676241065,
-      "risk": 0.002327490687549616,
-      "reward": 0.004189483237589331,
-      "rr": 1.8000000000000096,
-      "risk_pct": 0.7004185036261258,
-      "reward_pct": 1.260753306527033,
-      "open_time": "2026-10-09T08:00:32.298048+05:00",
-      "signal_candle": "2026-10-09 02:00:00+00:00",
+      "result": "OPEN",
+      "entry": 0.3281,
+      "stop": 0.3306065219815968,
+      "target": 0.3235882604331258,
+      "risk": 0.0025065219815967876,
+      "reward": 0.004511739566874229,
+      "rr": 1.8000000000000045,
+      "risk_pct": 0.7639506192004839,
+      "reward_pct": 1.3751111145608743,
+      "open_time": "2026-10-13T18:22:52.893733+05:00",
+      "signal_candle": "2026-10-13 12:00:00+00:00",
       "buy_score": 16.05290328524783,
-      "sell_score": 60.58987955511635,
-      "d1_bias": "NEUTRAL",
+      "sell_score": 67.17599902312345,
+      "d1_bias": "BEAR",
       "h4_bias": "BEAR",
       "h1_bias": "BEAR",
-      "pressure_buy": 19.17444789229777,
-      "pressure_sell": 80.82555210770224,
-      "volume_ratio": 0.5805610573387797,
-      "rsi": 31.419611597549533,
+      "pressure_buy": 27.223042394683723,
+      "pressure_sell": 72.77695760531627,
+      "volume_ratio": 2.018938712451145,
+      "rsi": 26.5402828876082,
       "setups": [
         "ascending_triangle",
         "bear_flag",
@@ -46,27 +46,27 @@
         "triple_top"
       ],
       "learning_indicators": [
+        "1D_TREND",
         "1H_TREND",
         "4H_TREND",
         "BEAR_FLAG",
-        "CANDLE",
-        "DOUBLE_TOP",
+        "BOS",
+        "DESCENDING_TRIANGLE",
         "FVG",
         "PRESSURE",
         "RANGE_BREAKDOWN",
         "RESISTANCE",
-        "TRIPLE_TOP"
+        "VOLUME"
       ],
-      "learning_combination": "1H_TREND|4H_TREND|BEAR_FLAG|CANDLE|DOUBLE_TOP|FVG|PRESSURE|RANGE_BREAKDOWN",
+      "learning_combination": "1D_TREND|1H_TREND|4H_TREND|BEAR_FLAG|BOS|DESCENDING_TRIANGLE|FVG|PRESSURE",
       "failure_features": [
-        "HTF_1D_AGAINST_SELL",
         "SELL_IN_DISCOUNT",
-        "WEAK_VOLUME"
+        "SELL_OVEREXTENDED_RSI"
       ],
-      "best_price": 0.3323,
-      "worst_price": 0.3323,
-      "mae": 0.3009328919650921,
-      "mfe": 1.26391814625338,
+      "best_price": 0.3281,
+      "worst_price": 0.3281,
+      "mae": 0.24382810118866896,
+      "mfe": 0.06095702529715878,
       "last_health": {
         "health_score": 100,
         "status": "HEALTHY",
@@ -82,59 +82,63 @@
           "LH": true,
           "LL": false,
           "bull_bos": false,
-          "bear_bos": true,
+          "bear_bos": false,
           "bull_choch": false,
           "bear_choch": false,
           "highs": [
             [
-              9,
+              8,
               0.3331
             ],
             [
-              21,
+              20,
               0.3314
+            ],
+            [
+              26,
+              0.3316
             ],
             [
               27,
               0.3316
             ],
             [
-              28,
-              0.3316
+              38,
+              0.331
             ],
             [
-              39,
-              0.331
+              47,
+              0.3309
             ],
             [
               48,
               0.3309
             ],
             [
-              49,
-              0.3309
+              53,
+              0.3317
             ],
             [
               54,
               0.3317
             ],
             [
-              55,
-              0.3317
-            ],
-            [
-              66,
+              65,
               0.3332
             ],
             [
-              92,
+              91,
               0.3305
             ]
           ],
           "lows": [
             [
-              8,
+              7,
               0.3319
+            ],
+            [
+              15,
+              0.3307
             ],
             [
               16,
@@ -157,23 +161,23 @@
               0.3307
             ],
             [
-              21,
-              0.3307
+              31,
+              0.3308
             ],
             [
-              32,
-              0.3308
+              40,
+              0.3302
             ],
             [
               41,
               0.3302
             ],
             [
-              42,
+              46,
               0.3302
             ],
             [
-              47,
+              51,
               0.3302
             ],
             [
@@ -181,19 +185,15 @@
               0.3302
             ],
             [
-              53,
-              0.3302
-            ],
-            [
-              59,
+              58,
               0.3301
             ],
             [
-              86,
+              85,
               0.3285
             ],
             [
-              87,
+              86,
               0.3285
             ]
           ]
@@ -208,169 +208,16 @@
           "bull_sweep": false,
           "bear_sweep": false,
           "range_high": 0.3332,
-          "range_low": 0.3281,
-          "equilibrium": 0.33065,
+          "range_low": 0.3279,
+          "equilibrium": 0.33055,
           "discount": true,
           "premium": false
         },
-        "checked_at": "2026-10-13T18:11:37.546515+05:00"
+        "checked_at": "2026-10-13T19:25:43.764657+05:00"
       },
-      "last_checked_candle": "2026-10-13 12:00:00+00:00",
-      "exit": 0.32811051676241065,
-      "exit_time": "2026-10-13T18:11:37.546540+05:00",
-      "exit_reason": "TAKE_PROFIT",
-      "pnl": 0.004189483237589331,
-      "r": 1.8000000000000096,
-      "close_health": {
-        "health_score": 100,
-        "status": "HEALTHY",
-        "warnings": [],
-        "critical": [],
-        "structure": {
-          "last_high": 0.3305,
-          "previous_high": 0.3332,
-          "last_low": 0.3285,
-          "previous_low": 0.3285,
-          "HH": false,
-          "HL": false,
-          "LH": true,
-          "LL": false,
-          "bull_bos": false,
-          "bear_bos": true,
-          "bull_choch": false,
-          "bear_choch": false,
-          "highs": [
-            [
-              9,
-              0.3331
-            ],
-            [
-              21,
-              0.3314
-            ],
-            [
-              27,
-              0.3316
-            ],
-            [
-              28,
-              0.3316
-            ],
-            [
-              39,
-              0.331
-            ],
-            [
-              48,
-              0.3309
-            ],
-            [
-              49,
-              0.3309
-            ],
-            [
-              54,
-              0.3317
-            ],
-            [
-              55,
-              0.3317
-            ],
-            [
-              66,
-              0.3332
-            ],
-            [
-              92,
-              0.3305
-            ]
-          ],
-          "lows": [
-            [
-              8,
-              0.3319
-            ],
-            [
-              16,
-              0.3307
-            ],
-            [
-              17,
-              0.3307
-            ],
-            [
-              18,
-              0.3307
-            ],
-            [
-              19,
-              0.3307
-            ],
-            [
-              20,
-              0.3307
-            ],
-            [
-              21,
-              0.3307
-            ],
-            [
-              32,
-              0.3308
-            ],
-            [
-              41,
-              0.3302
-            ],
-            [
-              42,
-              0.3302
-            ],
-            [
-              47,
-              0.3302
-            ],
-            [
-              52,
-              0.3302
-            ],
-            [
-              53,
-              0.3302
-            ],
-            [
-              59,
-              0.3301
-            ],
-            [
-              86,
-              0.3285
-            ],
-            [
-              87,
-              0.3285
-            ]
-          ]
-        },
-        "smc": {
-          "bull_fvg": false,
-          "bear_fvg": true,
-          "bull_ob": false,
-          "bear_ob": false,
-          "bull_breaker": false,
-          "bear_breaker": false,
-          "bull_sweep": false,
-          "bear_sweep": false,
-          "range_high": 0.3332,
-          "range_low": 0.3281,
-          "equilibrium": 0.33065,
-          "discount": true,
-          "premium": false
-        },
-        "checked_at": "2026-10-13T18:11:37.546515+05:00"
-      }
+      "last_checked_candle": "2026-10-13 13:00:00+00:00"
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-10-13T18:11:37.547058+05:00"
+  "updated_at": "2026-10-13T19:25:43.764674+05:00"
 }
