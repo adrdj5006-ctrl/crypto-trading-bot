@@ -2912,7 +2912,7 @@ def update_learning_from_trade(
     elif result == "LOSS":
         direction_record["losses"] += 1
 
-    direction_record["net_r"] += r_value
+    direction_record["net_r"] = direction_record.get("net_r", 0) + r_value
 
     # --------------------------------------------------------
     # INDICATORS
