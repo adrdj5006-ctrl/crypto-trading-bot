@@ -66,122 +66,125 @@
       "best_price": 0.3323,
       "worst_price": 0.3323,
       "mae": 0.3009328919650921,
-      "mfe": 0.6620523623231959,
+      "mfe": 1.1435449894673397,
       "last_health": {
-        "health_score": 100,
+        "health_score": 75.0,
         "status": "HEALTHY",
-        "warnings": [],
+        "warnings": [
+          "1H BEAR TREND LOST",
+          "PRICE ABOVE EMA20"
+        ],
         "critical": [],
         "structure": {
           "last_high": 0.3332,
           "previous_high": 0.3317,
-          "last_low": 0.3301,
-          "previous_low": 0.3302,
+          "last_low": 0.3285,
+          "previous_low": 0.3285,
           "HH": true,
           "HL": false,
           "LH": false,
-          "LL": true,
+          "LL": false,
           "bull_bos": false,
           "bear_bos": false,
           "bull_choch": false,
           "bear_choch": false,
           "highs": [
             [
-              18,
+              8,
               0.3333
             ],
             [
-              19,
+              9,
               0.3333
             ],
             [
-              26,
+              16,
               0.3331
             ],
             [
-              38,
+              28,
               0.3314
             ],
             [
-              44,
+              34,
               0.3316
             ],
             [
-              45,
+              35,
               0.3316
             ],
             [
-              56,
+              46,
               0.331
             ],
             [
-              65,
+              55,
               0.3309
             ],
             [
-              66,
+              56,
               0.3309
             ],
             [
-              71,
+              61,
               0.3317
             ],
             [
-              72,
+              62,
               0.3317
             ],
             [
-              83,
+              73,
               0.3332
             ]
           ],
           "lows": [
             [
-              11,
-              0.3319
-            ],
-            [
-              12,
-              0.3319
-            ],
-            [
-              17,
+              7,
               0.3321
             ],
             [
-              25,
+              15,
               0.3319
             ],
             [
-              33,
+              23,
               0.3307
             ],
             [
-              34,
+              24,
               0.3307
             ],
             [
-              35,
+              25,
               0.3307
             ],
             [
-              36,
+              26,
               0.3307
             ],
             [
-              37,
+              27,
               0.3307
             ],
             [
-              38,
+              28,
               0.3307
             ],
             [
-              49,
+              39,
               0.3308
             ],
             [
-              58,
+              48,
+              0.3302
+            ],
+            [
+              49,
+              0.3302
+            ],
+            [
+              54,
               0.3302
             ],
             [
@@ -189,26 +192,26 @@
               0.3302
             ],
             [
-              64,
+              60,
               0.3302
             ],
             [
-              69,
-              0.3302
-            ],
-            [
-              70,
-              0.3302
-            ],
-            [
-              76,
+              66,
               0.3301
+            ],
+            [
+              93,
+              0.3285
+            ],
+            [
+              94,
+              0.3285
             ]
           ]
         },
         "smc": {
           "bull_fvg": false,
-          "bear_fvg": true,
+          "bear_fvg": false,
           "bull_ob": false,
           "bear_ob": false,
           "bull_breaker": false,
@@ -216,16 +219,274 @@
           "bull_sweep": false,
           "bear_sweep": false,
           "range_high": 0.3332,
-          "range_low": 0.3301,
-          "equilibrium": 0.33165,
+          "range_low": 0.3285,
+          "equilibrium": 0.33085,
           "discount": true,
           "premium": false
         },
-        "checked_at": "2026-10-13T01:28:34.273965+05:00"
+        "checked_at": "2026-10-13T11:08:49.058477+05:00"
       },
-      "last_checked_candle": "2026-10-12 19:00:00+00:00"
+      "last_checked_candle": "2026-10-13 05:00:00+00:00"
+    },
+    {
+      "trade_id": "c3fe5f35-3b04-473d-ac24-0dd924b85a3e",
+      "signal_id": "ADAUSDT|SELL|2026-10-12 23:00:00+00:00",
+      "symbol": "ADAUSDT",
+      "direction": "SELL",
+      "result": "LOSS",
+      "entry": 0.2331,
+      "stop": 0.23679609811393712,
+      "target": 0.22447577106748007,
+      "risk": 0.0036960981139371185,
+      "reward": 0.008624228932519934,
+      "rr": 2.333333333333331,
+      "risk_pct": 1.5856276765067001,
+      "reward_pct": 3.6997979118489637,
+      "open_time": "2026-10-13T05:09:58.938200+05:00",
+      "signal_candle": "2026-10-12 23:00:00+00:00",
+      "buy_score": 10.560004367294898,
+      "sell_score": 61.75727576768196,
+      "d1_bias": "NEUTRAL",
+      "h4_bias": "BEAR",
+      "h1_bias": "BEAR",
+      "pressure_buy": 11.023327449004718,
+      "pressure_sell": 88.97667255099529,
+      "volume_ratio": 2.06863259805064,
+      "rsi": 22.248585393185394,
+      "setups": [
+        "ascending_triangle",
+        "bear_flag",
+        "bull_flag",
+        "descending_triangle",
+        "double_bottom",
+        "double_top",
+        "equal_high",
+        "equal_low",
+        "falling_wedge",
+        "head_shoulders",
+        "inverse_hs",
+        "range_breakdown",
+        "range_breakout",
+        "range_market",
+        "rising_wedge",
+        "symmetrical_triangle",
+        "triple_bottom",
+        "triple_top"
+      ],
+      "learning_indicators": [
+        "1H_TREND",
+        "4H_TREND",
+        "BEAR_FLAG",
+        "DOUBLE_TOP",
+        "FVG",
+        "PRESSURE",
+        "RANGE_BREAKDOWN",
+        "RESISTANCE",
+        "STRUCTURE",
+        "VOLUME"
+      ],
+      "learning_combination": "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|FVG|PRESSURE|RANGE_BREAKDOWN|RESISTANCE",
+      "failure_features": [
+        "HTF_1D_AGAINST_SELL",
+        "SELL_IN_DISCOUNT",
+        "SELL_OVEREXTENDED_RSI"
+      ],
+      "best_price": 0.2331,
+      "worst_price": 0.2331,
+      "mae": 3.1746031746031704,
+      "mfe": 3.8181038181038143,
+      "last_health": {
+        "health_score": 100,
+        "status": "HEALTHY",
+        "warnings": [],
+        "critical": [],
+        "structure": {
+          "last_high": 0.2561,
+          "previous_high": 0.2565,
+          "last_low": 0.2242,
+          "previous_low": 0.2405,
+          "HH": false,
+          "HL": false,
+          "LH": true,
+          "LL": true,
+          "bull_bos": false,
+          "bear_bos": false,
+          "bull_choch": false,
+          "bear_choch": false,
+          "highs": [
+            [
+              8,
+              0.2415
+            ],
+            [
+              23,
+              0.2562
+            ],
+            [
+              29,
+              0.2576
+            ],
+            [
+              35,
+              0.2595
+            ],
+            [
+              61,
+              0.2565
+            ],
+            [
+              74,
+              0.2561
+            ]
+          ],
+          "lows": [
+            [
+              11,
+              0.2352
+            ],
+            [
+              16,
+              0.2353
+            ],
+            [
+              49,
+              0.2455
+            ],
+            [
+              55,
+              0.2451
+            ],
+            [
+              70,
+              0.2485
+            ],
+            [
+              85,
+              0.2405
+            ],
+            [
+              93,
+              0.2242
+            ]
+          ]
+        },
+        "smc": {
+          "bull_fvg": true,
+          "bear_fvg": false,
+          "bull_ob": false,
+          "bear_ob": false,
+          "bull_breaker": false,
+          "bear_breaker": false,
+          "bull_sweep": false,
+          "bear_sweep": false,
+          "range_high": 0.2565,
+          "range_low": 0.2242,
+          "equilibrium": 0.24035,
+          "discount": true,
+          "premium": false
+        },
+        "checked_at": "2026-10-13T11:08:49.206687+05:00"
+      },
+      "last_checked_candle": "2026-10-13 05:00:00+00:00",
+      "exit": 0.23679609811393712,
+      "exit_time": "2026-10-13T11:08:49.206704+05:00",
+      "exit_reason": "STOP_LOSS",
+      "pnl": -0.0036960981139371185,
+      "r": -1.0,
+      "close_health": {
+        "health_score": 100,
+        "status": "HEALTHY",
+        "warnings": [],
+        "critical": [],
+        "structure": {
+          "last_high": 0.2561,
+          "previous_high": 0.2565,
+          "last_low": 0.2242,
+          "previous_low": 0.2405,
+          "HH": false,
+          "HL": false,
+          "LH": true,
+          "LL": true,
+          "bull_bos": false,
+          "bear_bos": false,
+          "bull_choch": false,
+          "bear_choch": false,
+          "highs": [
+            [
+              8,
+              0.2415
+            ],
+            [
+              23,
+              0.2562
+            ],
+            [
+              29,
+              0.2576
+            ],
+            [
+              35,
+              0.2595
+            ],
+            [
+              61,
+              0.2565
+            ],
+            [
+              74,
+              0.2561
+            ]
+          ],
+          "lows": [
+            [
+              11,
+              0.2352
+            ],
+            [
+              16,
+              0.2353
+            ],
+            [
+              49,
+              0.2455
+            ],
+            [
+              55,
+              0.2451
+            ],
+            [
+              70,
+              0.2485
+            ],
+            [
+              85,
+              0.2405
+            ],
+            [
+              93,
+              0.2242
+            ]
+          ]
+        },
+        "smc": {
+          "bull_fvg": true,
+          "bear_fvg": false,
+          "bull_ob": false,
+          "bear_ob": false,
+          "bull_breaker": false,
+          "bear_breaker": false,
+          "bull_sweep": false,
+          "bear_sweep": false,
+          "range_high": 0.2565,
+          "range_low": 0.2242,
+          "equilibrium": 0.24035,
+          "discount": true,
+          "premium": false
+        },
+        "checked_at": "2026-10-13T11:08:49.206687+05:00"
+      }
     }
   ],
   "email_sent": {},
-  "updated_at": "2026-10-13T01:28:34.273992+05:00"
+  "updated_at": "2026-10-13T11:08:49.207090+05:00"
 }
