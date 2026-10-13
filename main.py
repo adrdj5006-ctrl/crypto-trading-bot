@@ -2896,7 +2896,7 @@ def update_learning_from_trade(
     elif result == "LOSS":
         symbol_record["losses"] += 1
 
-    symbol_record["net_r"] += r_value
+    symbol_record["net_r"] = symbol_record.get("net_r", 0) + r_value
 
     # --------------------------------------------------------
     # DIRECTION
