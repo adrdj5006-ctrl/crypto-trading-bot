@@ -1,5 +1,158 @@
 {
-  "open_trades": [],
+  "open_trades": [
+    {
+      "trade_id": "99e08b40-aa52-4182-af76-d6ae37d5ea05",
+      "signal_id": "BNBUSDT|SELL|2026-10-14 12:00:00+00:00",
+      "symbol": "BNBUSDT",
+      "direction": "SELL",
+      "result": "OPEN",
+      "entry": 737.11,
+      "stop": 746.6820772520788,
+      "target": 719.8802609462582,
+      "risk": 9.57207725207877,
+      "reward": 17.22973905374181,
+      "rr": 1.8000000000000023,
+      "risk_pct": 1.2985954948486347,
+      "reward_pct": 2.3374718907275454,
+      "open_time": "2026-10-14T18:00:35.224284+05:00",
+      "signal_candle": "2026-10-14 12:00:00+00:00",
+      "buy_score": 20.838205813691403,
+      "sell_score": 60.64149563852828,
+      "d1_bias": "NEUTRAL",
+      "h4_bias": "BEAR",
+      "h1_bias": "BEAR",
+      "pressure_buy": 24.226284923827723,
+      "pressure_sell": 75.77371507617228,
+      "volume_ratio": 4.0847131515886534,
+      "rsi": 36.172200086264596,
+      "setups": [
+        "ascending_triangle",
+        "bear_flag",
+        "bull_flag",
+        "descending_triangle",
+        "double_bottom",
+        "double_top",
+        "equal_high",
+        "equal_low",
+        "falling_wedge",
+        "head_shoulders",
+        "inverse_hs",
+        "range_breakdown",
+        "range_breakout",
+        "range_market",
+        "rising_wedge",
+        "symmetrical_triangle",
+        "triple_bottom",
+        "triple_top"
+      ],
+      "learning_indicators": [
+        "1H_TREND",
+        "4H_TREND",
+        "BEAR_FLAG",
+        "DOUBLE_TOP",
+        "PREMIUM",
+        "PRESSURE",
+        "RANGE_BREAKDOWN",
+        "RESISTANCE",
+        "RSI",
+        "TRIPLE_TOP",
+        "VOLUME"
+      ],
+      "learning_combination": "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PREMIUM|PRESSURE|RANGE_BREAKDOWN|RESISTANCE",
+      "failure_features": [
+        "HTF_1D_AGAINST_SELL"
+      ],
+      "best_price": 737.11,
+      "worst_price": 737.11,
+      "mae": 1.1151659860807785,
+      "mfe": 1.2087748097298867,
+      "last_health": {
+        "health_score": 100,
+        "status": "HEALTHY",
+        "warnings": [],
+        "critical": [],
+        "structure": {
+          "last_high": 747.0,
+          "previous_high": 746.9,
+          "last_low": 736.87,
+          "previous_low": 722.4,
+          "HH": true,
+          "HL": true,
+          "LH": false,
+          "LL": false,
+          "bull_bos": false,
+          "bear_bos": false,
+          "bull_choch": false,
+          "bear_choch": false,
+          "highs": [
+            [
+              26,
+              758.44
+            ],
+            [
+              41,
+              758.03
+            ],
+            [
+              54,
+              748.4
+            ],
+            [
+              63,
+              748.0
+            ],
+            [
+              72,
+              746.51
+            ],
+            [
+              85,
+              746.9
+            ],
+            [
+              90,
+              747.0
+            ]
+          ],
+          "lows": [
+            [
+              14,
+              744.77
+            ],
+            [
+              31,
+              750.15
+            ],
+            [
+              58,
+              722.4
+            ],
+            [
+              69,
+              736.87
+            ]
+          ]
+        },
+        "smc": {
+          "bull_fvg": false,
+          "bear_fvg": true,
+          "bull_ob": false,
+          "bear_ob": false,
+          "bull_breaker": false,
+          "bear_breaker": false,
+          "bull_sweep": false,
+          "bear_sweep": false,
+          "range_high": 748.4,
+          "range_low": 722.4,
+          "equilibrium": 735.4,
+          "discount": true,
+          "premium": false
+        },
+        "checked_at": "2026-10-14T22:13:26.023530+05:00"
+      },
+      "last_checked_candle": "2026-10-14 16:00:00+00:00"
+    }
+  ],
   "email_sent": {},
-  "updated_at": "2026-10-14T08:00:17.000947+05:00"
+  "updated_at": "2026-10-14T22:13:26.023541+05:00"
 }

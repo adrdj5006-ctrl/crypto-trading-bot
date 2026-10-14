@@ -1,9 +1,9 @@
 {
   "global": {
     "wins": 21,
-    "losses": 68,
-    "win_rate": 23.595505617977526,
-    "net_r": 17761809750076.617
+    "losses": 69,
+    "win_rate": 23.333333333333332,
+    "net_r": 17761809750075.617
   },
   "symbols": {
     "LTCUSDT": {
@@ -62,8 +62,9 @@
     },
     "LINKUSDT": {
       "wins": 1,
-      "losses": 3,
-      "profit_r": -1.1999999999999966
+      "losses": 4,
+      "profit_r": -1.1999999999999966,
+      "net_r": -1.0
     },
     "NEARUSDT": {
       "wins": 0,
@@ -124,9 +125,9 @@
     },
     "SELL": {
       "wins": 5,
-      "losses": 18,
+      "losses": 19,
       "profit_r": -6.654005398143612,
-      "net_r": -1.0
+      "net_r": -2.0
     }
   },
   "indicators": {
@@ -138,13 +139,13 @@
     },
     "1H_TREND": {
       "wins": 20,
-      "losses": 64,
+      "losses": 65,
       "profit_r": -21.855417495583247,
       "weight": 0.7
     },
     "4H_TREND": {
       "wins": 14,
-      "losses": 58,
+      "losses": 59,
       "profit_r": -24.668078764106287,
       "weight": 0.7
     },
@@ -168,15 +169,15 @@
     },
     "PRESSURE": {
       "wins": 15,
-      "losses": 62,
+      "losses": 63,
       "profit_r": -30.18733873147695,
       "weight": 0.7
     },
     "RSI": {
       "wins": 19,
-      "losses": 50,
+      "losses": 51,
       "profit_r": -11.655417495583247,
-      "weight": 0.7445147158101881
+      "weight": 0.7259018479149334
     },
     "ASC_TRIANGLE": {
       "wins": 2,
@@ -210,9 +211,9 @@
     },
     "VOLUME": {
       "wins": 13,
-      "losses": 52,
+      "losses": 53,
       "profit_r": -27.309322116080317,
-      "weight": 0.7063875
+      "weight": 0.7
     },
     "LH_LL": {
       "wins": 3,
@@ -252,7 +253,7 @@
     },
     "BOS": {
       "wins": 12,
-      "losses": 41,
+      "losses": 42,
       "profit_r": -16.5093221160803,
       "weight": 0.7
     },
@@ -264,27 +265,27 @@
     },
     "RANGE_BREAKDOWN": {
       "wins": 4,
-      "losses": 14,
+      "losses": 15,
       "profit_r": -4.454005398143618,
-      "weight": 0.8050558662439825
+      "weight": 0.7849294695878829
     },
     "DOUBLE_TOP": {
       "wins": 3,
-      "losses": 9,
+      "losses": 10,
       "profit_r": -3.066666666666648,
-      "weight": 0.8828005410620562
+      "weight": 0.8607305275355047
     },
     "TRIPLE_TOP": {
       "wins": 3,
-      "losses": 9,
+      "losses": 10,
       "profit_r": -2.5333333333333026,
-      "weight": 0.8828005410620562
+      "weight": 0.8607305275355047
     },
     "BEAR_FLAG": {
       "wins": 5,
-      "losses": 18,
+      "losses": 19,
       "profit_r": -6.654005398143612,
-      "weight": 0.7529824109173522
+      "weight": 0.7341578506444184
     },
     "RESISTANCE": {
       "wins": 0,
@@ -9957,6 +9958,361 @@
       "wins": 0,
       "losses": 1,
       "weight": 1.0
+    },
+    "1D_TREND|1H_TREND|ASCENDING_TRIANGLE|BULL_FLAG|CANDLE|DOUBLE_BOTTOM|LIQUIDITY_SWEEP|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "DOUBLE_TOP|PREMIUM|PRESSURE|RESISTANCE|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|BULL_FLAG|CANDLE|DOUBLE_BOTTOM|LIQUIDITY_SWEEP|SUPPORT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|DESCENDING_TRIANGLE|DOUBLE_TOP|PREMIUM|PRESSURE|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|CANDLE|LIQUIDITY_SWEEP|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PREMIUM|PRESSURE|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|BREAKER|BULL_FLAG|CANDLE|LIQUIDITY_SWEEP|ORDER_BLOCK|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|CANDLE|DISCOUNT|STRUCTURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PRESSURE|RESISTANCE|RSI|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|CANDLE|LIQUIDITY_SWEEP|PRESSURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|FVG|PREMIUM|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|DISCOUNT|LIQUIDITY_SWEEP|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|FVG|PRESSURE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PREMIUM|RESISTANCE|RSI|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "DISCOUNT|LIQUIDITY_SWEEP|PRESSURE|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|4H_TREND|CANDLE|STRUCTURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "BEAR_FLAG|FVG|PREMIUM|PRESSURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "CANDLE|DOUBLE_BOTTOM|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "BEAR_FLAG|FVG|PREMIUM|RESISTANCE|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|4H_TREND": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BEAR_FLAG|FVG|PRESSURE|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "BULL_FLAG|DISCOUNT|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|RESISTANCE|RSI|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BULL_FLAG|DOUBLE_BOTTOM|FVG|PRESSURE|SUPPORT|TRIPLE_BOTTOM|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|DOUBLE_TOP|PREMIUM|RESISTANCE|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|PREMIUM|PRESSURE|RESISTANCE|RSI|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|1H_TREND|ASCENDING_TRIANGLE|DOUBLE_BOTTOM|RSI|STRUCTURE|SUPPORT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|DOUBLE_BOTTOM|SUPPORT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DESCENDING_TRIANGLE|DOUBLE_TOP|PREMIUM|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|CANDLE|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|CANDLE|DOUBLE_TOP|PREMIUM|PRESSURE|RESISTANCE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|BULL_FLAG|CANDLE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|DISCOUNT|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|CANDLE|DOUBLE_TOP|PRESSURE|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|LIQUIDITY_SWEEP|PRESSURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PREMIUM|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "CANDLE|DISCOUNT|PRESSURE|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "4H_TREND|BEAR_FLAG|RESISTANCE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|4H_TREND|STRUCTURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "BEAR_FLAG|BREAKER|ORDER_BLOCK|PREMIUM|PRESSURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "4H_TREND|BEAR_FLAG|PREMIUM|RESISTANCE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BEAR_FLAG|PREMIUM|PRESSURE|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BREAKER|CANDLE|ORDER_BLOCK|PRESSURE|RESISTANCE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BULL_FLAG|DOUBLE_BOTTOM|FVG|PRESSURE|SUPPORT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "CANDLE|STRUCTURE|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|ASCENDING_TRIANGLE|DOUBLE_BOTTOM|STRUCTURE|SUPPORT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "BEAR_FLAG|BOS|DOUBLE_TOP|PREMIUM|PRESSURE|RANGE_BREAKDOWN|RESISTANCE|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "DISCOUNT|DOUBLE_BOTTOM|STRUCTURE|SUPPORT|TRIPLE_BOTTOM": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|PRESSURE|RANGE_BREAKDOWN|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PREMIUM|PRESSURE|RANGE_BREAKDOWN|RESISTANCE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "DISCOUNT|STRUCTURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|PRESSURE|RANGE_BREAKDOWN|RSI|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|PRESSURE|RANGE_BREAKDOWN|RSI|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|DISCOUNT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|DOUBLE_TOP|PRESSURE|RANGE_BREAKDOWN|TRIPLE_TOP|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|DOUBLE_TOP|PRESSURE|RANGE_BREAKDOWN|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|CANDLE|PRESSURE|RSI|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|DOUBLE_TOP|PRESSURE|RANGE_BREAKDOWN|RSI": {
+      "wins": 0,
+      "losses": 1,
+      "weight": 1.0
+    },
+    "1H_TREND|BEAR_FLAG|BREAKER|CANDLE|ORDER_BLOCK|PRESSURE|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "ASCENDING_TRIANGLE|DISCOUNT|STRUCTURE": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|BREAKER|CANDLE|DOUBLE_TOP|ORDER_BLOCK": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "DISCOUNT|DOUBLE_BOTTOM|SUPPORT": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BREAKER|CANDLE|ORDER_BLOCK|PRESSURE|RANGE_BREAKDOWN": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BEAR_FLAG|BREAKER|ORDER_BLOCK|PRESSURE|RANGE_BREAKDOWN|RESISTANCE|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|PRESSURE|RANGE_BREAKDOWN|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BULL_FLAG|DOUBLE_BOTTOM|PRESSURE|SUPPORT|TRIPLE_BOTTOM|VOLUME": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1D_TREND|CANDLE|DOUBLE_TOP|PREMIUM|RESISTANCE|TRIPLE_TOP": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|4H_TREND|BEAR_FLAG|BOS|BREAKER|ORDER_BLOCK|PRESSURE|RANGE_BREAKDOWN": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
+    },
+    "1H_TREND|BEAR_FLAG|BOS|BREAKER|ORDER_BLOCK|PRESSURE|RANGE_BREAKDOWN|RSI": {
+      "wins": 0,
+      "losses": 0,
+      "weight": 1.0
     }
   },
   "regimes": {},
@@ -9998,9 +10354,9 @@
       "failure_rate": 1.0
     },
     "HIGH_RISK_DISTANCE": {
-      "trades": 1,
+      "trades": 2,
       "wins": 0,
-      "losses": 1,
+      "losses": 2,
       "failure_rate": 1.0
     },
     "SELL_OVEREXTENDED_RSI": {
@@ -10010,6 +10366,18 @@
       "failure_rate": 1.0
     },
     "SELL_IN_DISCOUNT": {
+      "trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "failure_rate": 1.0
+    },
+    "SELL_PRESSURE_AGAINST_BUY": {
+      "trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "failure_rate": 0.0
+    },
+    "HTF_1D_AGAINST_SELL": {
       "trades": 1,
       "wins": 0,
       "losses": 1,

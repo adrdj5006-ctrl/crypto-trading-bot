@@ -7971,5 +7971,255 @@
       },
       "checked_at": "2026-10-14T08:00:16.982778+05:00"
     }
+  },
+  {
+    "trade_id": "d01d5ea6-cbd8-4f0a-a627-d870d82db3cb",
+    "signal_id": "LINKUSDT|SELL|2026-10-14 12:00:00+00:00",
+    "symbol": "LINKUSDT",
+    "direction": "SELL",
+    "result": "LOSS",
+    "entry": 12.707,
+    "stop": 12.997963442739911,
+    "target": 12.183265803068162,
+    "risk": 0.29096344273991015,
+    "reward": 0.523734196931839,
+    "rr": 1.8000000000000025,
+    "risk_pct": 2.2897886420076348,
+    "reward_pct": 4.121619555613748,
+    "open_time": "2026-10-14T18:00:35.225061+05:00",
+    "signal_candle": "2026-10-14 12:00:00+00:00",
+    "buy_score": 24.560004367294898,
+    "sell_score": 58.04149563852829,
+    "d1_bias": "NEUTRAL",
+    "h4_bias": "BEAR",
+    "h1_bias": "BEAR",
+    "pressure_buy": 27.122247307230314,
+    "pressure_sell": 72.87775269276969,
+    "volume_ratio": 4.626683825767465,
+    "rsi": 36.27090044569265,
+    "setups": [
+      "ascending_triangle",
+      "bear_flag",
+      "bull_flag",
+      "descending_triangle",
+      "double_bottom",
+      "double_top",
+      "equal_high",
+      "equal_low",
+      "falling_wedge",
+      "head_shoulders",
+      "inverse_hs",
+      "range_breakdown",
+      "range_breakout",
+      "range_market",
+      "rising_wedge",
+      "symmetrical_triangle",
+      "triple_bottom",
+      "triple_top"
+    ],
+    "learning_indicators": [
+      "1H_TREND",
+      "4H_TREND",
+      "BEAR_FLAG",
+      "BOS",
+      "DOUBLE_TOP",
+      "PRESSURE",
+      "RANGE_BREAKDOWN",
+      "RSI",
+      "TRIPLE_TOP",
+      "VOLUME"
+    ],
+    "learning_combination": "1H_TREND|4H_TREND|BEAR_FLAG|BOS|DOUBLE_TOP|PRESSURE|RANGE_BREAKDOWN|RSI",
+    "failure_features": [
+      "HIGH_RISK_DISTANCE",
+      "HTF_1D_AGAINST_SELL",
+      "SELL_IN_DISCOUNT"
+    ],
+    "best_price": 12.707,
+    "worst_price": 12.707,
+    "mae": 2.4710789328716456,
+    "mfe": 0.07082710317148297,
+    "last_health": {
+      "health_score": 100,
+      "status": "HEALTHY",
+      "warnings": [],
+      "critical": [],
+      "structure": {
+        "last_high": 13.1,
+        "previous_high": 13.077,
+        "last_low": 12.86,
+        "previous_low": 12.724,
+        "HH": true,
+        "HL": true,
+        "LH": false,
+        "LL": false,
+        "bull_bos": false,
+        "bear_bos": true,
+        "bull_choch": false,
+        "bear_choch": false,
+        "highs": [
+          [
+            4,
+            13.254
+          ],
+          [
+            31,
+            13.487
+          ],
+          [
+            45,
+            13.506
+          ],
+          [
+            68,
+            13.193
+          ],
+          [
+            76,
+            13.098
+          ],
+          [
+            89,
+            13.077
+          ],
+          [
+            94,
+            13.1
+          ]
+        ],
+        "lows": [
+          [
+            21,
+            12.837
+          ],
+          [
+            35,
+            13.14
+          ],
+          [
+            62,
+            12.259
+          ],
+          [
+            73,
+            12.724
+          ],
+          [
+            85,
+            12.86
+          ]
+        ]
+      },
+      "smc": {
+        "bull_fvg": false,
+        "bear_fvg": false,
+        "bull_ob": false,
+        "bear_ob": false,
+        "bull_breaker": false,
+        "bear_breaker": false,
+        "bull_sweep": false,
+        "bear_sweep": false,
+        "range_high": 13.44,
+        "range_low": 12.259,
+        "equilibrium": 12.849499999999999,
+        "discount": true,
+        "premium": false
+      },
+      "checked_at": "2026-10-14T18:01:26.146176+05:00"
+    },
+    "last_checked_candle": "2026-10-14 12:00:00+00:00",
+    "exit": 12.997963442739911,
+    "exit_time": "2026-10-14T18:01:26.146190+05:00",
+    "exit_reason": "STOP_LOSS",
+    "pnl": -0.29096344273991015,
+    "r": -1.0,
+    "close_health": {
+      "health_score": 100,
+      "status": "HEALTHY",
+      "warnings": [],
+      "critical": [],
+      "structure": {
+        "last_high": 13.1,
+        "previous_high": 13.077,
+        "last_low": 12.86,
+        "previous_low": 12.724,
+        "HH": true,
+        "HL": true,
+        "LH": false,
+        "LL": false,
+        "bull_bos": false,
+        "bear_bos": true,
+        "bull_choch": false,
+        "bear_choch": false,
+        "highs": [
+          [
+            4,
+            13.254
+          ],
+          [
+            31,
+            13.487
+          ],
+          [
+            45,
+            13.506
+          ],
+          [
+            68,
+            13.193
+          ],
+          [
+            76,
+            13.098
+          ],
+          [
+            89,
+            13.077
+          ],
+          [
+            94,
+            13.1
+          ]
+        ],
+        "lows": [
+          [
+            21,
+            12.837
+          ],
+          [
+            35,
+            13.14
+          ],
+          [
+            62,
+            12.259
+          ],
+          [
+            73,
+            12.724
+          ],
+          [
+            85,
+            12.86
+          ]
+        ]
+      },
+      "smc": {
+        "bull_fvg": false,
+        "bear_fvg": false,
+        "bull_ob": false,
+        "bear_ob": false,
+        "bull_breaker": false,
+        "bear_breaker": false,
+        "bull_sweep": false,
+        "bear_sweep": false,
+        "range_high": 13.44,
+        "range_low": 12.259,
+        "equilibrium": 12.849499999999999,
+        "discount": true,
+        "premium": false
+      },
+      "checked_at": "2026-10-14T18:01:26.146176+05:00"
+    }
   }
 ]
