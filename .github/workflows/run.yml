@@ -1,15 +1,10 @@
 name: MARKET BRAIN AI
 
-'on':
-workflow_dispatch:
-
-permissions:
-contents: read
+on: [push]
 
 jobs:
 check-bot:
 runs-on: ubuntu-latest
-timeout-minutes: 10
 
 steps:
   - name: Checkout repository
@@ -20,18 +15,21 @@ steps:
     with:
       python-version: "3.11"
 
-  - name: Install packages
-    run: |
-      python -m pip install --upgrade pip
-      pip install requests pandas numpy flask gunicorn
+  - name: Check Python
+    run: python --version
 
-  - name: Check required files
+  - name: Check main file
     run: |
-      test -f main.py
-      test -f templates/index.html
-      echo "Required files found."
-
-  - name: Check Python syntax
-    run: |
+      if [ ! -f main.py ]; then
+        echo "ERROR: main.py is missing"
+        exit 1
+      fi
       python -m py_compile main.py
-      echo "Python syntax is correct."
+
+  - name: Check dashboard
+    run: |
+      if [ ! -f templates/index.html ]; then
+        echo "ERROR: templates/index.html is missing"
+        exit 1
+      fi
+      echo "Dashboard file found"
