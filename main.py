@@ -777,7 +777,7 @@ def performance_summary():
     losses = sum(1 for t in closed if t.get("result") == "LOSS")
     total = wins + losses
 
-     return {
+    return {
         "wins": wins,
         "losses": losses,
         "closed_trades": len(closed),
@@ -871,4 +871,4 @@ if __name__ == "__main__":
         port=PORT,
         debug=False,
         use_reloader=False
-                 )
+    )
