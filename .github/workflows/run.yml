@@ -1,10 +1,13 @@
-name: MARKET BRAIN AI
+name: Workflow Test
 
-on: [push]
+on: push
 
 jobs:
-check-bot:
-runs-on: ubuntu-latest
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test workflow
+        run: echo "GitHub Actions is working"
 
 steps:
   - name: Checkout repository
