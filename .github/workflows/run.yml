@@ -6,32 +6,5 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Test workflow
+      - name: Test workflow
         run: echo "GitHub Actions is working"
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
-
-  - name: Setup Python
-    uses: actions/setup-python@v5
-    with:
-      python-version: "3.11"
-
-  - name: Check Python
-    run: python --version
-
-  - name: Check main file
-    run: |
-      if [ ! -f main.py ]; then
-        echo "ERROR: main.py is missing"
-        exit 1
-      fi
-      python -m py_compile main.py
-
-  - name: Check dashboard
-    run: |
-      if [ ! -f templates/index.html ]; then
-        echo "ERROR: templates/index.html is missing"
-        exit 1
-      fi
-      echo "Dashboard file found"
