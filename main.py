@@ -12,10 +12,16 @@ import pandas as pd
 from flask import Flask, jsonify, render_template
 
 # ==========================================================
-# TRADING BOT BACKEND
+# MARKET BRAIN AI
 # Multi-timeframe market scanner + paper trade tracker
 # Timeframes: 1D / 4H / 1H / 15M
 # Paper trading only. No real orders are placed.
+#
+# GitHub Actions:
+#   Set RUN_ONCE=1 to scan once, export dashboard.json, and exit.
+#
+# Local/persistent server:
+#   Leave RUN_ONCE unset to run Flask + background scanner.
 # ==========================================================
 
 app = Flask(__name__)
@@ -33,7 +39,6 @@ MAX_OPEN_TRADES = 8
 MIN_SCORE = 65
 MIN_RR = 2.0
 
-# Public market-data endpoint
 BINANCE_BASE = os.environ.get(
     "BINANCE_BASE",
     "https://data-api.binance.vision"
@@ -48,7 +53,6 @@ SYMBOLS = [
 ]
 
 TIMEFRAMES = ["1d", "4h", "1h", "15m"]
-
 PKT = ZoneInfo("Asia/Karachi")
 
 DATA_DIR = os.environ.get("DATA_DIR", "market_brain_data")
@@ -57,12 +61,18 @@ os.makedirs(DATA_DIR, exist_ok=True)
 STATE_FILE = os.path.join(DATA_DIR, "bot_state.json")
 TRADES_FILE = os.path.join(DATA_DIR, "paper_trades.json")
 
-logging.basicConfig(level=logging.INFO)
+# dashboard.json is written to the repository root for GitHub Pages.
+DASHBOARD_FILE = os.environ.get("DASHBOARD_FILE", "dashboard.json")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
 logger = logging.getLogger("market_brain")
 
 session = requests.Session()
 session.headers.update({
-    "User-Agent": "MARKET-BRAIN-AI/3.0"
+    "User-Agent": "MARKET-BRAIN-AI/3.1"
 })
 
 # ---------------- GLOBAL STATE ----------------
@@ -124,6 +134,7 @@ def save_json(path, data):
 
 
 def load_saved_data():
+    """Load the files used by this version without deleting other saved files."""
     global state, trades
 
     saved_state = load_json(STATE_FILE, {})
@@ -133,8 +144,28 @@ def load_saved_data():
         state.update(saved_state)
 
     if isinstance(saved_trades, dict):
-        trades["active"] = saved_trades.get("active", [])
-        trades["closed"] = saved_trades.get("closed", [])
+        active = saved_trades.get("active", [])
+        closed = saved_trades.get("closed", [])
+
+        trades["active"] = active if isinstance(active, list) else []
+        trades["closed"] = closed if isinstance(closed, list) else []
+
+    # Ensure expected fields exist even if an older state file is incomplete.
+    state.setdefault("app", APP_NAME)
+    state.setdefault("status", "STARTING")
+    state.setdefault("last_scan", None)
+    state.setdefault("last_error", None)
+    state.setdefault("market", {})
+    state.setdefault("signals", [])
+    state.setdefault("logs", [])
+    state.setdefault("scan_count", 0)
+
+    if not isinstance(state["market"], dict):
+        state["market"] = {}
+    if not isinstance(state["signals"], list):
+        state["signals"] = []
+    if not isinstance(state["logs"], list):
+        state["logs"] = []
 
 
 def save_all():
@@ -145,13 +176,77 @@ def save_all():
 
 def add_log(message, level="INFO"):
     with lock:
-        state["logs"].insert(0, {
+        logs = state.setdefault("logs", [])
+        logs.insert(0, {
             "time": now_pkt(),
             "level": level,
             "message": str(message)
         })
+        state["logs"] = logs[:100]
 
-        state["logs"] = state["logs"][:100]
+
+def performance_summary():
+    with lock:
+        closed = list(trades["closed"])
+        active = list(trades["active"])
+
+    wins = sum(
+        1 for trade in closed
+        if trade.get("result") == "WIN"
+    )
+    losses = sum(
+        1 for trade in closed
+        if trade.get("result") == "LOSS"
+    )
+    total = wins + losses
+
+    return {
+        "wins": wins,
+        "losses": losses,
+        "closed_trades": len(closed),
+        "active_trades": len(active),
+        "win_rate": round(wins / total * 100, 2) if total else 0.0,
+        "total_pnl_percent": round(
+            sum(float(trade.get("pnl_percent") or 0) for trade in closed),
+            4
+        )
+    }
+
+
+def save_dashboard_json():
+    """Export data in the exact shape expected by the static dashboard."""
+    with lock:
+        payload = {
+            "app": APP_NAME,
+            "status": state.get("status", "UNKNOWN"),
+            "last_scan": state.get("last_scan"),
+            "server_time_pkt": now_pkt(),
+            "symbols_count": len(SYMBOLS),
+            "signals": list(state.get("signals", [])),
+            "market": dict(state.get("market", {})),
+            "active_trades": list(trades.get("active", [])),
+            "closed_trades": list(trades.get("closed", [])[:100]),
+            "performance": performance_summary(),
+            "logs": list(state.get("logs", [])[:50])
+        }
+
+    path = os.path.abspath(DASHBOARD_FILE)
+    temporary = path + ".tmp"
+
+    try:
+        with open(temporary, "w", encoding="utf-8") as f:
+            json.dump(
+                payload,
+                f,
+                indent=2,
+                ensure_ascii=False,
+                allow_nan=False
+            )
+        os.replace(temporary, path)
+        logger.info("Dashboard JSON updated: %s", path)
+    except (OSError, TypeError, ValueError):
+        logger.exception("Could not export dashboard JSON")
+        raise
 
 
 # ---------------- BINANCE MARKET DATA ----------------
@@ -168,7 +263,6 @@ def get_candles(symbol, interval, limit=CANDLE_LIMIT):
         },
         timeout=15
     )
-
     response.raise_for_status()
     rows = response.json()
 
@@ -190,13 +284,12 @@ def get_candles(symbol, interval, limit=CANDLE_LIMIT):
         "taker_buy_base", "taker_buy_quote"
     ]
 
-    for col in numeric_columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    for column in numeric_columns:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
 
     df["open_time"] = pd.to_datetime(
         df["open_time"], unit="ms", utc=True
     )
-
     df["close_time"] = pd.to_datetime(
         df["close_time"], unit="ms", utc=True
     )
@@ -221,25 +314,21 @@ def add_indicators(df):
     df["ema200"] = close.ewm(span=200, adjust=False).mean()
 
     delta = close.diff()
-
     gain = delta.clip(lower=0)
     loss = -delta.clip(upper=0)
 
     avg_gain = gain.ewm(
         alpha=1 / 14, min_periods=14, adjust=False
     ).mean()
-
     avg_loss = loss.ewm(
         alpha=1 / 14, min_periods=14, adjust=False
     ).mean()
 
     rs = avg_gain / avg_loss.replace(0, np.nan)
-
     df["rsi"] = 100 - (100 / (1 + rs))
     df["rsi"] = df["rsi"].fillna(50)
 
     previous_close = close.shift(1)
-
     true_range = pd.concat([
         high - low,
         (high - previous_close).abs(),
@@ -260,9 +349,7 @@ def add_indicators(df):
     ).replace([np.inf, -np.inf], np.nan).fillna(1.0)
 
     candle_range = (high - low).replace(0, np.nan)
-
     df["body"] = close - df["open"]
-
     df["body_ratio"] = (
         df["body"].abs() / candle_range
     ).fillna(0)
@@ -270,7 +357,6 @@ def add_indicators(df):
     df["upper_wick"] = (
         high - pd.concat([df["open"], close], axis=1).max(axis=1)
     )
-
     df["lower_wick"] = (
         pd.concat([df["open"], close], axis=1).min(axis=1) - low
     )
@@ -281,13 +367,34 @@ def add_indicators(df):
 # ---------------- MARKET STRUCTURE ----------------
 
 def analyze_timeframe(df):
+    if df.empty:
+        raise ValueError("No closed candles available")
+
     df = add_indicators(df)
 
     if len(df) < 205:
         return {
             "bias": "UNKNOWN",
             "reason": "Not enough candles",
-            "price": float(df["close"].iloc[-1])
+            "price": float(df["close"].iloc[-1]),
+            "ema20": None,
+            "ema50": None,
+            "ema200": None,
+            "rsi": None,
+            "atr": None,
+            "volume_ratio": None,
+            "support": None,
+            "resistance": None,
+            "bullish_bos": False,
+            "bearish_bos": False,
+            "sweep_low": False,
+            "sweep_high": False,
+            "bullish_fvg": False,
+            "bearish_fvg": False,
+            "body_ratio": None,
+            "bullish_candle": False,
+            "bearish_candle": False,
+            "previous_close": None
         }
 
     last = df.iloc[-1]
@@ -298,7 +405,6 @@ def analyze_timeframe(df):
         and last["ema20"] > last["ema50"]
         and last["ema50"] > last["ema200"]
     )
-
     bearish = (
         last["close"] < last["ema50"]
         and last["ema20"] < last["ema50"]
@@ -313,7 +419,6 @@ def analyze_timeframe(df):
         bias = "NEUTRAL"
 
     recent = df.iloc[-21:-1]
-
     resistance = float(recent["high"].max())
     support = float(recent["low"].min())
 
@@ -321,7 +426,6 @@ def analyze_timeframe(df):
         last["low"] < recent["low"].min()
         and last["close"] > recent["low"].min()
     )
-
     liquidity_sweep_high = (
         last["high"] > recent["high"].max()
         and last["close"] < recent["high"].max()
@@ -330,21 +434,22 @@ def analyze_timeframe(df):
     bullish_bos = last["close"] > resistance
     bearish_bos = last["close"] < support
 
-    # Simple three-candle fair value gap approximation.
     candle3 = df.iloc[-3]
-
     bullish_fvg = last["low"] > candle3["high"]
     bearish_fvg = last["high"] < candle3["low"]
 
+    def safe_float(value):
+        return float(value) if pd.notna(value) and np.isfinite(value) else None
+
     return {
         "bias": bias,
-        "price": float(last["close"]),
-        "ema20": float(last["ema20"]),
-        "ema50": float(last["ema50"]),
-        "ema200": float(last["ema200"]),
-        "rsi": float(last["rsi"]),
-        "atr": float(last["atr"]),
-        "volume_ratio": float(last["volume_ratio"]),
+        "price": safe_float(last["close"]),
+        "ema20": safe_float(last["ema20"]),
+        "ema50": safe_float(last["ema50"]),
+        "ema200": safe_float(last["ema200"]),
+        "rsi": safe_float(last["rsi"]),
+        "atr": safe_float(last["atr"]),
+        "volume_ratio": safe_float(last["volume_ratio"]),
         "support": support,
         "resistance": resistance,
         "bullish_bos": bool(bullish_bos),
@@ -353,10 +458,10 @@ def analyze_timeframe(df):
         "sweep_high": bool(liquidity_sweep_high),
         "bullish_fvg": bool(bullish_fvg),
         "bearish_fvg": bool(bearish_fvg),
-        "body_ratio": float(last["body_ratio"]),
+        "body_ratio": safe_float(last["body_ratio"]),
         "bullish_candle": bool(last["close"] > last["open"]),
         "bearish_candle": bool(last["close"] < last["open"]),
-        "previous_close": float(previous["close"]),
+        "previous_close": safe_float(previous["close"]),
         "reason": bias
     }
 
@@ -369,27 +474,26 @@ def build_signal(symbol, analyses):
     hourly = analyses["1h"]
     fifteen = analyses["15m"]
 
-    price = fifteen["price"]
+    # Do not make signals from incomplete timeframe analyses.
+    if any(a.get("bias") == "UNKNOWN" for a in analyses.values()):
+        return None
 
+    price = fifteen["price"]
     buy_score = 0
     sell_score = 0
     buy_reasons = []
     sell_reasons = []
 
-    # Major trend: 1D
     if daily["bias"] == "BULLISH":
         buy_score += 20
         buy_reasons.append("1D bullish trend")
-
     elif daily["bias"] == "BEARISH":
         sell_score += 20
         sell_reasons.append("1D bearish trend")
 
-    # Structure: 4H
     if four_hour["bias"] == "BULLISH":
         buy_score += 15
         buy_reasons.append("4H bullish structure")
-
     elif four_hour["bias"] == "BEARISH":
         sell_score += 15
         sell_reasons.append("4H bearish structure")
@@ -397,7 +501,6 @@ def build_signal(symbol, analyses):
     if four_hour["bullish_bos"]:
         buy_score += 12
         buy_reasons.append("4H bullish breakout")
-
     if four_hour["bearish_bos"]:
         sell_score += 12
         sell_reasons.append("4H bearish breakdown")
@@ -405,16 +508,13 @@ def build_signal(symbol, analyses):
     if four_hour["sweep_low"]:
         buy_score += 10
         buy_reasons.append("4H sell-side liquidity sweep")
-
     if four_hour["sweep_high"]:
         sell_score += 10
         sell_reasons.append("4H buy-side liquidity sweep")
 
-    # Setup: 1H
     if hourly["bias"] == "BULLISH":
         buy_score += 12
         buy_reasons.append("1H bullish trend")
-
     elif hourly["bias"] == "BEARISH":
         sell_score += 12
         sell_reasons.append("1H bearish trend")
@@ -422,22 +522,18 @@ def build_signal(symbol, analyses):
     if hourly["bullish_fvg"]:
         buy_score += 6
         buy_reasons.append("1H bullish FVG")
-
     if hourly["bearish_fvg"]:
         sell_score += 6
         sell_reasons.append("1H bearish FVG")
 
-    # Entry confirmation: 15M
     if fifteen["bullish_candle"]:
         buy_score += 5
-
     if fifteen["bearish_candle"]:
         sell_score += 5
 
     if fifteen["bullish_bos"]:
         buy_score += 10
         buy_reasons.append("15M bullish breakout")
-
     if fifteen["bearish_bos"]:
         sell_score += 10
         sell_reasons.append("15M bearish breakdown")
@@ -445,16 +541,14 @@ def build_signal(symbol, analyses):
     if fifteen["sweep_low"]:
         buy_score += 8
         buy_reasons.append("15M liquidity sweep")
-
     if fifteen["sweep_high"]:
         sell_score += 8
         sell_reasons.append("15M liquidity sweep")
 
-    if fifteen["volume_ratio"] >= 1.5:
+    if (fifteen.get("volume_ratio") or 0) >= 1.5:
         if fifteen["bullish_candle"]:
             buy_score += 5
             buy_reasons.append("Strong bullish volume")
-
         elif fifteen["bearish_candle"]:
             sell_score += 5
             sell_reasons.append("Strong bearish volume")
@@ -466,64 +560,53 @@ def build_signal(symbol, analyses):
         direction = "BUY"
         score = buy_score
         reasons = buy_reasons
-        atr = hourly["atr"]
-        support = hourly["support"]
+        atr = hourly.get("atr")
+        support = hourly.get("support")
     else:
         direction = "SELL"
         score = sell_score
         reasons = sell_reasons
-        atr = hourly["atr"]
-        support = hourly["resistance"]
+        atr = hourly.get("atr")
+        support = hourly.get("resistance")
 
-    # No signal without reasonable agreement between timeframes.
     if score < MIN_SCORE:
         return None
 
     if abs(buy_score - sell_score) < 10:
         return None
 
-    # Require 1H and 15M direction confirmation.
     if direction == "BUY":
         if hourly["bias"] != "BULLISH":
             return None
-
         if fifteen["bias"] not in ("BULLISH", "NEUTRAL"):
             return None
-
         if daily["bias"] == "BEARISH":
             return None
-
     else:
         if hourly["bias"] != "BEARISH":
             return None
-
         if fifteen["bias"] not in ("BEARISH", "NEUTRAL"):
             return None
-
         if daily["bias"] == "BULLISH":
             return None
 
-    if not np.isfinite(atr) or atr <= 0:
+    if atr is None or not np.isfinite(atr) or atr <= 0:
+        return None
+    if price is None or not np.isfinite(price) or price <= 0 or support is None:
         return None
 
-    # ATR-based paper-trade risk levels.
     if direction == "BUY":
         entry = price
         stop = min(support, entry - 1.2 * atr)
-
         if stop >= entry:
             stop = entry - 1.2 * atr
-
         risk = entry - stop
         target = entry + max(MIN_RR * risk, 2.0 * atr)
-
     else:
         entry = price
         stop = max(support, entry + 1.2 * atr)
-
         if stop <= entry:
             stop = entry + 1.2 * atr
-
         risk = stop - entry
         target = entry - max(MIN_RR * risk, 2.0 * atr)
 
@@ -531,7 +614,6 @@ def build_signal(symbol, analyses):
         return None
 
     rr = abs(target - entry) / risk
-
     if rr < MIN_RR:
         return None
 
@@ -554,48 +636,48 @@ def build_signal(symbol, analyses):
 # ---------------- PAPER TRADE TRACKER ----------------
 
 def trade_exists(signal):
-    return any(
-        t.get("symbol") == signal["symbol"]
-        and t.get("direction") == signal["direction"]
-        and t.get("status") == "ACTIVE"
-        for t in trades["active"]
-    )
+    with lock:
+        return any(
+            trade.get("symbol") == signal["symbol"]
+            and trade.get("direction") == signal["direction"]
+            and trade.get("status") == "ACTIVE"
+            for trade in trades["active"]
+        )
 
 
 def create_paper_trade(signal):
-    if trade_exists(signal):
-        return False
-
-    if len(trades["active"]) >= MAX_OPEN_TRADES:
-        return False
-
-    trade = dict(signal)
-    trade["id"] = (
-        signal["symbol"] + "-"
-        + signal["direction"] + "-"
-        + str(int(time.time()))
-    )
-
-    trade["status"] = "ACTIVE"
-    trade["opened_at"] = now_pkt()
-    trade["exit_price"] = None
-    trade["pnl_percent"] = None
-
     with lock:
+        if trade_exists(signal):
+            return False
+
+        if len(trades["active"]) >= MAX_OPEN_TRADES:
+            return False
+
+        trade = dict(signal)
+        trade["id"] = (
+            signal["symbol"] + "-"
+            + signal["direction"] + "-"
+            + str(int(time.time()))
+        )
+        trade["status"] = "ACTIVE"
+        trade["opened_at"] = now_pkt()
+        trade["exit_price"] = None
+        trade["pnl_percent"] = None
+        trade["current_price"] = trade["entry"]
+
         trades["active"].insert(0, trade)
 
     add_log(
         f"NEW PAPER TRADE: {trade['symbol']} {trade['direction']} "
         f"Score {trade['score']}"
     )
-
     save_all()
     return True
 
 
 def update_paper_trades():
     with lock:
-        active_snapshot = list(trades["active"])
+        active_snapshot = [dict(t) for t in trades["active"]]
 
     for trade in active_snapshot:
         symbol = trade["symbol"]
@@ -606,19 +688,20 @@ def update_paper_trades():
                 params={"symbol": symbol},
                 timeout=10
             )
-
             response.raise_for_status()
             price = float(response.json()["price"])
-
         except Exception as exc:
-            logger.warning("Price update failed for %s: %s", symbol, exc)
+            logger.warning(
+                "Price update failed for %s: %s",
+                symbol,
+                exc
+            )
             continue
 
         direction = trade["direction"]
         stop = float(trade["stop_loss"])
         target = float(trade["take_profit"])
         entry = float(trade["entry"])
-
         outcome = None
 
         if direction == "BUY":
@@ -626,15 +709,12 @@ def update_paper_trades():
                 outcome = "LOSS"
             elif price >= target:
                 outcome = "WIN"
-
             pnl = (price - entry) / entry * 100
-
         else:
             if price >= stop:
                 outcome = "LOSS"
             elif price <= target:
                 outcome = "WIN"
-
             pnl = (entry - price) / entry * 100
 
         with lock:
@@ -654,8 +734,8 @@ def close_trade(trade_id, exit_price, outcome):
     with lock:
         trade = next(
             (
-                t for t in trades["active"]
-                if t.get("id") == trade_id
+                item for item in trades["active"]
+                if item.get("id") == trade_id
             ),
             None
         )
@@ -664,7 +744,6 @@ def close_trade(trade_id, exit_price, outcome):
             return
 
         trades["active"].remove(trade)
-
         entry = float(trade["entry"])
 
         if trade["direction"] == "BUY":
@@ -673,6 +752,7 @@ def close_trade(trade_id, exit_price, outcome):
             pnl = (entry - exit_price) / entry * 100
 
         trade["exit_price"] = float(exit_price)
+        trade["current_price"] = float(exit_price)
         trade["pnl_percent"] = round(pnl, 4)
         trade["result"] = outcome
         trade["status"] = "CLOSED"
@@ -685,7 +765,6 @@ def close_trade(trade_id, exit_price, outcome):
         f"TRADE CLOSED: {trade['symbol']} "
         f"{outcome} PnL {trade['pnl_percent']}%"
     )
-
     save_all()
 
 
@@ -701,7 +780,7 @@ def scan_symbol(symbol):
     signal = build_signal(symbol, analyses)
 
     with lock:
-        state["market"][symbol] = {
+        state.setdefault("market", {})[symbol] = {
             "symbol": symbol,
             "price": analyses["15m"]["price"],
             "timeframes": analyses,
@@ -712,83 +791,78 @@ def scan_symbol(symbol):
     return signal
 
 
+def scan_once():
+    """Run one complete scan, update paper trades, and export dashboard JSON."""
+    add_log("Market scan started")
+    found_signals = []
+
+    for symbol in SYMBOLS:
+        try:
+            signal = scan_symbol(symbol)
+            if signal:
+                found_signals.append(signal)
+        except Exception as exc:
+            logger.warning("Scan failed for %s: %s", symbol, exc)
+            add_log(f"Scan failed for {symbol}: {exc}", "ERROR")
+
+        time.sleep(0.15)
+
+    found_signals.sort(
+        key=lambda item: item["score"],
+        reverse=True
+    )
+
+    with lock:
+        state["signals"] = found_signals
+        state["last_scan"] = now_pkt()
+        state["scan_count"] = int(state.get("scan_count", 0)) + 1
+        state["status"] = "RUNNING"
+        state["last_error"] = None
+
+    created = 0
+    for signal in found_signals:
+        if created >= MAX_NEW_TRADES_PER_SCAN:
+            break
+        if create_paper_trade(signal):
+            created += 1
+
+    update_paper_trades()
+
+    add_log(
+        f"Scan completed. Signals: {len(found_signals)}; "
+        f"new paper trades: {created}"
+    )
+    save_all()
+    save_dashboard_json()
+
+    logger.info(
+        "Scan completed: %s signals, %s new paper trades",
+        len(found_signals),
+        created
+    )
+
+
 def scanner_loop():
+    """Continuous scanning for a persistent server."""
     while True:
         try:
-            found_signals = []
-
-            for symbol in SYMBOLS:
-                try:
-                    signal = scan_symbol(symbol)
-
-                    if signal:
-                        found_signals.append(signal)
-
-                except Exception as exc:
-                    logger.warning(
-                        "Scan failed for %s: %s",
-                        symbol,
-                        exc
-                    )
-
-                time.sleep(0.15)
-
-            found_signals.sort(
-                key=lambda x: x["score"],
-                reverse=True
-            )
-
-            with lock:
-                state["signals"] = found_signals
-                state["last_scan"] = now_pkt()
-                state["scan_count"] += 1
-                state["status"] = "RUNNING"
-                state["last_error"] = None
-
-            created = 0
-
-            for signal in found_signals:
-                if created >= MAX_NEW_TRADES_PER_SCAN:
-                    break
-
-                if create_paper_trade(signal):
-                    created += 1
-
-            update_paper_trades()
-            save_all()
-
+            scan_once()
         except Exception as exc:
             logger.exception("Scanner loop error")
             with lock:
                 state["status"] = "DEGRADED"
                 state["last_error"] = str(exc)
-
             add_log("Scanner error: " + str(exc), "ERROR")
+            save_all()
+            try:
+                save_dashboard_json()
+            except Exception:
+                logger.exception("Dashboard export failed")
 
         time.sleep(max(10, SCAN_SECONDS))
 
 
-# ---------------- DASHBOARD API ----------------
-
-def performance_summary():
-    closed = trades["closed"]
-
-    wins = sum(1 for t in closed if t.get("result") == "WIN")
-    losses = sum(1 for t in closed if t.get("result") == "LOSS")
-    total = wins + losses
-
-    return {
-        "wins": wins,
-        "losses": losses,
-        "closed_trades": len(closed),
-        "active_trades": len(trades["active"]),
-        "win_rate": round(wins / total * 100, 2) if total else 0.0,
-        "total_pnl_percent": round(
-            sum(float(t.get("pnl_percent") or 0) for t in closed),
-            4
-        )
-    }
-
+# ---------------- FLASK DASHBOARD API ----------------
 
 @app.route("/")
 def dashboard():
@@ -813,19 +887,20 @@ def api_status():
 @app.route("/api/dashboard")
 def api_dashboard():
     with lock:
-        return jsonify({
+        payload = {
             "app": APP_NAME,
             "status": state["status"],
             "last_scan": state["last_scan"],
             "server_time_pkt": now_pkt(),
             "symbols_count": len(SYMBOLS),
-            "signals": state["signals"],
-            "market": state["market"],
-            "active_trades": trades["active"],
-            "closed_trades": trades["closed"][:100],
+            "signals": list(state["signals"]),
+            "market": dict(state["market"]),
+            "active_trades": list(trades["active"]),
+            "closed_trades": list(trades["closed"][:100]),
             "performance": performance_summary(),
-            "logs": state["logs"][:50]
-        })
+            "logs": list(state["logs"][:50])
+        }
+    return jsonify(payload)
 
 
 @app.route("/api/signals")
@@ -864,11 +939,28 @@ def start_background_scanner():
 
 
 if __name__ == "__main__":
-    start_background_scanner()
-
-    app.run(
-        host="0.0.0.0",
-        port=PORT,
-        debug=False,
-        use_reloader=False
-    )
+    if os.environ.get("RUN_ONCE", "0") == "1":
+        logger.info("RUN_ONCE enabled; starting one market scan")
+        try:
+            scan_once()
+            logger.info("One-time scan completed successfully")
+        except Exception as exc:
+            logger.exception("One-time scan failed")
+            with lock:
+                state["status"] = "DEGRADED"
+                state["last_error"] = str(exc)
+            add_log("One-time scan failed: " + str(exc), "ERROR")
+            save_all()
+            try:
+                save_dashboard_json()
+            except Exception:
+                logger.exception("Could not export dashboard JSON")
+            raise
+    else:
+        start_background_scanner()
+        app.run(
+            host="0.0.0.0",
+            port=PORT,
+            debug=False,
+            use_reloader=False
+)
