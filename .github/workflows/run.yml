@@ -6,9 +6,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Test workflow
+    - name: Test workflow
         run: echo "GitHub Actions is working"
-
 steps:
   - name: Checkout repository
     uses: actions/checkout@v4
