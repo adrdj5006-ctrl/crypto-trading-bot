@@ -1,1038 +1,165 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#0d1117">
-    <title>MARKET BRAIN AI | Trading Dashboard</title>
-
-    <style>
-        :root {
-            --bg: #0d1117;
-            --card: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
-            --muted: #8b949e;
-            --blue: #58a6ff;
-            --green: #3fb950;
-            --red: #f85149;
-            --orange: #ffa657;
-            --purple: #bc8cff;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            padding: 14px;
-            background: var(--bg);
-            color: var(--text);
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        .container {
-            max-width: 1250px;
-            margin: auto;
-        }
-
-        header {
-            padding: 18px 0;
-            border-bottom: 1px solid var(--border);
-            margin-bottom: 18px;
-        }
-
-        h1 {
-            color: var(--blue);
-            margin: 0 0 10px;
-            font-size: 25px;
-        }
-
-        h2 {
-            color: var(--blue);
-            font-size: 18px;
-            margin: 26px 0 12px;
-        }
-
-        h3 {
-            margin-top: 0;
-            font-size: 15px;
-        }
-
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 6px 11px;
-            border-radius: 20px;
-            background: #30363d;
-            color: var(--text);
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .running {
-            background: #123d25;
-            color: var(--green);
-        }
-
-        .error {
-            background: #4b1d20;
-            color: var(--red);
-        }
-
-        .muted {
-            color: var(--muted);
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(
-                auto-fit,
-                minmax(150px, 1fr)
-            );
-            gap: 12px;
-        }
-
-        .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 15px;
-            min-width: 0;
-        }
-
-        .label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: .5px;
-            color: var(--muted);
-            margin-bottom: 9px;
-        }
-
-        .value {
-            font-size: 21px;
-            font-weight: bold;
-            overflow-wrap: anywhere;
-        }
-
-        .small-value {
-            font-size: 14px;
-            line-height: 1.6;
-            overflow-wrap: anywhere;
-        }
-
-        .green {
-            color: var(--green);
-        }
-
-        .red {
-            color: var(--red);
-        }
-
-        .blue {
-            color: var(--blue);
-        }
-
-        .orange {
-            color: var(--orange);
-        }
-
-        .purple {
-            color: var(--purple);
-        }
-
-        .section {
-            margin-top: 22px;
-        }
-
-        .table-wrap {
-            overflow-x: auto;
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 850px;
-        }
-
-        th, td {
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 1px solid var(--border);
-            font-size: 13px;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #1c222b;
-            color: var(--blue);
-            position: sticky;
-            top: 0;
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        .signal-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-
-        .signal-head {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
-
-        .signal-symbol {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .signal-details {
-            display: grid;
-            grid-template-columns: repeat(
-                auto-fit,
-                minmax(120px, 1fr)
-            );
-            gap: 12px;
-        }
-
-        .detail {
-            background: #0d1117;
-            border-radius: 7px;
-            padding: 10px;
-        }
-
-        .detail .label {
-            margin-bottom: 6px;
-        }
-
-        .reason {
-            color: var(--orange);
-            margin-top: 12px;
-            line-height: 1.6;
-            font-size: 13px;
-            white-space: normal;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 25px 10px;
-            color: var(--muted);
-        }
-
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-            margin: 12px 0;
-        }
-
-        button {
-            background: #21262d;
-            color: var(--text);
-            border: 1px solid var(--border);
-            border-radius: 7px;
-            padding: 9px 13px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            border-color: var(--blue);
-        }
-
-        .footer {
-            margin: 25px 0 10px;
-            color: var(--muted);
-            font-size: 12px;
-            text-align: center;
-            line-height: 1.7;
-        }
-
-        .bar {
-            width: 100%;
-            height: 6px;
-            background: #30363d;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-
-        .bar-fill {
-            height: 100%;
-            background: var(--blue);
-            width: 0%;
-            transition: width .3s;
-        }
-
-        .timeframe-box {
-            display: grid;
-            grid-template-columns: repeat(
-                auto-fit,
-                minmax(140px, 1fr)
-            );
-            gap: 10px;
-        }
-
-        .timeframe-card {
-            background: #0d1117;
-            border: 1px solid var(--border);
-            padding: 12px;
-            border-radius: 8px;
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 9px;
-            }
-
-            h1 {
-                font-size: 21px;
-            }
-
-            .value {
-                font-size: 18px;
-            }
-
-            .card {
-                padding: 12px;
-            }
-
-            th, td {
-                padding: 10px 8px;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1117">
+<title>MARKET BRAIN AI | Trading Dashboard</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--red:#f85149;--orange:#ffa657;--purple:#bc8cff}
+*{box-sizing:border-box}body{margin:0;padding:14px;background:var(--bg);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+.container{max-width:1250px;margin:auto}header{padding:18px 0;border-bottom:1px solid var(--border);margin-bottom:18px}
+h1{color:var(--blue);margin:0 0 10px;font-size:25px}h2{color:var(--blue);font-size:18px;margin:26px 0 12px}h3{margin-top:0;font-size:15px}
+.header-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.badge{display:inline-block;padding:6px 11px;border-radius:20px;background:#30363d;color:var(--text);font-size:12px;font-weight:bold}
+.running{background:#123d25;color:var(--green)}.error{background:#4b1d20;color:var(--red)}.muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:15px;min-width:0}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:9px}.value{font-size:21px;font-weight:bold;overflow-wrap:anywhere}
+.small-value{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.green{color:var(--green)}.red{color:var(--red)}.blue{color:var(--blue)}.orange{color:var(--orange)}.purple{color:var(--purple)}
+.section{margin-top:22px}.table-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--border);border-radius:10px}
+table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:12px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}
+th{background:#1c222b;color:var(--blue);position:sticky;top:0}tr:last-child td{border-bottom:none}
+.signal-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:15px;margin-bottom:10px}
+.signal-head{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px}.signal-symbol{font-size:18px;font-weight:bold}
+.signal-details{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}.detail{background:#0d1117;border-radius:7px;padding:10px}.detail .label{margin-bottom:6px}
+.reason{color:var(--orange);margin-top:12px;line-height:1.6;font-size:13px;white-space:normal}.empty{text-align:center;padding:25px 10px;color:var(--muted)}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:12px 0}button{background:#21262d;color:var(--text);border:1px solid var(--border);border-radius:7px;padding:9px 13px;cursor:pointer}button:hover{border-color:var(--blue)}
+.footer{margin:25px 0 10px;color:var(--muted);font-size:12px;text-align:center;line-height:1.7}
+.bar{width:100%;height:6px;background:#30363d;border-radius:10px;overflow:hidden;margin-top:8px}.bar-fill{height:100%;background:var(--blue);width:0%;transition:width .3s}
+.timeframe-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}.timeframe-card{background:#0d1117;border:1px solid var(--border);padding:12px;border-radius:8px}
+@media(max-width:600px){body{padding:9px}h1{font-size:21px}.value{font-size:18px}.card{padding:12px}th,td{padding:10px 8px}}
+</style>
 </head>
-
 <body>
 <div class="container">
+<header>
+ <div class="header-row"><div><h1>MARKET BRAIN AI</h1><div class="muted">Multi-Timeframe Crypto Scanner</div></div><span id="systemStatus" class="badge">CONNECTING...</span></div>
+ <div class="toolbar">
+  <span class="badge">Pakistan Time: <span id="pktTime">--</span></span>
+  <span class="badge">Last Scan: <span id="lastScan">--</span></span>
+  <span class="badge">Coins: <span id="coinCount">0</span></span>
+  <button onclick="refreshDashboard()">Refresh Now</button>
+ </div>
+ <div id="errorMessage" class="reason"></div>
+ <div class="muted" style="font-size:12px">GitHub Pages dashboard — data updates after the scheduled scanner run.</div>
+</header>
 
-    <header>
-        <div class="header-row">
-            <div>
-                <h1>MARKET BRAIN AI</h1>
-                <div class="muted">
-                    Multi-Timeframe Crypto Scanner
-                </div>
-            </div>
+<h2>Performance Overview</h2>
+<div class="grid">
+ <div class="card"><div class="label">Active Trades</div><div class="value blue" id="activeCount">0</div></div>
+ <div class="card"><div class="label">Closed Trades</div><div class="value" id="closedCount">0</div></div>
+ <div class="card"><div class="label">Wins</div><div class="value green" id="wins">0</div></div>
+ <div class="card"><div class="label">Losses</div><div class="value red" id="losses">0</div></div>
+ <div class="card"><div class="label">Win Rate</div><div class="value purple" id="winRate">0%</div><div class="bar"><div id="winBar" class="bar-fill"></div></div></div>
+ <div class="card"><div class="label">Closed Trade PnL</div><div class="value" id="totalPnl">0%</div></div>
+</div>
 
-            <div>
-                <span id="systemStatus" class="badge">
-                    CONNECTING...
-                </span>
-            </div>
-        </div>
+<h2>Current Trading Signals</h2><div class="muted">Signal scores are rule-based scores, not guaranteed win probabilities.</div>
+<div id="signalsContainer" class="section"><div class="empty">Waiting for market data...</div></div>
 
-        <div class="toolbar">
-            <span class="badge">
-                Time: <span id="pktTime">--</span>
-            </span>
+<h2>Active Paper Trades</h2>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Direction</th><th>Entry</th><th>Current Price</th><th>Stop Loss</th><th>Take Profit</th><th>PnL %</th><th>Score</th><th>Opened</th></tr></thead><tbody id="activeTradesBody"><tr><td colspan="9" class="empty">No active trades</td></tr></tbody></table></div>
 
-            <span class="badge">
-                Last Scan: <span id="lastScan">--</span>
-            </span>
+<h2>Closed Trade History</h2>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Direction</th><th>Entry</th><th>Exit</th><th>Result</th><th>PnL %</th><th>Opened</th><th>Closed</th></tr></thead><tbody id="closedTradesBody"><tr><td colspan="8" class="empty">No closed trades yet</td></tr></tbody></table></div>
 
-            <span class="badge">
-                Coins: <span id="coinCount">0</span>
-            </span>
+<h2>20-Coin Market Scanner</h2>
+<div class="table-wrap"><table><thead><tr><th>Symbol</th><th>Price</th><th>1D</th><th>4H</th><th>1H</th><th>15M</th><th>Signal</th><th>Score</th><th>Updated</th></tr></thead><tbody id="marketBody"><tr><td colspan="9" class="empty">Market scan not available yet</td></tr></tbody></table></div>
 
-            <button onclick="refreshDashboard()">
-                Refresh Now
-            </button>
-        </div>
+<h2>Structure Analysis</h2>
+<div class="card"><div class="toolbar"><label for="symbolSelect">Select Coin:</label><select id="symbolSelect" onchange="renderSelectedAnalysis()" style="background:#0d1117;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:9px;max-width:100%"><option value="">Waiting for coins...</option></select></div><div id="analysisContainer" class="empty">Select a coin to view timeframe analysis.</div></div>
 
-        <div id="errorMessage" class="reason"></div>
-    </header>
-
-    <!-- PERFORMANCE SUMMARY -->
-
-    <h2>Performance Overview</h2>
-
-    <div class="grid">
-        <div class="card">
-            <div class="label">Active Trades</div>
-            <div class="value blue" id="activeCount">0</div>
-        </div>
-
-        <div class="card">
-            <div class="label">Closed Trades</div>
-            <div class="value" id="closedCount">0</div>
-        </div>
-
-        <div class="card">
-            <div class="label">Wins</div>
-            <div class="value green" id="wins">0</div>
-        </div>
-
-        <div class="card">
-            <div class="label">Losses</div>
-            <div class="value red" id="losses">0</div>
-        </div>
-
-        <div class="card">
-            <div class="label">Win Rate</div>
-            <div class="value purple" id="winRate">0%</div>
-            <div class="bar">
-                <div id="winBar" class="bar-fill"></div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="label">Closed Trade PnL</div>
-            <div class="value" id="totalPnl">0%</div>
-        </div>
-    </div>
-
-    <!-- SIGNALS -->
-
-    <h2>Current Trading Signals</h2>
-
-    <div class="muted">
-        Signal scores are rule-based scores, not guaranteed win probabilities.
-    </div>
-
-    <div id="signalsContainer" class="section">
-        <div class="empty">Waiting for market data...</div>
-    </div>
-
-    <!-- ACTIVE TRADES -->
-
-    <h2>Active Paper Trades</h2>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Direction</th>
-                    <th>Entry</th>
-                    <th>Current Price</th>
-                    <th>Stop Loss</th>
-                    <th>Take Profit</th>
-                    <th>PnL %</th>
-                    <th>Score</th>
-                    <th>Opened</th>
-                </tr>
-            </thead>
-            <tbody id="activeTradesBody">
-                <tr>
-                    <td colspan="9" class="empty">
-                        No active trades
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- CLOSED TRADES -->
-
-    <h2>Closed Trade History</h2>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Direction</th>
-                    <th>Entry</th>
-                    <th>Exit</th>
-                    <th>Result</th>
-                    <th>PnL %</th>
-                    <th>Opened</th>
-                    <th>Closed</th>
-                </tr>
-            </thead>
-            <tbody id="closedTradesBody">
-                <tr>
-                    <td colspan="8" class="empty">
-                        No closed trades yet
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- MARKET SCANNER -->
-
-    <h2>20-Coin Market Scanner</h2>
-
-    <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Price</th>
-                    <th>1D</th>
-                    <th>4H</th>
-                    <th>1H</th>
-                    <th>15M</th>
-                    <th>Signal</th>
-                    <th>Score</th>
-                    <th>Updated</th>
-                </tr>
-            </thead>
-            <tbody id="marketBody">
-                <tr>
-                    <td colspan="9" class="empty">
-                        Market scan not available yet
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- STRUCTURE DETAILS -->
-
-    <h2>Structure Analysis</h2>
-
-    <div class="card">
-        <div class="toolbar">
-            <label for="symbolSelect">Select Coin:</label>
-
-            <select id="symbolSelect"
-                onchange="renderSelectedAnalysis()"
-                style="background:#0d1117;color:#c9d1d9;
-                border:1px solid #30363d;border-radius:6px;
-                padding:9px;max-width:100%;">
-                <option value="">Waiting for coins...</option>
-            </select>
-        </div>
-
-        <div id="analysisContainer" class="empty">
-            Select a coin to view timeframe analysis.
-        </div>
-    </div>
-
-    <!-- SYSTEM LOGS -->
-
-    <h2>System Logs</h2>
-
-    <div id="logsContainer">
-        <div class="empty">No logs yet</div>
-    </div>
-
-    <div class="footer">
-        MARKET BRAIN AI — Live Market Dashboard<br>
-        Market data is provided by Binance public endpoints.<br>
-        Paper trading only. Trading scores do not guarantee profits.
-    </div>
-
+<h2>System Logs</h2><div id="logsContainer"><div class="empty">No logs yet</div></div>
+<div class="footer">MARKET BRAIN AI — Market Dashboard<br>Market data is provided by Binance public endpoints.<br>Paper trading only. Trading scores do not guarantee profits.</div>
 </div>
 
 <script>
-    const API_URL = "/api/dashboard";
-
-    let dashboardData = null;
-    let requestInProgress = false;
-
-    function escapeHTML(value) {
-        return String(value ?? "").replace(/[&<>"']/g, function(ch) {
-            return {
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#39;"
-            }[ch];
-        });
-    }
-
-    function number(value, decimals = 4) {
-        const n = Number(value);
-
-        if (!Number.isFinite(n)) {
-            return "--";
-        }
-
-        return n.toLocaleString("en-US", {
-            maximumFractionDigits: decimals
-        });
-    }
-
-    function timeText(value) {
-        if (!value) return "--";
-
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return String(value);
-        }
-
-        return date.toLocaleString("en-GB", {
-            timeZone: "Asia/Karachi",
-            hour12: false
-        });
-    }
-
-    function directionClass(direction) {
-        return direction === "BUY" ? "green" :
-               direction === "SELL" ? "red" : "muted";
-    }
-
-    function biasClass(bias) {
-        if (bias === "BULLISH") return "green";
-        if (bias === "BEARISH") return "red";
-        return "orange";
-    }
-
-    function resultClass(result) {
-        return result === "WIN" ? "green" :
-               result === "LOSS" ? "red" : "muted";
-    }
-
-    async function fetchJSON(url) {
-        const response = await fetch(url, {
-            cache: "no-store"
-        });
-
-        if (!response.ok) {
-            throw new Error("HTTP " + response.status);
-        }
-
-        return await response.json();
-    }
-
-    async function refreshDashboard() {
-        if (requestInProgress) return;
-
-        requestInProgress = true;
-
-        try {
-            const data = await fetchJSON(API_URL);
-
-            dashboardData = data;
-
-            renderDashboard(data);
-
-            document.getElementById("errorMessage").textContent = "";
-
-        } catch (error) {
-            document.getElementById("systemStatus").textContent =
-                "CONNECTION ERROR";
-
-            document.getElementById("systemStatus").className =
-                "badge error";
-
-            document.getElementById("errorMessage").textContent =
-                "Dashboard API connection failed: " + error.message;
-
-        } finally {
-            requestInProgress = false;
-        }
-    }
-
-    function renderDashboard(data) {
-        const status = data.status || "UNKNOWN";
-
-        const statusElement =
-            document.getElementById("systemStatus");
-
-        statusElement.textContent = status;
-
-        statusElement.className =
-            status === "RUNNING" ?
-            "badge running" :
-            "badge error";
-
-        document.getElementById("pktTime").textContent =
-            timeText(data.server_time_pkt);
-
-        document.getElementById("lastScan").textContent =
-            timeText(data.last_scan);
-
-        document.getElementById("coinCount").textContent =
-            number(data.symbols_count, 0);
-
-        const performance = data.performance || {};
-
-        document.getElementById("activeCount").textContent =
-            number(performance.active_trades, 0);
-
-        document.getElementById("closedCount").textContent =
-            number(performance.closed_trades, 0);
-
-        document.getElementById("wins").textContent =
-            number(performance.wins, 0);
-
-        document.getElementById("losses").textContent =
-            number(performance.losses, 0);
-
-        const winRate = Number(performance.win_rate || 0);
-
-        document.getElementById("winRate").textContent =
-            number(winRate, 2) + "%";
-
-        document.getElementById("winBar").style.width =
-            Math.max(0, Math.min(100, winRate)) + "%";
-
-        const pnl = Number(performance.total_pnl_percent || 0);
-
-        const pnlElement = document.getElementById("totalPnl");
-
-        pnlElement.textContent = number(pnl, 4) + "%";
-
-        pnlElement.className =
-            "value " + (pnl >= 0 ? "green" : "red");
-
-        renderSignals(data.signals || []);
-        renderActiveTrades(data.active_trades || []);
-        renderClosedTrades(data.closed_trades || []);
-        renderMarket(data.market || {});
-        renderLogs(data.logs || []);
-        updateSymbolSelector(data.market || {});
-        renderSelectedAnalysis();
-    }
-
-    function renderSignals(signals) {
-        const container =
-            document.getElementById("signalsContainer");
-
-        if (!signals.length) {
-            container.innerHTML =
-                '<div class="empty">' +
-                'No qualifying signals at the latest scan.' +
-                '</div>';
-            return;
-        }
-
-        container.innerHTML = signals.map(signal => {
-            const direction = escapeHTML(signal.direction);
-            const symbol = escapeHTML(signal.symbol);
-            const reasons = Array.isArray(signal.reasons) ?
-                signal.reasons.map(escapeHTML).join(" • ") :
-                "No reason details";
-
-            const score = Math.max(
-                0,
-                Math.min(100, Number(signal.score || 0))
-            );
-
-            return `
-                <div class="signal-card">
-                    <div class="signal-head">
-                        <div>
-                            <div class="signal-symbol">${symbol}</div>
-                            <span class="${directionClass(direction)}">
-                                ${direction}
-                            </span>
-                            <span class="badge">15M confirmation</span>
-                        </div>
-
-                        <div>
-                            <span class="badge">
-                                Score ${score}/100
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="signal-details">
-                        <div class="detail">
-                            <div class="label">Entry</div>
-                            <div>${number(signal.entry)}</div>
-                        </div>
-
-                        <div class="detail">
-                            <div class="label">Stop Loss</div>
-                            <div class="red">
-                                ${number(signal.stop_loss)}
-                            </div>
-                        </div>
-
-                        <div class="detail">
-                            <div class="label">Take Profit</div>
-                            <div class="green">
-                                ${number(signal.take_profit)}
-                            </div>
-                        </div>
-
-                        <div class="detail">
-                            <div class="label">Risk / Reward</div>
-                            <div>${number(signal.risk_reward, 2)} R</div>
-                        </div>
-                    </div>
-
-                    <div class="bar">
-                        <div class="bar-fill"
-                            style="width:${score}%"></div>
-                    </div>
-
-                    <div class="reason">
-                        <b>Signal reasons:</b> ${reasons}
-                    </div>
-
-                    <div class="muted" style="margin-top:8px;font-size:12px">
-                        Created: ${escapeHTML(timeText(signal.created_at))}
-                        <br>
-                        ${escapeHTML(signal.score_note || "")}
-                    </div>
-                </div>
-            `;
-        }).join("");
-    }
-
-    function renderActiveTrades(trades) {
-        const body = document.getElementById("activeTradesBody");
-
-        if (!trades.length) {
-            body.innerHTML =
-                '<tr><td colspan="9" class="empty">' +
-                'No active paper trades' +
-                '</td></tr>';
-            return;
-        }
-
-        body.innerHTML = trades.map(trade => {
-            const pnl = Number(trade.pnl_percent || 0);
-
-            return `
-                <tr>
-                    <td><b>${escapeHTML(trade.symbol)}</b></td>
-                    <td class="${directionClass(trade.direction)}">
-                        ${escapeHTML(trade.direction)}
-                    </td>
-                    <td>${number(trade.entry)}</td>
-                    <td>${number(trade.current_price)}</td>
-                    <td class="red">${number(trade.stop_loss)}</td>
-                    <td class="green">${number(trade.take_profit)}</td>
-                    <td class="${pnl >= 0 ? "green" : "red"}">
-                        ${number(pnl, 4)}%
-                    </td>
-                    <td>${number(trade.score, 0)}/100</td>
-                    <td>${escapeHTML(timeText(trade.opened_at))}</td>
-                </tr>
-            `;
-        }).join("");
-    }
-
-    function renderClosedTrades(trades) {
-        const body = document.getElementById("closedTradesBody");
-
-        if (!trades.length) {
-            body.innerHTML =
-                '<tr><td colspan="8" class="empty">' +
-                'No closed trades yet' +
-                '</td></tr>';
-            return;
-        }
-
-        body.innerHTML = trades.map(trade => `
-            <tr>
-                <td><b>${escapeHTML(trade.symbol)}</b></td>
-                <td class="${directionClass(trade.direction)}">
-                    ${escapeHTML(trade.direction)}
-                </td>
-                <td>${number(trade.entry)}</td>
-                <td>${number(trade.exit_price)}</td>
-                <td class="${resultClass(trade.result)}">
-                    ${escapeHTML(trade.result || "--")}
-                </td>
-                <td class="${Number(trade.pnl_percent || 0) >= 0
-                    ? "green" : "red"}">
-                    ${number(trade.pnl_percent, 4)}%
-                </td>
-                <td>${escapeHTML(timeText(trade.opened_at))}</td>
-                <td>${escapeHTML(timeText(trade.closed_at))}</td>
-            </tr>
-        `).join("");
-    }
-
-    function renderMarket(market) {
-        const body = document.getElementById("marketBody");
-        const entries = Object.values(market);
-
-        if (!entries.length) {
-            body.innerHTML =
-                '<tr><td colspan="9" class="empty">' +
-                'Waiting for scanner data...' +
-                '</td></tr>';
-            return;
-        }
-
-        entries.sort((a, b) =>
-            String(a.symbol).localeCompare(String(b.symbol))
-        );
-
-        body.innerHTML = entries.map(item => {
-            const tfs = item.timeframes || {};
-            const signal = item.signal || null;
-
-            function tfBias(tf) {
-                const bias = tfs[tf]?.bias || "--";
-
-                return `
-                    <span class="${biasClass(bias)}">
-                        ${escapeHTML(bias)}
-                    </span>
-                `;
-            }
-
-            return `
-                <tr>
-                    <td><b>${escapeHTML(item.symbol)}</b></td>
-                    <td>${number(item.price)}</td>
-                    <td>${tfBias("1d")}</td>
-                    <td>${tfBias("4h")}</td>
-                    <td>${tfBias("1h")}</td>
-                    <td>${tfBias("15m")}</td>
-                    <td class="${directionClass(signal?.direction)}">
-                        ${escapeHTML(signal?.direction || "WAIT")}
-                    </td>
-                    <td>${signal ? number(signal.score, 0) + "/100" : "--"}</td>
-                    <td>${escapeHTML(timeText(item.updated_at))}</td>
-                </tr>
-            `;
-        }).join("");
-    }
-
-    function updateSymbolSelector(market) {
-        const selector = document.getElementById("symbolSelect");
-
-        const symbols = Object.keys(market).sort();
-
-        const previous = selector.value;
-
-        if (!symbols.length) return;
-
-        selector.innerHTML = symbols.map(symbol => `
-            <option value="${escapeHTML(symbol)}">
-                ${escapeHTML(symbol)}
-            </option>
-        `).join("");
-
-        if (symbols.includes(previous)) {
-            selector.value = previous;
-        }
-    }
-
-    function renderSelectedAnalysis() {
-        if (!dashboardData) return;
-
-        const symbol =
-            document.getElementById("symbolSelect").value;
-
-        const market = dashboardData.market || {};
-        const item = market[symbol];
-
-        const container =
-            document.getElementById("analysisContainer");
-
-        if (!item || !item.timeframes) {
-            container.innerHTML =
-                '<div class="empty">Analysis unavailable</div>';
-            return;
-        }
-
-        const timeframes = item.timeframes;
-
-        container.innerHTML = `
-            <div style="margin-bottom:12px">
-                <b>${escapeHTML(symbol)}</b>
-                &nbsp; Current Price:
-                <span class="blue">${number(item.price)}</span>
-            </div>
-
-            <div class="timeframe-box">
-                ${["1d", "4h", "1h", "15m"].map(tf => {
-                    const a = timeframes[tf] || {};
-
-                    return `
-                        <div class="timeframe-card">
-                            <h3>${escapeHTML(tf.toUpperCase())}</h3>
-
-                            <div class="${biasClass(a.bias)}">
-                                <b>${escapeHTML(a.bias || "UNKNOWN")}</b>
-                            </div>
-
-                            <div class="small-value" style="margin-top:10px">
-                                EMA20: ${number(a.ema20)}<br>
-                                EMA50: ${number(a.ema50)}<br>
-                                EMA200: ${number(a.ema200)}<br>
-                                RSI: ${number(a.rsi, 2)}<br>
-                                ATR: ${number(a.atr)}<br>
-                                Volume Ratio: ${number(a.volume_ratio, 2)}x
-                            </div>
-
-                            <div class="reason">
-                                Support: ${number(a.support)}<br>
-                                Resistance: ${number(a.resistance)}<br>
-                                Bullish BOS: ${a.bullish_bos ? "Yes" : "No"}<br>
-                                Bearish BOS: ${a.bearish_bos ? "Yes" : "No"}<br>
-                                Low Sweep: ${a.sweep_low ? "Yes" : "No"}<br>
-                                High Sweep: ${a.sweep_high ? "Yes" : "No"}<br>
-                                Bullish FVG: ${a.bullish_fvg ? "Yes" : "No"}<br>
-                                Bearish FVG: ${a.bearish_fvg ? "Yes" : "No"}
-                            </div>
-                        </div>
-                    `;
-                }).join("")}
-            </div>
-        `;
-    }
-
-    function renderLogs(logs) {
-        const container = document.getElementById("logsContainer");
-
-        if (!logs.length) {
-            container.innerHTML =
-                '<div class="empty">No system logs yet</div>';
-            return;
-        }
-
-        container.innerHTML = logs.slice(0, 30).map(log => `
-            <div class="signal-card" style="padding:10px">
-                <div class="signal-head" style="margin-bottom:4px">
-                    <span class="muted">
-                        ${escapeHTML(timeText(log.time))}
-                    </span>
-
-                    <span class="${
-                        log.level === "ERROR" ? "red" : "blue"
-                    }">
-                        ${escapeHTML(log.level || "INFO")}
-                    </span>
-                </div>
-
-                <div class="small-value">
-                    ${escapeHTML(log.message)}
-                </div>
-            </div>
-        `).join("");
-    }
-
-    refreshDashboard();
-
-    // Fetch updated values every 15 seconds without reloading the page.
-    setInterval(refreshDashboard, 15000);
-
-    // Display Pakistan time locally in the browser.
-    setInterval(() => {
-        document.getElementById("pktTime").textContent =
-            new Date().toLocaleString("en-GB", {
-                timeZone: "Asia/Karachi",
-                hour12: false
-            });
-    }, 1000);
+/* GitHub Pages is static: read the JSON generated by main.py, not /api/dashboard. */
+const API_URL = "./dashboard.json";
+let dashboardData = null, requestInProgress = false;
+
+function escapeHTML(value){return String(value ?? "").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));}
+function number(value,decimals=4){const n=Number(value);if(!Number.isFinite(n))return "--";return n.toLocaleString("en-US",{maximumFractionDigits:decimals});}
+function timeText(value){if(!value)return "--";const date=new Date(value);if(Number.isNaN(date.getTime()))return String(value);return date.toLocaleString("en-GB",{timeZone:"Asia/Karachi",hour12:false});}
+function directionClass(d){return d==="BUY"?"green":d==="SELL"?"red":"muted";}
+function biasClass(b){return b==="BULLISH"?"green":b==="BEARISH"?"red":"orange";}
+function resultClass(r){return r==="WIN"?"green":r==="LOSS"?"red":"muted";}
+async function fetchJSON(url){const response=await fetch(url+(url.includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"});if(!response.ok)throw new Error("HTTP "+response.status);return await response.json();}
+
+async function refreshDashboard(){
+ if(requestInProgress)return;requestInProgress=true;
+ try{
+  const data=await fetchJSON(API_URL);dashboardData=data;renderDashboard(data);
+  document.getElementById("errorMessage").textContent="";
+ }catch(error){
+  const s=document.getElementById("systemStatus");s.textContent="DATA NOT AVAILABLE";s.className="badge error";
+  document.getElementById("errorMessage").textContent="dashboard.json نہیں مل رہی یا ابھی شائع نہیں ہوئی: "+error.message+". GitHub repository میں root پر dashboard.json چیک کریں۔";
+ }finally{requestInProgress=false;}
+}
+function renderDashboard(data){
+ const status=data.status||"UNKNOWN",se=document.getElementById("systemStatus");
+ se.textContent=status;se.className=status==="RUNNING"?"badge running":"badge error";
+ document.getElementById("pktTime").textContent=timeText(data.server_time_pkt);
+ document.getElementById("lastScan").textContent=timeText(data.last_scan);
+ document.getElementById("coinCount").textContent=number(data.symbols_count,0);
+ const p=data.performance||{};
+ document.getElementById("activeCount").textContent=number(p.active_trades,0);
+ document.getElementById("closedCount").textContent=number(p.closed_trades,0);
+ document.getElementById("wins").textContent=number(p.wins,0);
+ document.getElementById("losses").textContent=number(p.losses,0);
+ const wr=Number(p.win_rate||0);document.getElementById("winRate").textContent=number(wr,2)+"%";
+ document.getElementById("winBar").style.width=Math.max(0,Math.min(100,wr))+"%";
+ const pnl=Number(p.total_pnl_percent||0),pe=document.getElementById("totalPnl");
+ pe.textContent=number(pnl,4)+"%";pe.className="value "+(pnl>=0?"green":"red");
+ renderSignals(data.signals||[]);renderActiveTrades(data.active_trades||[]);renderClosedTrades(data.closed_trades||[]);
+ renderMarket(data.market||{});renderLogs(data.logs||[]);updateSymbolSelector(data.market||{});renderSelectedAnalysis();
+}
+function renderSignals(signals){
+ const c=document.getElementById("signalsContainer");
+ if(!signals.length){c.innerHTML='<div class="empty">No qualifying signals at the latest scan.</div>';return;}
+ c.innerHTML=signals.map(s=>{
+  const d=escapeHTML(s.direction),sym=escapeHTML(s.symbol),reasons=Array.isArray(s.reasons)?s.reasons.map(escapeHTML).join(" • "):"No reason details";
+  const score=Math.max(0,Math.min(100,Number(s.score||0)));
+  return `<div class="signal-card"><div class="signal-head"><div><div class="signal-symbol">${sym}</div><span class="${directionClass(d)}">${d}</span> <span class="badge">15M confirmation</span></div><span class="badge">Score ${score}/100</span></div>
+  <div class="signal-details"><div class="detail"><div class="label">Entry</div><div>${number(s.entry)}</div></div><div class="detail"><div class="label">Stop Loss</div><div class="red">${number(s.stop_loss)}</div></div><div class="detail"><div class="label">Take Profit</div><div class="green">${number(s.take_profit)}</div></div><div class="detail"><div class="label">Risk / Reward</div><div>${number(s.risk_reward,2)} R</div></div></div>
+  <div class="bar"><div class="bar-fill" style="width:${score}%"></div></div><div class="reason"><b>Signal reasons:</b> ${reasons}</div>
+  <div class="muted" style="margin-top:8px;font-size:12px">Created: ${escapeHTML(timeText(s.created_at))}<br>${escapeHTML(s.score_note||"")}</div></div>`;
+ }).join("");
+}
+function renderActiveTrades(trades){
+ const b=document.getElementById("activeTradesBody");
+ if(!trades.length){b.innerHTML='<tr><td colspan="9" class="empty">No active paper trades</td></tr>';return;}
+ b.innerHTML=trades.map(t=>{const pnl=Number(t.pnl_percent||0);return `<tr><td><b>${escapeHTML(t.symbol)}</b></td><td class="${directionClass(t.direction)}">${escapeHTML(t.direction)}</td><td>${number(t.entry)}</td><td>${number(t.current_price)}</td><td class="red">${number(t.stop_loss)}</td><td class="green">${number(t.take_profit)}</td><td class="${pnl>=0?"green":"red"}">${number(pnl,4)}%</td><td>${number(t.score,0)}/100</td><td>${escapeHTML(timeText(t.opened_at))}</td></tr>`;}).join("");
+}
+function renderClosedTrades(trades){
+ const b=document.getElementById("closedTradesBody");
+ if(!trades.length){b.innerHTML='<tr><td colspan="8" class="empty">No closed trades yet</td></tr>';return;}
+ b.innerHTML=trades.map(t=>`<tr><td><b>${escapeHTML(t.symbol)}</b></td><td class="${directionClass(t.direction)}">${escapeHTML(t.direction)}</td><td>${number(t.entry)}</td><td>${number(t.exit_price)}</td><td class="${resultClass(t.result)}">${escapeHTML(t.result||"--")}</td><td class="${Number(t.pnl_percent||0)>=0?"green":"red"}">${number(t.pnl_percent,4)}%</td><td>${escapeHTML(timeText(t.opened_at))}</td><td>${escapeHTML(timeText(t.closed_at))}</td></tr>`).join("");
+}
+function renderMarket(market){
+ const b=document.getElementById("marketBody"),entries=Object.values(market||{});
+ if(!entries.length){b.innerHTML='<tr><td colspan="9" class="empty">Waiting for scanner data...</td></tr>';return;}
+ entries.sort((a,b)=>String(a.symbol).localeCompare(String(b.symbol)));
+ b.innerHTML=entries.map(i=>{const tf=i.timeframes||{},s=i.signal||null;function bias(k){const x=tf[k]?.bias||"--";return `<span class="${biasClass(x)}">${escapeHTML(x)}</span>`;}
+ return `<tr><td><b>${escapeHTML(i.symbol)}</b></td><td>${number(i.price)}</td><td>${bias("1d")}</td><td>${bias("4h")}</td><td>${bias("1h")}</td><td>${bias("15m")}</td><td class="${directionClass(s?.direction)}">${escapeHTML(s?.direction||"WAIT")}</td><td>${s?number(s.score,0)+"/100":"--"}</td><td>${escapeHTML(timeText(i.updated_at))}</td></tr>`;}).join("");
+}
+function updateSymbolSelector(market){
+ const sel=document.getElementById("symbolSelect"),symbols=Object.keys(market||{}).sort(),previous=sel.value;if(!symbols.length)return;
+ sel.innerHTML=symbols.map(s=>`<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join("");if(symbols.includes(previous))sel.value=previous;
+}
+function renderSelectedAnalysis(){
+ if(!dashboardData)return;const symbol=document.getElementById("symbolSelect").value,item=(dashboardData.market||{})[symbol],c=document.getElementById("analysisContainer");
+ if(!item||!item.timeframes){c.innerHTML='<div class="empty">Analysis unavailable</div>';return;}
+ c.innerHTML=`<div style="margin-bottom:12px"><b>${escapeHTML(symbol)}</b> &nbsp; Current Price: <span class="blue">${number(item.price)}</span></div><div class="timeframe-box">
+ ${["1d","4h","1h","15m"].map(tf=>{const a=item.timeframes[tf]||{};return `<div class="timeframe-card"><h3>${escapeHTML(tf.toUpperCase())}</h3><div class="${biasClass(a.bias)}"><b>${escapeHTML(a.bias||"UNKNOWN")}</b></div><div class="small-value" style="margin-top:10px">EMA20: ${number(a.ema20)}<br>EMA50: ${number(a.ema50)}<br>EMA200: ${number(a.ema200)}<br>RSI: ${number(a.rsi,2)}<br>ATR: ${number(a.atr)}<br>Volume Ratio: ${number(a.volume_ratio,2)}x</div><div class="reason">Support: ${number(a.support)}<br>Resistance: ${number(a.resistance)}<br>Bullish BOS: ${a.bullish_bos?"Yes":"No"}<br>Bearish BOS: ${a.bearish_bos?"Yes":"No"}<br>Low Sweep: ${a.sweep_low?"Yes":"No"}<br>High Sweep: ${a.sweep_high?"Yes":"No"}<br>Bullish FVG: ${a.bullish_fvg?"Yes":"No"}<br>Bearish FVG: ${a.bearish_fvg?"Yes":"No"}</div></div>`;}).join("")}</div>`;
+}
+function renderLogs(logs){
+ const c=document.getElementById("logsContainer");if(!logs.length){c.innerHTML='<div class="empty">No logs yet</div>';return;}
+ c.innerHTML=logs.slice(0,30).map(l=>`<div class="signal-card" style="padding:10px"><div class="signal-head" style="margin-bottom:4px"><span class="muted">${escapeHTML(timeText(l.time))}</span><span class="${l.level==="ERROR"?"red":"blue"}">${escapeHTML(l.level||"INFO")}</span></div><div class="small-value">${escapeHTML(l.message)}</div></div>`).join("");
+}
+refreshDashboard();
+setInterval(refreshDashboard,15000);
+setInterval(()=>{document.getElementById("pktTime").textContent=new Date().toLocaleString("en-GB",{timeZone:"Asia/Karachi",hour12:false});},1000);
 </script>
-
 </body>
-</html>
+    </html>
