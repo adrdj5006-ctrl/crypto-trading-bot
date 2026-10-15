@@ -1,8 +1,19 @@
+name: MARKET BRAIN AI
+
+on:
+workflow_dispatch:
+
+permissions:
+contents: write
+
+jobs:
+check-bot:
+runs-on: ubuntu-latest
+timeout-minutes: 10
+
 steps:
   - name: Checkout repository
     uses: actions/checkout@v4
-    with:
-      fetch-depth: 0
 
   - name: Setup Python
     uses: actions/setup-python@v5
@@ -14,28 +25,13 @@ steps:
       python -m pip install --upgrade pip
       pip install requests pandas numpy flask gunicorn
 
-  - name: Check Python syntax
-    run: |
-      python -m py_compile main.py
-
-  - name: Check dashboard files
+  - name: Check required files
     run: |
       test -f main.py
       test -f templates/index.html
-      echo "Python and dashboard files found."
+      echo "Required files found."
 
-  - name: Save trade memory
-    if: always()
+  - name: Check Python syntax
     run: |
-      git config user.name "market-brain-bot"
-      git config user.email "market-brain-bot@users.noreply.github.com"
-
-      git add market_brain_data
-
-      if git diff --cached --quiet; then
-        echo "No memory changes to save."
-      else
-        git commit -m "Save Market Brain trade memory"
-        git push origin HEAD:main
-      fi
-      
+      python -m py_compile main.py
+      echo "Python syntax is correct."
