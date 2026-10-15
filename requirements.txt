@@ -2,4 +2,5 @@ pandas
 numpy
 pytz
 requests
-
+Flask
+gunicorn
