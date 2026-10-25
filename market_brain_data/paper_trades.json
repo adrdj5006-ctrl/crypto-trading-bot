@@ -23,8 +23,8 @@
       "id": "DOGEUSDT-SELL-1792834478",
       "opened_at": "2026-10-24T14:34:38+05:00",
       "exit_price": null,
-      "pnl_percent": -0.0777,
-      "current_price": 0.07729
+      "pnl_percent": 0.0388,
+      "current_price": 0.0772
     },
     {
       "symbol": "ARBUSDT",
@@ -49,8 +49,8 @@
       "id": "ARBUSDT-SELL-1792801977",
       "opened_at": "2026-10-24T05:32:57+05:00",
       "exit_price": null,
-      "pnl_percent": -0.9524,
-      "current_price": 0.1696
+      "pnl_percent": -1.3095,
+      "current_price": 0.1702
     }
   ],
   "closed": [
