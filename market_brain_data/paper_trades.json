@@ -22,8 +22,8 @@
       "id": "APTUSDT-SELL-1793601754",
       "opened_at": "2026-11-02T11:42:34+05:00",
       "exit_price": null,
-      "pnl_percent": 0.2557,
-      "current_price": 0.6242
+      "pnl_percent": -0.1918,
+      "current_price": 0.627
     },
     {
       "symbol": "ADAUSDT",
@@ -47,8 +47,8 @@
       "id": "ADAUSDT-SELL-1793601754",
       "opened_at": "2026-11-02T11:42:34+05:00",
       "exit_price": null,
-      "pnl_percent": 0.2622,
-      "current_price": 0.1902
+      "pnl_percent": 0.1049,
+      "current_price": 0.1905
     },
     {
       "symbol": "ATOMUSDT",
@@ -72,8 +72,8 @@
       "id": "ATOMUSDT-SELL-1793327903",
       "opened_at": "2026-10-30T07:38:23+05:00",
       "exit_price": null,
-      "pnl_percent": 3.716,
-      "current_price": 1.451
+      "pnl_percent": 4.3796,
+      "current_price": 1.441
     },
     {
       "symbol": "DOGEUSDT",
@@ -98,8 +98,8 @@
       "id": "DOGEUSDT-SELL-1792834478",
       "opened_at": "2026-10-24T14:34:38+05:00",
       "exit_price": null,
-      "pnl_percent": 2.4472,
-      "current_price": 0.07534
+      "pnl_percent": 2.6285,
+      "current_price": 0.0752
     },
     {
       "symbol": "ARBUSDT",
@@ -124,8 +124,8 @@
       "id": "ARBUSDT-SELL-1792801977",
       "opened_at": "2026-10-24T05:32:57+05:00",
       "exit_price": null,
-      "pnl_percent": 4.5238,
-      "current_price": 0.1604
+      "pnl_percent": 5.4167,
+      "current_price": 0.1589
     }
   ],
   "closed": [
