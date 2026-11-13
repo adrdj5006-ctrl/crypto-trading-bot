@@ -22,8 +22,8 @@
       "id": "XRPUSDT-SELL-1794439768",
       "opened_at": "2026-11-12T04:29:28+05:00",
       "exit_price": null,
-      "pnl_percent": 1.1109,
-      "current_price": 1.0326
+      "pnl_percent": 1.4174,
+      "current_price": 1.0294
     },
     {
       "symbol": "DOGEUSDT",
@@ -47,8 +47,8 @@
       "id": "DOGEUSDT-SELL-1794206270",
       "opened_at": "2026-11-09T11:37:50+05:00",
       "exit_price": null,
-      "pnl_percent": 3.6731,
-      "current_price": 0.06635
+      "pnl_percent": 6.2137,
+      "current_price": 0.0646
     },
     {
       "symbol": "ADAUSDT",
@@ -72,8 +72,8 @@
       "id": "ADAUSDT-SELL-1794206270",
       "opened_at": "2026-11-09T11:37:50+05:00",
       "exit_price": null,
-      "pnl_percent": -0.345,
-      "current_price": 0.1745
+      "pnl_percent": 2.0127,
+      "current_price": 0.1704
     },
     {
       "symbol": "APTUSDT",
@@ -97,8 +97,8 @@
       "id": "APTUSDT-SELL-1793896914",
       "opened_at": "2026-11-05T21:41:54+05:00",
       "exit_price": null,
-      "pnl_percent": 6.4944,
-      "current_price": 0.5572
+      "pnl_percent": 9.1962,
+      "current_price": 0.5411
     },
     {
       "symbol": "DOTUSDT",
@@ -122,8 +122,8 @@
       "id": "DOTUSDT-SELL-1793896914",
       "opened_at": "2026-11-05T21:41:54+05:00",
       "exit_price": null,
-      "pnl_percent": 8.7241,
-      "current_price": 0.837
+      "pnl_percent": 9.9237,
+      "current_price": 0.826
     },
     {
       "symbol": "ATOMUSDT",
@@ -147,8 +147,8 @@
       "id": "ATOMUSDT-SELL-1793327903",
       "opened_at": "2026-10-30T07:38:23+05:00",
       "exit_price": null,
-      "pnl_percent": 5.9058,
-      "current_price": 1.418
+      "pnl_percent": 7.4983,
+      "current_price": 1.394
     },
     {
       "symbol": "ARBUSDT",
@@ -173,8 +173,8 @@
       "id": "ARBUSDT-SELL-1792801977",
       "opened_at": "2026-10-24T05:32:57+05:00",
       "exit_price": null,
-      "pnl_percent": 10.1786,
-      "current_price": 0.1509
+      "pnl_percent": 13.1548,
+      "current_price": 0.1459
     }
   ],
   "closed": [
