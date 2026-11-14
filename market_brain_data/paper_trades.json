@@ -22,8 +22,8 @@
       "id": "DOTUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": -0.2618,
-      "current_price": 0.766
+      "pnl_percent": 4.1885,
+      "current_price": 0.732
     },
     {
       "symbol": "DOGEUSDT",
@@ -48,8 +48,8 @@
       "id": "DOGEUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 0.0654,
-      "current_price": 0.06108
+      "pnl_percent": 3.4686,
+      "current_price": 0.059
     },
     {
       "symbol": "TRXUSDT",
@@ -73,58 +73,8 @@
       "id": "TRXUSDT-SELL-1794623910",
       "opened_at": "2026-11-14T07:38:30+05:00",
       "exit_price": null,
-      "pnl_percent": 0.4815,
-      "current_price": 0.31
-    },
-    {
-      "symbol": "XRPUSDT",
-      "direction": "SELL",
-      "score": 67,
-      "entry": 1.0442,
-      "stop_loss": 1.0808,
-      "take_profit": 0.9710000000000001,
-      "risk_reward": 2.0,
-      "reasons": [
-        "1D bearish trend",
-        "4H bearish structure",
-        "1H bearish trend",
-        "15M bearish breakdown",
-        "Strong bearish volume"
-      ],
-      "status": "ACTIVE",
-      "created_at": "2026-11-12T04:29:19+05:00",
-      "timeframe": "15M",
-      "score_note": "Rule-based score; not a win probability.",
-      "id": "XRPUSDT-SELL-1794439768",
-      "opened_at": "2026-11-12T04:29:28+05:00",
-      "exit_price": null,
-      "pnl_percent": 6.9335,
-      "current_price": 0.9718
-    },
-    {
-      "symbol": "APTUSDT",
-      "direction": "SELL",
-      "score": 65,
-      "entry": 0.5959,
-      "stop_loss": 0.6507,
-      "take_profit": 0.48630000000000007,
-      "risk_reward": 2.0,
-      "reasons": [
-        "1D bearish trend",
-        "4H bearish structure",
-        "4H bearish breakdown",
-        "1H bearish trend",
-        "1H bearish FVG"
-      ],
-      "status": "ACTIVE",
-      "created_at": "2026-11-05T21:41:51+05:00",
-      "timeframe": "15M",
-      "score_note": "Rule-based score; not a win probability.",
-      "id": "APTUSDT-SELL-1793896914",
-      "opened_at": "2026-11-05T21:41:54+05:00",
-      "exit_price": null,
-      "pnl_percent": 17.8721,
-      "current_price": 0.4894
+      "pnl_percent": 1.0594,
+      "current_price": 0.3082
     },
     {
       "symbol": "ATOMUSDT",
@@ -148,9 +98,11 @@
       "id": "ATOMUSDT-SELL-1793327903",
       "opened_at": "2026-10-30T07:38:23+05:00",
       "exit_price": null,
-      "pnl_percent": 12.276,
-      "current_price": 1.322
-    },
+      "pnl_percent": 14.9967,
+      "current_price": 1.281
+    }
+  ],
+  "closed": [
     {
       "symbol": "ARBUSDT",
       "direction": "SELL",
@@ -167,18 +119,72 @@
         "15M bearish breakdown",
         "Strong bearish volume"
       ],
-      "status": "ACTIVE",
+      "status": "CLOSED",
       "created_at": "2026-10-24T05:32:52+05:00",
       "timeframe": "15M",
       "score_note": "Rule-based score; not a win probability.",
       "id": "ARBUSDT-SELL-1792801977",
       "opened_at": "2026-10-24T05:32:57+05:00",
-      "exit_price": null,
-      "pnl_percent": 17.7381,
-      "current_price": 0.1382
-    }
-  ],
-  "closed": [
+      "exit_price": 0.1285,
+      "pnl_percent": 23.5119,
+      "current_price": 0.1285,
+      "result": "WIN",
+      "closed_at": "2026-11-15T01:39:47+05:00"
+    },
+    {
+      "symbol": "APTUSDT",
+      "direction": "SELL",
+      "score": 65,
+      "entry": 0.5959,
+      "stop_loss": 0.6507,
+      "take_profit": 0.48630000000000007,
+      "risk_reward": 2.0,
+      "reasons": [
+        "1D bearish trend",
+        "4H bearish structure",
+        "4H bearish breakdown",
+        "1H bearish trend",
+        "1H bearish FVG"
+      ],
+      "status": "CLOSED",
+      "created_at": "2026-11-05T21:41:51+05:00",
+      "timeframe": "15M",
+      "score_note": "Rule-based score; not a win probability.",
+      "id": "APTUSDT-SELL-1793896914",
+      "opened_at": "2026-11-05T21:41:54+05:00",
+      "exit_price": 0.4581,
+      "pnl_percent": 23.1247,
+      "current_price": 0.4581,
+      "result": "WIN",
+      "closed_at": "2026-11-15T01:39:47+05:00"
+    },
+    {
+      "symbol": "XRPUSDT",
+      "direction": "SELL",
+      "score": 67,
+      "entry": 1.0442,
+      "stop_loss": 1.0808,
+      "take_profit": 0.9710000000000001,
+      "risk_reward": 2.0,
+      "reasons": [
+        "1D bearish trend",
+        "4H bearish structure",
+        "1H bearish trend",
+        "15M bearish breakdown",
+        "Strong bearish volume"
+      ],
+      "status": "CLOSED",
+      "created_at": "2026-11-12T04:29:19+05:00",
+      "timeframe": "15M",
+      "score_note": "Rule-based score; not a win probability.",
+      "id": "XRPUSDT-SELL-1794439768",
+      "opened_at": "2026-11-12T04:29:28+05:00",
+      "exit_price": 0.9405,
+      "pnl_percent": 9.931,
+      "current_price": 0.9405,
+      "result": "WIN",
+      "closed_at": "2026-11-15T01:39:46+05:00"
+    },
     {
       "symbol": "ADAUSDT",
       "direction": "SELL",
