@@ -22,8 +22,8 @@
       "id": "TRXUSDT-SELL-1794809578",
       "opened_at": "2026-11-16T11:12:58+05:00",
       "exit_price": null,
-      "pnl_percent": -0.9574,
-      "current_price": 0.3058
+      "pnl_percent": -1.3206,
+      "current_price": 0.3069
     },
     {
       "symbol": "OPUSDT",
@@ -47,8 +47,8 @@
       "id": "OPUSDT-SELL-1794754022",
       "opened_at": "2026-11-15T19:47:02+05:00",
       "exit_price": null,
-      "pnl_percent": 3.8557,
-      "current_price": 0.0773
+      "pnl_percent": 5.7214,
+      "current_price": 0.0758
     },
     {
       "symbol": "XRPUSDT",
@@ -72,8 +72,8 @@
       "id": "XRPUSDT-SELL-1794754022",
       "opened_at": "2026-11-15T19:47:02+05:00",
       "exit_price": null,
-      "pnl_percent": -0.5122,
-      "current_price": 0.9616
+      "pnl_percent": 0.0941,
+      "current_price": 0.9558
     },
     {
       "symbol": "DOTUSDT",
@@ -97,8 +97,8 @@
       "id": "DOTUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 3.9267,
-      "current_price": 0.734
+      "pnl_percent": 4.9738,
+      "current_price": 0.726
     },
     {
       "symbol": "DOGEUSDT",
@@ -123,8 +123,8 @@
       "id": "DOGEUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 3.305,
-      "current_price": 0.0591
+      "pnl_percent": 4.3521,
+      "current_price": 0.05846
     },
     {
       "symbol": "ATOMUSDT",
@@ -148,8 +148,8 @@
       "id": "ATOMUSDT-SELL-1793327903",
       "opened_at": "2026-10-30T07:38:23+05:00",
       "exit_price": null,
-      "pnl_percent": 11.8779,
-      "current_price": 1.328
+      "pnl_percent": 13.0723,
+      "current_price": 1.31
     }
   ],
   "closed": [
