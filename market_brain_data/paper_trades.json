@@ -23,8 +23,8 @@
       "id": "BTCUSDT-SELL-1795019369",
       "opened_at": "2026-11-18T21:29:29+05:00",
       "exit_price": null,
-      "pnl_percent": 2.3809,
-      "current_price": 61297.48
+      "pnl_percent": 3.0107,
+      "current_price": 60902.01
     },
     {
       "symbol": "DOTUSDT",
@@ -48,8 +48,8 @@
       "id": "DOTUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 12.9581,
-      "current_price": 0.665
+      "pnl_percent": 13.3508,
+      "current_price": 0.662
     },
     {
       "symbol": "DOGEUSDT",
@@ -74,8 +74,8 @@
       "id": "DOGEUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 9.2605,
-      "current_price": 0.05546
+      "pnl_percent": 9.7677,
+      "current_price": 0.05515
     }
   ],
   "closed": [
