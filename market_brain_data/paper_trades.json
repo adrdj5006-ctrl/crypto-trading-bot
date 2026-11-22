@@ -1,31 +1,6 @@
 {
   "active": [
     {
-      "symbol": "OPUSDT",
-      "direction": "SELL",
-      "score": 65,
-      "entry": 0.0704,
-      "stop_loss": 0.07139044249028512,
-      "take_profit": 0.06841911501942978,
-      "risk_reward": 2.0,
-      "reasons": [
-        "1D bearish trend",
-        "4H bearish structure",
-        "1H bearish trend",
-        "15M liquidity sweep",
-        "Strong bearish volume"
-      ],
-      "status": "ACTIVE",
-      "created_at": "2026-11-22T13:39:56+05:00",
-      "timeframe": "15M",
-      "score_note": "Rule-based score; not a win probability.",
-      "id": "OPUSDT-SELL-1795336803",
-      "opened_at": "2026-11-22T13:40:03+05:00",
-      "exit_price": null,
-      "pnl_percent": -1.1364,
-      "current_price": 0.0712
-    },
-    {
       "symbol": "BTCUSDT",
       "direction": "SELL",
       "score": 65,
@@ -48,8 +23,8 @@
       "id": "BTCUSDT-SELL-1795019369",
       "opened_at": "2026-11-18T21:29:29+05:00",
       "exit_price": null,
-      "pnl_percent": 4.1884,
-      "current_price": 60162.48
+      "pnl_percent": 2.3809,
+      "current_price": 61297.48
     },
     {
       "symbol": "DOTUSDT",
@@ -73,8 +48,8 @@
       "id": "DOTUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 14.0052,
-      "current_price": 0.657
+      "pnl_percent": 12.9581,
+      "current_price": 0.665
     },
     {
       "symbol": "DOGEUSDT",
@@ -99,11 +74,38 @@
       "id": "DOGEUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 9.8822,
-      "current_price": 0.05508
+      "pnl_percent": 9.2605,
+      "current_price": 0.05546
     }
   ],
   "closed": [
+    {
+      "symbol": "OPUSDT",
+      "direction": "SELL",
+      "score": 65,
+      "entry": 0.0704,
+      "stop_loss": 0.07139044249028512,
+      "take_profit": 0.06841911501942978,
+      "risk_reward": 2.0,
+      "reasons": [
+        "1D bearish trend",
+        "4H bearish structure",
+        "1H bearish trend",
+        "15M liquidity sweep",
+        "Strong bearish volume"
+      ],
+      "status": "CLOSED",
+      "created_at": "2026-11-22T13:39:56+05:00",
+      "timeframe": "15M",
+      "score_note": "Rule-based score; not a win probability.",
+      "id": "OPUSDT-SELL-1795336803",
+      "opened_at": "2026-11-22T13:40:03+05:00",
+      "exit_price": 0.0718,
+      "pnl_percent": -1.9886,
+      "current_price": 0.0718,
+      "result": "LOSS",
+      "closed_at": "2026-11-22T21:40:32+05:00"
+    },
     {
       "symbol": "ADAUSDT",
       "direction": "SELL",
