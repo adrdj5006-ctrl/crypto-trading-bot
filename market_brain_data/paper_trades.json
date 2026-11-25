@@ -1,6 +1,81 @@
 {
   "active": [
     {
+      "symbol": "SUIUSDT",
+      "direction": "SELL",
+      "score": 65,
+      "entry": 0.6293,
+      "stop_loss": 0.6537,
+      "take_profit": 0.5805,
+      "risk_reward": 2.0,
+      "reasons": [
+        "1D bearish trend",
+        "4H bearish structure",
+        "4H bearish breakdown",
+        "1H bearish trend",
+        "1H bearish FVG"
+      ],
+      "status": "ACTIVE",
+      "created_at": "2026-11-25T18:34:07+05:00",
+      "timeframe": "15M",
+      "score_note": "Rule-based score; not a win probability.",
+      "id": "SUIUSDT-SELL-1795613652",
+      "opened_at": "2026-11-25T18:34:12+05:00",
+      "exit_price": null,
+      "pnl_percent": 0.7469,
+      "current_price": 0.6246
+    },
+    {
+      "symbol": "AVAXUSDT",
+      "direction": "SELL",
+      "score": 65,
+      "entry": 6.421,
+      "stop_loss": 6.623,
+      "take_profit": 6.017,
+      "risk_reward": 2.0,
+      "reasons": [
+        "1D bearish trend",
+        "4H bearish structure",
+        "4H bearish breakdown",
+        "1H bearish trend",
+        "1H bearish FVG"
+      ],
+      "status": "ACTIVE",
+      "created_at": "2026-11-25T18:34:04+05:00",
+      "timeframe": "15M",
+      "score_note": "Rule-based score; not a win probability.",
+      "id": "AVAXUSDT-SELL-1795613652",
+      "opened_at": "2026-11-25T18:34:12+05:00",
+      "exit_price": null,
+      "pnl_percent": 0.7164,
+      "current_price": 6.375
+    },
+    {
+      "symbol": "ADAUSDT",
+      "direction": "SELL",
+      "score": 65,
+      "entry": 0.1395,
+      "stop_loss": 0.1462,
+      "take_profit": 0.12610000000000005,
+      "risk_reward": 2.0,
+      "reasons": [
+        "1D bearish trend",
+        "4H bearish structure",
+        "4H bearish breakdown",
+        "1H bearish trend",
+        "1H bearish FVG"
+      ],
+      "status": "ACTIVE",
+      "created_at": "2026-11-25T18:34:03+05:00",
+      "timeframe": "15M",
+      "score_note": "Rule-based score; not a win probability.",
+      "id": "ADAUSDT-SELL-1795613652",
+      "opened_at": "2026-11-25T18:34:12+05:00",
+      "exit_price": null,
+      "pnl_percent": 0.5735,
+      "current_price": 0.1387
+    },
+    {
       "symbol": "BTCUSDT",
       "direction": "SELL",
       "score": 65,
@@ -23,8 +98,8 @@
       "id": "BTCUSDT-SELL-1795019369",
       "opened_at": "2026-11-18T21:29:29+05:00",
       "exit_price": null,
-      "pnl_percent": 5.2932,
-      "current_price": 59468.74
+      "pnl_percent": 6.8494,
+      "current_price": 58491.56
     },
     {
       "symbol": "DOTUSDT",
@@ -48,8 +123,8 @@
       "id": "DOTUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 14.5288,
-      "current_price": 0.653
+      "pnl_percent": 17.6702,
+      "current_price": 0.629
     },
     {
       "symbol": "DOGEUSDT",
@@ -74,8 +149,8 @@
       "id": "DOGEUSDT-SELL-1794672034",
       "opened_at": "2026-11-14T21:00:34+05:00",
       "exit_price": null,
-      "pnl_percent": 10.3567,
-      "current_price": 0.05479
+      "pnl_percent": 12.7945,
+      "current_price": 0.0533
     }
   ],
   "closed": [
